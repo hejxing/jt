@@ -1,0 +1,119 @@
+351 => T_ABSTRACT,// abstract 	抽象类（自 PHP 5.0.0 起可用）
+273 => T_AND_EQUAL,// 	&= 	赋值运算符
+366 => T_ARRAY,// 	array() 	array()，数组语法
+294 => T_ARRAY_CAST,// 	(array) 	类型转换
+329 => T_AS,// 	as 	foreach
+316 => T_BAD_CHARACTER,//314 	  	在 ASCII 32 之前除了 \t (0x09), \n (0x0a) 和 \r (0x0d) 以外的任何字符
+281 => T_BOOLEAN_AND,// 	&& 	逻辑运算符
+280 => T_BOOLEAN_OR,// 	|| 	逻辑运算符
+292 => T_BOOL_CAST,// 	(bool) 或 (boolean) 	类型转换
+334 => T_BREAK,// 	break 	break
+332 => T_CASE,// 	case 	switch
+341 => T_CATCH,// 	catch 	异常处理（自 PHP 5.0.0 起可用）
+315 => T_CHARACTER,//
+358 => T_CLASS,// 	class 	类和对象
+301 => T_CLONE,// 	clone 	类和对象。仅用于 PHP 5。
+378 => T_CLOSE_TAG,// 	?\> 或 %>
+374 => T_COMMENT,// 	// 或 #，以及 PHP 5 下的 /* */ 	注释
+275 => T_CONCAT_EQUAL,// 	.= 	赋值运算符
+338 => T_CONST,// 	const
+318 => T_CONSTANT_ENCAPSED_STRING,// 	"foo" 或 'bar' 	字符串语法
+335 => T_CONTINUE,// 	continue
+383 => T_CURLY_OPEN,//
+298 => T_DEC,// 	-- 	递增/递减运算符
+327 => T_DECLARE,// 	declare 	declare
+333 => T_DEFAULT,// 	default 	switch
+276 => T_DIV_EQUAL,// 	/= 	赋值运算符
+309 => T_DNUMBER,// 	0.12，等等 	浮点数
+375 => T_DOC_COMMENT,// 	/** */ 	PHPDoc 风格的注释（仅用于 PHP 5）
+320 => T_DO,// 	do 	do..while
+382 => T_DOLLAR_OPEN_CURLY_BRACES,// 	${ 	复杂变量解析语法
+364 => T_DOUBLE_ARROW,// 	=> 	数组语法
+296 => T_DOUBLE_CAST,// 	(real), (double) 或 (float) 	类型转换
+384 => T_DOUBLE_COLON,// 	:: 	见下面的 T_PAAMAYIM_NEKUDOTAYIM
+319 => T_ECHO,// 	echo 	echo
+306 => T_ELSE,// 	else 	else
+305 => T_ELSEIF,// 	elseif 	elseif
+356 => T_EMPTY,// 	empty 	empty()
+317 => T_ENCAPSED_AND_WHITESPACE,//
+328 => T_ENDDECLARE,// 	enddeclare 	declare，替代语法
+324 => T_ENDFOR,// 	endfor 	for，替代语法
+326 => T_ENDFOREACH,// 	endforeach 	foreach，替代语法
+307 => T_ENDIF,// 	endif 	if，替代语法
+331 => T_ENDSWITCH,// 	endswitch 	switch，替代语法
+322 => T_ENDWHILE,// 	endwhile 	while，替代语法
+381 => T_END_HEREDOC,// 	  	heredoc 语法
+260 => T_EVAL,// 	eval() 	eval()
+303 => T_EXIT,// 	exit 或 die 	exit(), die()
+361 => T_EXTENDS,// 	extends 	extends，类和对象
+373 => T_FILE,// 	__FILE__ 	常量
+350 => T_FINAL,// 	final 	Final 关键字（自 PHP 5.0.0 起可用）
+323 => T_FOR,// 	for 	for
+325 => T_FOREACH,// 	foreach 	foreach
+337 => T_FUNCTION,// 	function 或 cfunction 	函数
+346 => T_GLOBAL,// 	global 	变量范围
+357 => T_HALT_COMPILER,// 	__halt_compiler() 	__halt_compiler（自 PHP 5.1.0 起可用）
+304 => T_IF,// 	if 	if
+362 => T_IMPLEMENTS,// 	implements 	对象接口（自 PHP 5.0.0 起可用）
+299 => T_INC,// 	++ 	递增／递减运算符
+262 => T_INCLUDE,// 	include() 	include
+261 => T_INCLUDE_ONCE,// 	include_once() 	include_once
+314 => T_INLINE_HTML,//
+290 => T_INSTANCEOF,// 	instanceof 	type operators（仅 PHP5）
+297 => T_INT_CAST,// 	(int) 或 (integer) 	类型转换
+360 => T_INTERFACE,// 	interface 	对象接口（自 PHP 5.0.0 起可用）
+355 => T_ISSET,//	isset() 	isset()
+285 => T_IS_EQUAL,// 	== 	比较运算符
+286 => T_IS_GREATER_OR_EQUAL,// 	>= 	比较运算符
+283 => T_IS_IDENTICAL,// 	=== 	比较运算符
+284 => T_IS_NOT_EQUAL,// 	!= or <> 	比较运算符
+282 => T_IS_NOT_IDENTICAL,// 	!== 	比较运算符
+287 => T_IS_SMALLER_OR_EQUAL,// 	<= 	比较运算符
+372 => T_LINE,// 	__LINE__ 	常量
+365 => T_LIST,// 	list() 	list()
+308 => T_LNUMBER,// 	123，012，0x1ac，等等 	整型
+265 => T_LOGICAL_AND,// 	and 	逻辑运算符
+263 => T_LOGICAL_OR,// 	or 	逻辑运算符
+264 => T_LOGICAL_XOR,// 	xor 	逻辑运算符
+278 => T_MINUS_EQUAL,// 	-= 	赋值运算符
+274 => T_MOD_EQUAL,// 	%= 	赋值运算符
+277 => T_MUL_EQUAL,// 	*= 	赋值运算符
+302 => T_NEW,// 	new 	类和对象
+313 => T_NUM_STRING,//
+293 => T_OBJECT_CAST,// 	(object) 	类型转换
+363 => T_OBJECT_OPERATOR,// 	-> 	类和对象
+376 => T_OPEN_TAG,// 	<?php, <? 或 <% 	从 HTML 转义
+377 => T_OPEN_TAG_WITH_ECHO,// 	<?= or <%= 	从 HTML 转义
+272 => T_OR_EQUAL,// 	|= 	赋值运算符
+279 => T_PLUS_EQUAL,// 	+= 	赋值运算符
+266 => T_PRINT,// 	print() 	print
+349 => T_PRIVATE,// 	private 	类和对象。仅用于 PHP 5。
+347 => T_PUBLIC,// 	public 	类和对象。仅用于 PHP 5。
+348 => T_PROTECTED,// 	protected 	类和对象。仅用于 PHP 5。
+259 => T_REQUIRE,// 	require() 	require
+258 => T_REQUIRE_ONCE,// 	require_once() 	require_once
+339 => T_RETURN,// 	return 	返回值
+289 => T_SL,// 	<< 	位运算符
+270 => T_SL_EQUAL,// 	<<= 	赋值运算符
+288 => T_SR,// 	>> 	位运算符
+269 => T_SR_EQUAL,// 	>>= 	赋值运算符
+380 => T_START_HEREDOC,// 	<<< 	heredoc 语法
+352 => T_STATIC,// 	static 	变量范围
+310 => T_STRING,//
+295 => T_STRING_CAST,// 	(string) 	类型转换
+311 => T_STRING_VARNAME,//
+330 => T_SWITCH,// 	switch 	switch
+343 => T_THROW,// 	throw 	异常处理（自 PHP 5.0.0 起可用）
+340 => T_TRY,// 	try 	异常处理（自 PHP 5.0.0 起可用）
+354 => T_UNSET,// 	unset() 	unset()
+291 => T_UNSET_CAST,// 	(unset) 	（无文档; 类型为 NULL）
+344 => T_USE,// 	use 	（未实现）
+353 => T_VAR,// 	var 	类和对象
+312 => T_VARIABLE,// 	$foo 	变量
+321 => T_WHILE,// 	while 	while，do..while
+379 => T_WHITESPACE,//
+271 => T_XOR_EQUAL,// 	^= 	赋值运算符
+371 => T_FUNC_C,// 	__FUNCTION__ 	常量，自 PHP 4.3.0 起可用
+368 => T_CLASS_C,
+385 => T_NAMESPACE,
+388 => T_NS_SEPARATOR
