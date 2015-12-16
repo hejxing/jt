@@ -22,26 +22,26 @@ class Smarty_Internal_Compile_Call extends Smarty_Internal_CompileBase
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $required_attributes = array('name');
+    public $required_attributes = ['name'];
     /**
      * Attribute definition: Overwrites base class.
      *
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $shorttag_order = array('name');
+    public $shorttag_order = ['name'];
     /**
      * Attribute definition: Overwrites base class.
      *
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $optional_attributes = array('_any');
+    public $optional_attributes = ['_any'];
 
     /**
      * Compiles the calls of user defined tags defined by {function}
      *
-     * @param  array  $args     array with attributes from parser
+     * @param  array  $args array with attributes from parser
      * @param  object $compiler compiler object
      *
      * @return string compiled code
@@ -61,14 +61,14 @@ class Smarty_Internal_Compile_Call extends Smarty_Internal_CompileBase
         // set flag (compiled code of {function} must be included in cache file
         if (!$compiler->template->caching || $compiler->nocache || $compiler->tag_nocache) {
             $_nocache = 'true';
-        } else {
+        }else {
             $_nocache = 'false';
         }
-        $_paramsArray = array();
+        $_paramsArray = [];
         foreach ($_attr as $_key => $_value) {
             if (is_int($_key)) {
                 $_paramsArray[] = "$_key=>$_value";
-            } else {
+            }else {
                 $_paramsArray[] = "'$_key'=>$_value";
             }
         }
@@ -77,9 +77,10 @@ class Smarty_Internal_Compile_Call extends Smarty_Internal_CompileBase
         // was there an assign attribute
         if (isset($_assign)) {
             $_output = "<?php ob_start();\$_smarty_tpl->callTemplateFunction ({$_name}, \$_smarty_tpl, {$_params}, {$_nocache}); \$_smarty_tpl->assign({$_assign}, ob_get_clean());?>\n";
-        } else {
+        }else {
             $_output = "<?php \$_smarty_tpl->callTemplateFunction ({$_name}, \$_smarty_tpl, {$_params}, {$_nocache});?>\n";
         }
+
         return $_output;
     }
 }

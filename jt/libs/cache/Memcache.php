@@ -12,32 +12,35 @@ namespace jt\libs\cache;
  *
  * @package jt\libs\cache
  */
-class Memcache{
-	/**
-	 * 获取值
-	 *
-	 * @param string $name
-	 * @return string
-	 */
-	public function get($name){
-		if($name){
+class Memcache
+{
+    /**
+     * 获取值
+     *
+     * @param string $name
+     * @return string
+     */
+    public function get($name)
+    {
+        if ($name) {
 
-		}
+        }
 
-		return '';
-	}
+        return '';
+    }
 
-	/**
-	 * 设置值
-	 *
-	 * @param string $name
-	 * @return bool
-	 */
-	public function set($name, $value){
-		if($name && $value){
+    /**
+     * 设置值
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function set($name, $value)
+    {
+        if ($name && $value) {
 
-		}
+        }
 
-		return true;
-	}
+        return true;
+    }
 }

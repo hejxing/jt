@@ -22,34 +22,34 @@ class Smarty_Internal_Compile_Eval extends Smarty_Internal_CompileBase
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $required_attributes = array('var');
+    public $required_attributes = ['var'];
     /**
      * Attribute definition: Overwrites base class.
      *
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $optional_attributes = array('assign');
+    public $optional_attributes = ['assign'];
     /**
      * Attribute definition: Overwrites base class.
      *
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $shorttag_order = array('var', 'assign');
+    public $shorttag_order = ['var', 'assign'];
 
     /**
      * Compiles code for the {eval} tag
      *
-     * @param  array  $args     array with attributes from parser
+     * @param  array  $args array with attributes from parser
      * @param  object $compiler compiler object
      *
      * @return string compiled code
      */
     public function compile($args, $compiler)
     {
-        $this->required_attributes = array('var');
-        $this->optional_attributes = array('assign');
+        $this->required_attributes = ['var'];
+        $this->optional_attributes = ['assign'];
         // check and get attributes
         $_attr = $this->getAttributes($compiler, $args);
         if (isset($_attr['assign'])) {
@@ -62,7 +62,7 @@ class Smarty_Internal_Compile_Eval extends Smarty_Internal_CompileBase
         //was there an assign attribute?
         if (isset($_assign)) {
             $_output .= "\$_smarty_tpl->assign($_assign,\$_template->fetch());";
-        } else {
+        }else {
             $_output .= "echo \$_template->fetch();";
         }
 

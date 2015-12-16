@@ -22,23 +22,23 @@ class Smarty_Internal_Compile_Private_Function_Plugin extends Smarty_Internal_Co
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $required_attributes = array();
+    public $required_attributes = [];
     /**
      * Attribute definition: Overwrites base class.
      *
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $optional_attributes = array('_any');
+    public $optional_attributes = ['_any'];
 
     /**
      * Compiles code for the execution of function plugin
      *
-     * @param  array  $args      array with attributes from parser
-     * @param  object $compiler  compiler object
+     * @param  array  $args array with attributes from parser
+     * @param  object $compiler compiler object
      * @param  array  $parameter array with compilation parameter
-     * @param  string $tag       name of function plugin
-     * @param  string $function  PHP function name
+     * @param  string $tag name of function plugin
+     * @param  string $function PHP function name
      *
      * @return string compiled code
      */
@@ -54,11 +54,11 @@ class Smarty_Internal_Compile_Private_Function_Plugin extends Smarty_Internal_Co
         }
         unset($_attr['nocache']);
         // convert attributes into parameter array string
-        $_paramsArray = array();
+        $_paramsArray = [];
         foreach ($_attr as $_key => $_value) {
             if (is_int($_key)) {
                 $_paramsArray[] = "$_key=>$_value";
-            } else {
+            }else {
                 $_paramsArray[] = "'$_key'=>$_value";
             }
         }

@@ -7,17 +7,22 @@
 namespace jt;
 
 
-class ActionTest extends \PHPUnit_Framework_TestCase{
-	private function outTotal($total, $size, $page){
-		echo $page;
-		return [$total, $size, $page];
-	}
-	public function testOutTotal(){
-		$pageInfo = [
-			10,
-			5,
-			2
-		];
-		$this->assertEquals([10, 5, 2], $this->outTotal(...$pageInfo));
-	}
+class ActionTest extends \PHPUnit_Framework_TestCase
+{
+    private function outTotal($total, $size, $page)
+    {
+        echo $page;
+
+        return [$total, $size, $page];
+    }
+
+    public function testOutTotal()
+    {
+        $pageInfo = [
+            10,
+            5,
+            2
+        ];
+        $this->assertEquals([10, 5, 2], $this->outTotal(...$pageInfo));
+    }
 }

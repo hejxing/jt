@@ -28,24 +28,24 @@ class Smarty_Internal_Extension_DefaultTemplateHandler
     {
         if ($source->isConfig) {
             $default_handler = $_template->smarty->default_config_handler_func;
-        } else {
+        }else {
             $default_handler = $_template->smarty->default_template_handler_func;
         }
         $_content = $_timestamp = null;
-        $_return = call_user_func_array($default_handler,
-                                        array($source->type, $source->name, &$_content, &$_timestamp, $source->smarty));
+        $_return  = call_user_func_array($default_handler,
+            [$source->type, $source->name, &$_content, &$_timestamp, $source->smarty]);
         if (is_string($_return)) {
             $source->exists = is_file($_return);
             if ($source->exists) {
                 $source->timestamp = filemtime($_return);
             }
             $source->filepath = $_return;
-        } elseif ($_return === true) {
-            $source->content = $_content;
-            $source->timestamp = $_timestamp;
-            $source->exists = true;
+        }elseif ($_return === true) {
+            $source->content    = $_content;
+            $source->timestamp  = $_timestamp;
+            $source->exists     = true;
             $source->recompiled = true;
-            $source->filepath = false;
+            $source->filepath   = false;
         }
     }
 
@@ -61,7 +61,7 @@ class Smarty_Internal_Extension_DefaultTemplateHandler
     {
         if (is_callable($callback)) {
             $smarty->default_template_handler_func = $callback;
-        } else {
+        }else {
             throw new SmartyException("Default template handler not callable");
         }
     }
@@ -78,7 +78,7 @@ class Smarty_Internal_Extension_DefaultTemplateHandler
     {
         if (is_callable($callback)) {
             $smarty->default_config_handler_func = $callback;
-        } else {
+        }else {
             throw new SmartyException("Default config handler not callable");
         }
     }

@@ -22,12 +22,12 @@ class Smarty_Internal_ParseTree_DqContent extends Smarty_Internal_ParseTree
      * Create parse tree buffer with string content
      *
      * @param object $parser parser object
-     * @param string $data   string section
+     * @param string $data string section
      */
     public function __construct($parser, $data)
     {
         $this->parser = $parser;
-        $this->data = $data;
+        $this->data   = $data;
     }
 
     /**

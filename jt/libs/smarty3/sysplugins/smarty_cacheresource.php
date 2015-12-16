@@ -20,14 +20,14 @@ abstract class Smarty_CacheResource
      *
      * @var array
      */
-    protected static $sysplugins = array(
+    protected static $sysplugins = [
         'file' => 'smarty_internal_cacheresource_file.php',
-    );
+    ];
 
     /**
      * populate Cached Object with meta data from Resource
      *
-     * @param Smarty_Template_Cached   $cached    cached object
+     * @param Smarty_Template_Cached   $cached cached object
      * @param Smarty_Internal_Template $_template template object
      *
      * @return void
@@ -47,7 +47,7 @@ abstract class Smarty_CacheResource
      * Read the cached template and process header
      *
      * @param Smarty_Internal_Template $_template template object
-     * @param Smarty_Template_Cached   $cached    cached object
+     * @param Smarty_Template_Cached   $cached cached object
      *
      * @return boolean true or false if the cached content does not exist
      */
@@ -57,7 +57,7 @@ abstract class Smarty_CacheResource
      * Write the rendered template output to cache
      *
      * @param Smarty_Internal_Template $_template template object
-     * @param string                   $content   content to cache
+     * @param string                   $content content to cache
      *
      * @return boolean success
      */
@@ -85,7 +85,7 @@ abstract class Smarty_CacheResource
     /**
      * Empty cache
      *
-     * @param Smarty  $smarty   Smarty object
+     * @param Smarty  $smarty Smarty object
      * @param integer $exp_time expiration time (number of seconds, not timestamp)
      *
      * @return integer number of cache files deleted
@@ -95,11 +95,11 @@ abstract class Smarty_CacheResource
     /**
      * Empty cache for a specific template
      *
-     * @param Smarty  $smarty        Smarty object
+     * @param Smarty  $smarty Smarty object
      * @param string  $resource_name template name
-     * @param string  $cache_id      cache id
-     * @param string  $compile_id    compile id
-     * @param integer $exp_time      expiration time (number of seconds, not timestamp)
+     * @param string  $cache_id cache id
+     * @param string  $compile_id compile id
+     * @param integer $exp_time expiration time (number of seconds, not timestamp)
      *
      * @return integer number of cache files deleted
      */
@@ -114,7 +114,7 @@ abstract class Smarty_CacheResource
     public function locked(Smarty $smarty, Smarty_Template_Cached $cached)
     {
         // theoretically locking_timeout should be checked against time_limit (max_execution_time)
-        $start = microtime(true);
+        $start   = microtime(true);
         $hadLock = null;
         while ($this->hasLock($smarty, $cached)) {
             $hadLock = true;
@@ -174,7 +174,7 @@ abstract class Smarty_CacheResource
      * Load Cache Resource Handler
      *
      * @param Smarty $smarty Smarty object
-     * @param string $type   name of the cache resource
+     * @param string $type name of the cache resource
      *
      * @throws SmartyException
      * @return Smarty_CacheResource Cache Resource Handler
@@ -201,6 +201,7 @@ abstract class Smarty_CacheResource
             if (!class_exists($cache_resource_class, false)) {
                 require SMARTY_SYSPLUGINS_DIR . self::$sysplugins[$type];
             }
+
             return $smarty->_cacheresource_handlers[$type] = new $cache_resource_class();
         }
         // try plugins dir
@@ -221,7 +222,7 @@ abstract class Smarty_CacheResource
     {
         foreach ($smarty->template_objects as $tpl) {
             if (isset($tpl->cached)) {
-                $tpl->cached->valid = false;
+                $tpl->cached->valid     = false;
                 $tpl->cached->processed = false;
             }
         }

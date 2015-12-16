@@ -9,18 +9,22 @@
 namespace jt\maker;
 
 
-class Model extends Loader{
-	protected $classType = 'model';//当前类的类型 区别于 model
+class Model extends Loader
+{
+    protected $classType = 'model';//当前类的类型 区别于 model
 
-	protected function parseComment(){
-		// TODO: Implement parseComment() method.
-	}
+    protected function parseComment()
+    {
+        // TODO: Implement parseComment() method.
+    }
 
-	protected function pack(){
-		// TODO: Implement pack() method.
-	}
+    protected function pack()
+    {
+        // TODO: Implement pack() method.
+    }
 
-	protected function collectGlobalValue(){
-		// TODO: Implement collectGlobalValue() method.
-	}
+    protected function collectGlobalValue()
+    {
+        // TODO: Implement collectGlobalValue() method.
+    }
 }

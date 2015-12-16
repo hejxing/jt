@@ -27,7 +27,7 @@ if (version_compare(PHP_VERSION, '5.2.3', '>=')) {
 
         return $string;
     }
-} else {
+}else {
     /**
      * escape_special_chars common function
      * Function: smarty_function_escape_special_chars<br>
@@ -45,7 +45,7 @@ if (version_compare(PHP_VERSION, '5.2.3', '>=')) {
         if (!is_array($string)) {
             $string = preg_replace('!&(#?\w+);!', '%%%SMARTY_START%%%\\1%%%SMARTY_END%%%', $string);
             $string = htmlspecialchars($string);
-            $string = str_replace(array('%%%SMARTY_START%%%', '%%%SMARTY_END%%%'), array('&', ';'), $string);
+            $string = str_replace(['%%%SMARTY_START%%%', '%%%SMARTY_END%%%'], ['&', ';'], $string);
         }
 
         return $string;

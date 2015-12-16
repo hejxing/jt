@@ -16,8 +16,8 @@
  * @author Monte Ohrt <monte at ohrt dot com>
  * @author Uwe Tews
  *
- * @param string $string  input string
- * @param string $search  text to search for
+ * @param string $string input string
+ * @param string $search text to search for
  * @param string $replace replacement text
  *
  * @return string

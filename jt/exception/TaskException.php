@@ -12,6 +12,7 @@ namespace jt\exception;
  *
  * @package jt\exception
  */
-class TaskException extends \Exception{
-	protected $type = 'task';
+class TaskException extends \Exception
+{
+    protected $type = 'task';
 }

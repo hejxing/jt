@@ -27,17 +27,17 @@ class Smarty_Internal_Resource_Extends extends Smarty_Resource
     /**
      * populate Source Object with meta data from Resource
      *
-     * @param Smarty_Template_Source   $source    source object
+     * @param Smarty_Template_Source   $source source object
      * @param Smarty_Internal_Template $_template template object
      *
      * @throws SmartyException
      */
     public function populate(Smarty_Template_Source $source, Smarty_Internal_Template $_template = null)
     {
-        $uid = sha1(getcwd());
-        $sources = array();
+        $uid        = sha1(getcwd());
+        $sources    = [];
         $components = explode('|', $source->name);
-        $exists = true;
+        $exists     = true;
         foreach ($components as $component) {
             $s = Smarty_Resource::source(null, $source->smarty, $component);
             if ($s->type == 'php') {
@@ -50,11 +50,11 @@ class Smarty_Internal_Resource_Extends extends Smarty_Resource
             }
         }
         $source->components = $sources;
-        $source->filepath = $s->filepath;
-        $source->uid = sha1($uid);
+        $source->filepath   = $s->filepath;
+        $source->uid        = sha1($uid);
         if ($_template && $_template->smarty->compile_check) {
             $source->timestamp = $s->timestamp;
-            $source->exists = $exists;
+            $source->exists    = $exists;
         }
         // need the template at getContent()
         $source->template = $_template;
@@ -95,6 +95,7 @@ class Smarty_Internal_Resource_Extends extends Smarty_Resource
             // read content
             $_content .= $_component->content;
         }
+
         return $_content;
     }
 

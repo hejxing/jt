@@ -20,26 +20,26 @@ abstract class Smarty_Internal_CompileBase
      *
      * @var array
      */
-    public $required_attributes = array();
+    public $required_attributes = [];
     /**
      * Array of names of optional attribute required by tag
      * use array('_any') if there is no restriction of attributes names
      *
      * @var array
      */
-    public $optional_attributes = array();
+    public $optional_attributes = [];
     /**
      * Shorttag attribute order defined by its names
      *
      * @var array
      */
-    public $shorttag_order = array();
+    public $shorttag_order = [];
     /**
      * Array of names of valid option flags
      *
      * @var array
      */
-    public $option_flags = array('nocache');
+    public $option_flags = ['nocache'];
 
     /**
      * This function checks if the attributes passed are valid
@@ -48,14 +48,14 @@ abstract class Smarty_Internal_CompileBase
      * the corresponding list. The keyword '_any' specifies that any attribute will be accepted
      * as valid
      *
-     * @param  object $compiler   compiler object
+     * @param  object $compiler compiler object
      * @param  array  $attributes attributes applied to the tag
      *
      * @return array  of mapped attributes for further processing
      */
     public function getAttributes($compiler, $attributes)
     {
-        $_indexed_attr = array();
+        $_indexed_attr = [];
         // loop over attributes
         foreach ($attributes as $key => $mixed) {
             // shorthand ?
@@ -64,36 +64,37 @@ abstract class Smarty_Internal_CompileBase
                 if (in_array(trim($mixed, '\'"'), $this->option_flags)) {
                     $_indexed_attr[trim($mixed, '\'"')] = true;
                     // shorthand attribute ?
-                } elseif (isset($this->shorttag_order[$key])) {
+                }elseif (isset($this->shorttag_order[$key])) {
                     $_indexed_attr[$this->shorttag_order[$key]] = $mixed;
-                } else {
+                }else {
                     // too many shorthands
                     $compiler->trigger_template_error('too many shorthand attributes', $compiler->lex->taglineno);
                 }
                 // named attribute
-            } else {
+            }else {
                 $kv = each($mixed);
                 // option flag?
                 if (in_array($kv['key'], $this->option_flags)) {
                     if (is_bool($kv['value'])) {
                         $_indexed_attr[$kv['key']] = $kv['value'];
-                    } elseif (is_string($kv['value']) && in_array(trim($kv['value'], '\'"'), array('true', 'false'))) {
+                    }elseif (is_string($kv['value']) && in_array(trim($kv['value'], '\'"'), ['true', 'false'])) {
                         if (trim($kv['value']) == 'true') {
                             $_indexed_attr[$kv['key']] = true;
-                        } else {
+                        }else {
                             $_indexed_attr[$kv['key']] = false;
                         }
-                    } elseif (is_numeric($kv['value']) && in_array($kv['value'], array(0, 1))) {
+                    }elseif (is_numeric($kv['value']) && in_array($kv['value'], [0, 1])) {
                         if ($kv['value'] == 1) {
                             $_indexed_attr[$kv['key']] = true;
-                        } else {
+                        }else {
                             $_indexed_attr[$kv['key']] = false;
                         }
-                    } else {
-                        $compiler->trigger_template_error("illegal value of option flag \"{$kv['key']}\"", $compiler->lex->taglineno);
+                    }else {
+                        $compiler->trigger_template_error("illegal value of option flag \"{$kv['key']}\"",
+                            $compiler->lex->taglineno);
                     }
                     // must be named attribute
-                } else {
+                }else {
                     reset($mixed);
                     $_indexed_attr[key($mixed)] = $mixed[key($mixed)];
                 }
@@ -106,11 +107,12 @@ abstract class Smarty_Internal_CompileBase
             }
         }
         // check for not allowed attributes
-        if ($this->optional_attributes != array('_any')) {
+        if ($this->optional_attributes != ['_any']) {
             $tmp_array = array_merge($this->required_attributes, $this->optional_attributes, $this->option_flags);
             foreach ($_indexed_attr as $key => $dummy) {
                 if (!in_array($key, $tmp_array) && $key !== 0) {
-                    $compiler->trigger_template_error("unexpected \"" . $key . "\" attribute", $compiler->lex->taglineno);
+                    $compiler->trigger_template_error("unexpected \"" . $key . "\" attribute",
+                        $compiler->lex->taglineno);
                 }
             }
         }
@@ -129,19 +131,19 @@ abstract class Smarty_Internal_CompileBase
      * Optionally additional data can be saved on stack
      *
      * @param object $compiler compiler object
-     * @param string $openTag  the opening tag's name
-     * @param mixed  $data     optional data saved
+     * @param string $openTag the opening tag's name
+     * @param mixed  $data optional data saved
      */
     public function openTag($compiler, $openTag, $data = null)
     {
-        array_push($compiler->_tag_stack, array($openTag, $data));
+        array_push($compiler->_tag_stack, [$openTag, $data]);
     }
 
     /**
      * Pop closing tag
      * Raise an error if this stack-top doesn't match with expected opening tags
      *
-     * @param  object       $compiler    compiler object
+     * @param  object       $compiler compiler object
      * @param  array|string $expectedTag the expected opening tag names
      *
      * @return mixed        any type the opening tag's name or saved data
@@ -152,11 +154,11 @@ abstract class Smarty_Internal_CompileBase
             // get stacked info
             list($_openTag, $_data) = array_pop($compiler->_tag_stack);
             // open tag must match with the expected ones
-            if (in_array($_openTag, (array) $expectedTag)) {
+            if (in_array($_openTag, (array)$expectedTag)) {
                 if (is_null($_data)) {
                     // return opening tag
                     return $_openTag;
-                } else {
+                }else {
                     // return restored data
                     return $_data;
                 }

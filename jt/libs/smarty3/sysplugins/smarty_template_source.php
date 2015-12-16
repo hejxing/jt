@@ -127,16 +127,16 @@ class Smarty_Template_Source
      *
      * @var array
      */
-    public $compileds = array();
+    public $compileds = [];
 
     /**
      * create Source Object container
      *
-     * @param Smarty_Resource $handler  Resource Handler this source object communicates with
-     * @param Smarty          $smarty   Smarty instance this source object belongs to
+     * @param Smarty_Resource $handler Resource Handler this source object communicates with
+     * @param Smarty          $smarty Smarty instance this source object belongs to
      * @param string          $resource full template_resource
-     * @param string          $type     type of resource
-     * @param string          $name     resource name
+     * @param string          $type type of resource
+     * @param string          $name resource name
      *
      * @internal param string $unique_resource unique resource name
      */
@@ -144,33 +144,36 @@ class Smarty_Template_Source
     {
         $this->handler = $handler; // Note: prone to circular references
 
-        $this->recompiled = $handler->recompiled;
-        $this->uncompiled = $handler->uncompiled;
-        $this->compiler_class = $handler->compiler_class;
-        $this->template_lexer_class = $handler->template_lexer_class;
+        $this->recompiled            = $handler->recompiled;
+        $this->uncompiled            = $handler->uncompiled;
+        $this->compiler_class        = $handler->compiler_class;
+        $this->template_lexer_class  = $handler->template_lexer_class;
         $this->template_parser_class = $handler->template_parser_class;
 
-        $this->smarty = $smarty;
+        $this->smarty   = $smarty;
         $this->resource = $resource;
-        $this->type = $type;
-        $this->name = $name;
+        $this->type     = $type;
+        $this->name     = $name;
     }
 
     /**
      * initialize Source Object for given resource
      * Either [$_template] or [$smarty, $template_resource] must be specified
      *
-     * @param  Smarty_Internal_Template $_template         template object
-     * @param  Smarty                   $smarty            smarty object
+     * @param  Smarty_Internal_Template $_template template object
+     * @param  Smarty                   $smarty smarty object
      * @param  string                   $template_resource resource identifier
      *
      * @return Smarty_Template_Source Source Object
      * @throws SmartyException
      */
-    public static function load(Smarty_Internal_Template $_template = null, Smarty $smarty = null, $template_resource = null)
-    {
+    public static function load(
+        Smarty_Internal_Template $_template = null,
+        Smarty $smarty = null,
+        $template_resource = null
+    ){
         if ($_template) {
-            $smarty = $_template->smarty;
+            $smarty            = $_template->smarty;
             $template_resource = $_template->template_resource;
         }
         if (empty($template_resource)) {
@@ -185,7 +188,7 @@ class Smarty_Template_Source
             if (isset($smarty->source_objects[$unique_resource])) {
                 return $smarty->source_objects[$unique_resource];
             }
-        } else {
+        }else {
             $unique_resource = null;
         }
         // create new source  object
@@ -199,9 +202,9 @@ class Smarty_Template_Source
             // may by we have already $unique_resource
             $is_relative = false;
             if (!isset($unique_resource)) {
-                $is_relative = isset($name[1]) && $name[0] == '.' && ($name[1] == '.' || $name[1] == '/') &&
-                    ($type == 'file' || (isset($_template->parent->source) && $_template->parent->source->type == 'extends'));
-                $unique_resource = $resource->buildUniqueResourceName($smarty, $is_relative ? $source->filepath . $name : $name);
+                $is_relative     = isset($name[1]) && $name[0] == '.' && ($name[1] == '.' || $name[1] == '/') && ($type == 'file' || (isset($_template->parent->source) && $_template->parent->source->type == 'extends'));
+                $unique_resource = $resource->buildUniqueResourceName($smarty,
+                    $is_relative ? $source->filepath . $name : $name);
             }
             $source->unique_resource = $unique_resource;
             // save in runtime cache if not relative
@@ -209,6 +212,7 @@ class Smarty_Template_Source
                 $smarty->source_objects[$unique_resource] = $source;
             }
         }
+
         return $source;
     }
 
@@ -221,11 +225,11 @@ class Smarty_Template_Source
     {
         $level = ob_get_level();
         ob_start();
-        try {
+        try{
             $this->handler->renderUncompiled($_template->source, $_template);
+
             return ob_get_clean();
-        }
-        catch (Exception $e) {
+        }catch (Exception $e){
             while (ob_get_level() > $level) {
                 ob_end_clean();
             }
@@ -237,7 +241,7 @@ class Smarty_Template_Source
      * <<magic>> Generic Setter.
      *
      * @param  string $property_name valid: timestamp, exists, content, template
-     * @param  mixed  $value         new value (is not checked)
+     * @param  mixed  $value new value (is not checked)
      *
      * @throws SmartyException if $property_name is not valid
      */

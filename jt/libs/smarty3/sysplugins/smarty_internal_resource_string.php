@@ -21,16 +21,16 @@ class Smarty_Internal_Resource_String extends Smarty_Resource
     /**
      * populate Source Object with meta data from Resource
      *
-     * @param  Smarty_Template_Source   $source    source object
+     * @param  Smarty_Template_Source   $source source object
      * @param  Smarty_Internal_Template $_template template object
      *
      * @return void
      */
     public function populate(Smarty_Template_Source $source, Smarty_Internal_Template $_template = null)
     {
-        $source->uid = $source->filepath = sha1($source->name);
+        $source->uid       = $source->filepath = sha1($source->name);
         $source->timestamp = 0;
-        $source->exists = true;
+        $source->exists    = true;
     }
 
     /**
@@ -60,7 +60,7 @@ class Smarty_Internal_Resource_String extends Smarty_Resource
         if (($pos = strpos($string, ':')) !== false) {
             if (!strncmp($string, 'base64', 6)) {
                 return base64_decode(substr($string, 7));
-            } elseif (!strncmp($string, 'urlencode', 9)) {
+            }elseif (!strncmp($string, 'urlencode', 9)) {
                 return urldecode(substr($string, 10));
             }
         }
@@ -71,9 +71,9 @@ class Smarty_Internal_Resource_String extends Smarty_Resource
     /**
      * modify resource_name according to resource handlers specifications
      *
-     * @param  Smarty  $smarty        Smarty instance
+     * @param  Smarty  $smarty Smarty instance
      * @param  string  $resource_name resource_name to make unique
-     * @param  boolean $isConfig      flag for config resource
+     * @param  boolean $isConfig flag for config resource
      *
      * @return string unique resource name
      */

@@ -9,6 +9,7 @@
 namespace jt\utils;
 
 
-class Kit {
+class Kit
+{
 
 }

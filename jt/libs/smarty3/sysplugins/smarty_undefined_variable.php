@@ -20,7 +20,7 @@ class Smarty_Undefined_Variable
     {
         if ($name == 'nocache') {
             return false;
-        } else {
+        }else {
             return null;
         }
     }

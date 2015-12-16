@@ -26,7 +26,6 @@ class Smarty_Internal_Resource_Php extends Smarty_Internal_Resource_File
 
     /**
      * Create a new PHP Resource
-
      */
     public function __construct()
     {
@@ -52,7 +51,7 @@ class Smarty_Internal_Resource_Php extends Smarty_Internal_Resource_File
     /**
      * Render and output the template (without using the compiler)
      *
-     * @param  Smarty_Template_Source   $source    source object
+     * @param  Smarty_Template_Source   $source source object
      * @param  Smarty_Internal_Template $_template template object
      *
      * @return void
@@ -66,7 +65,7 @@ class Smarty_Internal_Resource_Php extends Smarty_Internal_Resource_File
         if (!$source->exists) {
             if ($_template->parent instanceof Smarty_Internal_Template) {
                 $parent_resource = " in '{$_template->parent->template_resource}'";
-            } else {
+            }else {
                 $parent_resource = '';
             }
             throw new SmartyException("Unable to load template {$source->type} '{$source->name}'{$parent_resource}");
@@ -88,13 +87,13 @@ class Smarty_Internal_Resource_Php extends Smarty_Internal_Resource_File
     /**
      * populate compiled object with compiled filepath
      *
-     * @param Smarty_Template_Compiled $compiled  compiled object
+     * @param Smarty_Template_Compiled $compiled compiled object
      * @param Smarty_Internal_Template $_template template object (is ignored)
      */
     public function populateCompiledFilepath(Smarty_Template_Compiled $compiled, Smarty_Internal_Template $_template)
     {
-        $compiled->filepath = false;
+        $compiled->filepath  = false;
         $compiled->timestamp = false;
-        $compiled->exists = false;
+        $compiled->exists    = false;
     }
 }

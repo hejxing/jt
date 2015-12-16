@@ -17,18 +17,33 @@
  *           (Smarty online manual)
  * @author   Monte Ohrt <monte at ohrt dot com>
  *
- * @param array                    $params   parameters
+ * @param array                    $params parameters
  * @param Smarty_Internal_Template $template template object
  *
  * @return string|null
  */
 function smarty_function_math($params, $template)
 {
-    static $_allowed_funcs = array(
-        'int'  => true, 'abs' => true, 'ceil' => true, 'cos' => true, 'exp' => true, 'floor' => true,
-        'log'  => true, 'log10' => true, 'max' => true, 'min' => true, 'pi' => true, 'pow' => true,
-        'rand' => true, 'round' => true, 'sin' => true, 'sqrt' => true, 'srand' => true, 'tan' => true
-    );
+    static $_allowed_funcs = [
+        'int'   => true,
+        'abs'   => true,
+        'ceil'  => true,
+        'cos'   => true,
+        'exp'   => true,
+        'floor' => true,
+        'log'   => true,
+        'log10' => true,
+        'max'   => true,
+        'min'   => true,
+        'pi'    => true,
+        'pow'   => true,
+        'rand'  => true,
+        'round' => true,
+        'sin'   => true,
+        'sqrt'  => true,
+        'srand' => true,
+        'tan'   => true
+    ];
     // be sure equation parameter is present
     if (empty($params['equation'])) {
         trigger_error("math: missing equation parameter", E_USER_WARNING);
@@ -78,13 +93,13 @@ function smarty_function_math($params, $template)
     if (empty($params['format'])) {
         if (empty($params['assign'])) {
             return $smarty_math_result;
-        } else {
+        }else {
             $template->assign($params['assign'], $smarty_math_result);
         }
-    } else {
+    }else {
         if (empty($params['assign'])) {
             printf($params['format'], $smarty_math_result);
-        } else {
+        }else {
             $template->assign($params['assign'], sprintf($params['format'], $smarty_math_result));
         }
     }

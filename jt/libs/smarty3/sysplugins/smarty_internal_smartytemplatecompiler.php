@@ -54,21 +54,21 @@ class Smarty_Internal_SmartyTemplateCompiler extends Smarty_Internal_TemplateCom
      *
      * @var array
      */
-    public $local_var = array();
+    public $local_var = [];
 
     /**
      * Initialize compiler
      *
-     * @param string $lexer_class  class name
+     * @param string $lexer_class class name
      * @param string $parser_class class name
-     * @param Smarty $smarty       global instance
+     * @param Smarty $smarty global instance
      */
     public function __construct($lexer_class, $parser_class, $smarty)
     {
         $this->smarty = $smarty;
         parent::__construct();
         // get required plugins
-        $this->lexer_class = $lexer_class;
+        $this->lexer_class  = $lexer_class;
         $this->parser_class = $parser_class;
     }
 
@@ -85,7 +85,7 @@ class Smarty_Internal_SmartyTemplateCompiler extends Smarty_Internal_TemplateCom
           tags in the templates are replaces with PHP code,
           then written to compiled files. */
         // init the lexer/parser to compile the template
-        $this->lex = new $this->lexer_class(str_replace(array("\r\n", "\r"), "\n", $_content), $this);
+        $this->lex    = new $this->lexer_class(str_replace(["\r\n", "\r"], "\n", $_content), $this);
         $this->parser = new $this->parser_class($this->lex, $this);
         if ($isTemplateSource) {
             $this->parser->insertPhpCode("<?php\n\$_smarty_tpl->properties['nocache_hash'] = '{$this->nocache_hash}';\n?>\n");
@@ -94,10 +94,10 @@ class Smarty_Internal_SmartyTemplateCompiler extends Smarty_Internal_TemplateCom
             // start state on child templates
             $this->lex->yypushstate(Smarty_Internal_Templatelexer::CHILDBODY);
         }
-        if (function_exists('mb_internal_encoding') && ((int) ini_get('mbstring.func_overload')) & 2) {
+        if (function_exists('mb_internal_encoding') && ((int)ini_get('mbstring.func_overload')) & 2) {
             $mbEncoding = mb_internal_encoding();
             mb_internal_encoding('ASCII');
-        } else {
+        }else {
             $mbEncoding = null;
         }
 
@@ -108,8 +108,7 @@ class Smarty_Internal_SmartyTemplateCompiler extends Smarty_Internal_TemplateCom
         // get tokens from lexer and parse them
         while ($this->lex->yylex() && !$this->abort_and_recompile) {
             if ($this->smarty->_parserdebug) {
-                echo "<pre>Line {$this->lex->line} Parsing  {$this->parser->yyTokenName[$this->lex->token]} Token " .
-                    htmlentities($this->lex->value) . "</pre>";
+                echo "<pre>Line {$this->lex->line} Parsing  {$this->parser->yyTokenName[$this->lex->token]} Token " . htmlentities($this->lex->value) . "</pre>";
             }
             $this->parser->doParse($this->lex->token, $this->lex->value);
         }

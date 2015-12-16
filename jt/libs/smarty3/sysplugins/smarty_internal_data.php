@@ -27,7 +27,7 @@ class Smarty_Internal_Data
      *
      * @var array
      */
-    public $tpl_vars = array();
+    public $tpl_vars = [];
     /**
      * parent template (if any)
      *
@@ -39,13 +39,13 @@ class Smarty_Internal_Data
      *
      * @var array
      */
-    public $config_vars = array();
+    public $config_vars = [];
 
     /**
      * assigns a Smarty variable
      *
      * @param  array|string $tpl_var the template variable name(s)
-     * @param  mixed        $value   the value to assign
+     * @param  mixed        $value the value to assign
      * @param  boolean      $nocache if true any output of this variable will be not cached
      *
      * @return Smarty_Internal_Data current Smarty_Internal_Data (or Smarty or Smarty_Internal_Template) instance for chaining
@@ -58,7 +58,7 @@ class Smarty_Internal_Data
                     $this->tpl_vars[$_key] = new Smarty_Variable($_val, $nocache);
                 }
             }
-        } else {
+        }else {
             if ($tpl_var != '') {
                 $this->tpl_vars[$tpl_var] = new Smarty_Variable($value, $nocache);
             }
@@ -71,7 +71,7 @@ class Smarty_Internal_Data
      * assigns a global Smarty variable
      *
      * @param  string  $varname the global variable name
-     * @param  mixed   $value   the value to assign
+     * @param  mixed   $value the value to assign
      * @param  boolean $nocache if true any output of this variable will be not cached
      *
      * @return Smarty_Internal_Data current Smarty_Internal_Data (or Smarty or Smarty_Internal_Template) instance for chaining
@@ -80,10 +80,10 @@ class Smarty_Internal_Data
     {
         if ($varname != '') {
             Smarty::$global_tpl_vars[$varname] = new Smarty_Variable($value, $nocache);
-            $ptr = $this;
+            $ptr                               = $this;
             while ($ptr instanceof Smarty_Internal_Template) {
                 $ptr->tpl_vars[$varname] = clone Smarty::$global_tpl_vars[$varname];
-                $ptr = $ptr->parent;
+                $ptr                     = $ptr->parent;
             }
         }
 
@@ -102,7 +102,7 @@ class Smarty_Internal_Data
     public function assignByRef($tpl_var, &$value, $nocache = false)
     {
         if ($tpl_var != '') {
-            $this->tpl_vars[$tpl_var] = new Smarty_Variable(null, $nocache);
+            $this->tpl_vars[$tpl_var]        = new Smarty_Variable(null, $nocache);
             $this->tpl_vars[$tpl_var]->value = &$value;
         }
 
@@ -113,8 +113,8 @@ class Smarty_Internal_Data
      * appends values to template variables
      *
      * @param  array|string $tpl_var the template variable name(s)
-     * @param  mixed        $value   the value to append
-     * @param  boolean      $merge   flag if array elements shall be merged
+     * @param  mixed        $value the value to append
+     * @param  boolean      $merge flag if array elements shall be merged
      * @param  boolean      $nocache if true any output of this variable will be not cached
      *
      * @return Smarty_Internal_Data current Smarty_Internal_Data (or Smarty or Smarty_Internal_Template) instance for chaining
@@ -129,7 +129,7 @@ class Smarty_Internal_Data
                         $tpl_var_inst = $this->getVariable($_key, null, true, false);
                         if ($tpl_var_inst instanceof Smarty_Undefined_Variable) {
                             $this->tpl_vars[$_key] = new Smarty_Variable(null, $nocache);
-                        } else {
+                        }else {
                             $this->tpl_vars[$_key] = clone $tpl_var_inst;
                         }
                     }
@@ -140,18 +140,18 @@ class Smarty_Internal_Data
                         foreach ($_val as $_mkey => $_mval) {
                             $this->tpl_vars[$_key]->value[$_mkey] = $_mval;
                         }
-                    } else {
+                    }else {
                         $this->tpl_vars[$_key]->value[] = $_val;
                     }
                 }
             }
-        } else {
+        }else {
             if ($tpl_var != '' && isset($value)) {
                 if (!isset($this->tpl_vars[$tpl_var])) {
                     $tpl_var_inst = $this->getVariable($tpl_var, null, true, false);
                     if ($tpl_var_inst instanceof Smarty_Undefined_Variable) {
                         $this->tpl_vars[$tpl_var] = new Smarty_Variable(null, $nocache);
-                    } else {
+                    }else {
                         $this->tpl_vars[$tpl_var] = clone $tpl_var_inst;
                     }
                 }
@@ -162,7 +162,7 @@ class Smarty_Internal_Data
                     foreach ($value as $_mkey => $_mval) {
                         $this->tpl_vars[$tpl_var]->value[$_mkey] = $_mval;
                     }
-                } else {
+                }else {
                     $this->tpl_vars[$tpl_var]->value[] = $value;
                 }
             }
@@ -175,8 +175,8 @@ class Smarty_Internal_Data
      * appends values to template variables by reference
      *
      * @param  string  $tpl_var the template variable name
-     * @param  mixed   &$value  the referenced value to append
-     * @param  boolean $merge   flag if array elements shall be merged
+     * @param  mixed   &$value the referenced value to append
+     * @param  boolean $merge flag if array elements shall be merged
      *
      * @return Smarty_Internal_Data current Smarty_Internal_Data (or Smarty or Smarty_Internal_Template) instance for chaining
      */
@@ -193,7 +193,7 @@ class Smarty_Internal_Data
                 foreach ($value as $_key => $_val) {
                     $this->tpl_vars[$tpl_var]->value[$_key] = &$value[$_key];
                 }
-            } else {
+            }else {
                 $this->tpl_vars[$tpl_var]->value[] = &$value;
             }
         }
@@ -204,8 +204,8 @@ class Smarty_Internal_Data
     /**
      * Returns a single or all template variables
      *
-     * @param  string  $varname        variable name or null
-     * @param  object  $_ptr           optional pointer to data object
+     * @param  string  $varname variable name or null
+     * @param  object  $_ptr optional pointer to data object
      * @param  boolean $search_parents include parent templates?
      *
      * @return string  variable value or or array of variables
@@ -216,11 +216,11 @@ class Smarty_Internal_Data
             $_var = $this->getVariable($varname, $_ptr, $search_parents, false);
             if (is_object($_var)) {
                 return $_var->value;
-            } else {
+            }else {
                 return null;
             }
-        } else {
-            $_result = array();
+        }else {
+            $_result = [];
             if ($_ptr === null) {
                 $_ptr = $this;
             }
@@ -233,7 +233,7 @@ class Smarty_Internal_Data
                 // not found, try at parent
                 if ($search_parents) {
                     $_ptr = $_ptr->parent;
-                } else {
+                }else {
                     $_ptr = null;
                 }
             }
@@ -262,7 +262,7 @@ class Smarty_Internal_Data
             foreach ($tpl_var as $curr_var) {
                 unset($this->tpl_vars[$curr_var]);
             }
-        } else {
+        }else {
             unset($this->tpl_vars[$tpl_var]);
         }
 
@@ -276,7 +276,7 @@ class Smarty_Internal_Data
      */
     public function clearAllAssign()
     {
-        $this->tpl_vars = array();
+        $this->tpl_vars = [];
 
         return $this;
     }
@@ -285,7 +285,7 @@ class Smarty_Internal_Data
      * load a config file, optionally load just selected sections
      *
      * @param  string $config_file filename
-     * @param  mixed  $sections    array of section names, single section or null
+     * @param  mixed  $sections array of section names, single section or null
      *
      * @return Smarty_Internal_Data current Smarty_Internal_Data (or Smarty or Smarty_Internal_Template) instance for chaining
      */
@@ -293,14 +293,15 @@ class Smarty_Internal_Data
     {
         // load Config class
         Smarty_Internal_Extension_Config::configLoad($this, $config_file, $sections);
+
         return $this;
     }
 
     /**
      * gets the object of a Smarty variable
      *
-     * @param  string  $variable       the name of the Smarty variable
-     * @param  object  $_ptr           optional pointer to data object
+     * @param  string  $variable the name of the Smarty variable
+     * @param  object  $_ptr optional pointer to data object
      * @param  boolean $search_parents search also in parent data
      * @param bool     $error_enable
      *
@@ -319,7 +320,7 @@ class Smarty_Internal_Data
             // not found, try at parent
             if ($search_parents) {
                 $_ptr = $_ptr->parent;
-            } else {
+            }else {
                 $_ptr = null;
             }
         }
@@ -385,7 +386,7 @@ class Smarty_Internal_Data
     public function getStreamVariable($variable)
     {
         $_result = '';
-        $fp = fopen($variable, 'r+');
+        $fp      = fopen($variable, 'r+');
         if ($fp) {
             while (!feof($fp) && ($current_line = fgets($fp)) !== false) {
                 $_result .= $current_line;
@@ -397,7 +398,7 @@ class Smarty_Internal_Data
         $smarty = isset($this->smarty) ? $this->smarty : $this;
         if ($smarty->error_unassigned) {
             throw new SmartyException('Undefined stream variable "' . $variable . '"');
-        } else {
+        }else {
             return null;
         }
     }

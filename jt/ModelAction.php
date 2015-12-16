@@ -7,36 +7,45 @@
 namespace jt;
 
 
-class ModelAction extends Action{
-	public function get(Model $model, $id){
-		return $model->get($id);
-	}
+class ModelAction extends Action
+{
+    public function get(Model $model, $id)
+    {
+        return $model->get($id);
+    }
 
-	public function post(Model $model, $post){
-		//$this->model->
-	}
+    public function post(Model $model, $post)
+    {
+        //$this->model->
+    }
 
-	public function put(Model $model, $id, $post){
+    public function put(Model $model, $id, $post)
+    {
 
-	}
+    }
 
-	public function delete(Model $model, $id){
+    public function delete(Model $model, $id)
+    {
 
-	}
+    }
 
-	public function getList(Model $model, $get){
-		//$this->model->
-	}
+    public function getList(Model $model, $get)
+    {
+        //$this->model->
+    }
 
-	public function postList(Model $model, $post){
-		//$this->model->
-	}
+    public function postList(Model $model, $post)
+    {
+        //$this->model->
+    }
 
-	public function putList(Model $model, $post){
+    public function putList(Model $model, $post)
+    {
 
-	}
+    }
 
-	public function deleteList(Model $model, $get){
+    public function deleteList(Model $model, $get)
+    {
 
-	}
+    }
 }

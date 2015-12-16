@@ -22,33 +22,33 @@ class Smarty_Internal_Compile_Config_Load extends Smarty_Internal_CompileBase
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $required_attributes = array('file');
+    public $required_attributes = ['file'];
     /**
      * Attribute definition: Overwrites base class.
      *
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $shorttag_order = array('file', 'section');
+    public $shorttag_order = ['file', 'section'];
     /**
      * Attribute definition: Overwrites base class.
      *
      * @var array
      * @see Smarty_Internal_CompileBase
      */
-    public $optional_attributes = array('section', 'scope');
+    public $optional_attributes = ['section', 'scope'];
 
     /**
      * Compiles code for the {config_load} tag
      *
-     * @param  array  $args     array with attributes from parser
+     * @param  array  $args array with attributes from parser
      * @param  object $compiler compiler object
      *
      * @return string compiled code
      */
     public function compile($args, $compiler)
     {
-        static $_is_legal_scope = array('local' => true, 'parent' => true, 'root' => true, 'global' => true);
+        static $_is_legal_scope = ['local' => true, 'parent' => true, 'root' => true, 'global' => true];
         // check and get attributes
         $_attr = $this->getAttributes($compiler, $args);
 
@@ -60,7 +60,7 @@ class Smarty_Internal_Compile_Config_Load extends Smarty_Internal_CompileBase
         $conf_file = $_attr['file'];
         if (isset($_attr['section'])) {
             $section = $_attr['section'];
-        } else {
+        }else {
             $section = 'null';
         }
         $scope = 'local';
@@ -69,7 +69,7 @@ class Smarty_Internal_Compile_Config_Load extends Smarty_Internal_CompileBase
             $_attr['scope'] = trim($_attr['scope'], "'\"");
             if (isset($_is_legal_scope[$_attr['scope']])) {
                 $scope = $_attr['scope'];
-            } else {
+            }else {
                 $compiler->trigger_template_error('illegal value for "scope" attribute', $compiler->lex->taglineno);
             }
         }

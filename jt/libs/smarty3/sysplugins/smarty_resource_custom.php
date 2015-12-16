@@ -19,9 +19,9 @@ abstract class Smarty_Resource_Custom extends Smarty_Resource
     /**
      * fetch template and its modification time from data source
      *
-     * @param string  $name    template name
+     * @param string  $name template name
      * @param string  &$source template source
-     * @param integer &$mtime  template modification timestamp (epoch)
+     * @param integer &$mtime template modification timestamp (epoch)
      */
     abstract protected function fetch($name, &$source, &$mtime);
 
@@ -42,18 +42,18 @@ abstract class Smarty_Resource_Custom extends Smarty_Resource
     /**
      * populate Source Object with meta data from Resource
      *
-     * @param Smarty_Template_Source   $source    source object
+     * @param Smarty_Template_Source   $source source object
      * @param Smarty_Internal_Template $_template template object
      */
     public function populate(Smarty_Template_Source $source, Smarty_Internal_Template $_template = null)
     {
         $source->filepath = $source->type . ':' . $source->name;
-        $source->uid = sha1($source->type . ':' . $source->name);
+        $source->uid      = sha1($source->type . ':' . $source->name);
 
         $mtime = $this->fetchTimestamp($source->name);
         if ($mtime !== null) {
             $source->timestamp = $mtime;
-        } else {
+        }else {
             $this->fetch($source->name, $content, $timestamp);
             $source->timestamp = isset($timestamp) ? $timestamp : false;
             if (isset($content)) {

@@ -14,13 +14,13 @@ class Smarty_Internal_Extension_Config
      */
     static function configLoad($obj, $config_file, $sections = null, $scope = 'local')
     {
-        $smarty = isset($obj->smarty) ? $obj->smarty : $obj;
-        $confObj = new $smarty->template_class($config_file, $smarty, $obj);
-        $confObj->caching = Smarty::CACHING_OFF;
-        $confObj->source = Smarty_Template_Config::load($confObj);
+        $smarty                           = isset($obj->smarty) ? $obj->smarty : $obj;
+        $confObj                          = new $smarty->template_class($config_file, $smarty, $obj);
+        $confObj->caching                 = Smarty::CACHING_OFF;
+        $confObj->source                  = Smarty_Template_Config::load($confObj);
         $confObj->source->config_sections = $sections;
-        $confObj->source->scope = $scope;
-        $confObj->compiled = Smarty_Template_Compiled::load($confObj);
+        $confObj->source->scope           = $scope;
+        $confObj->compiled                = Smarty_Template_Compiled::load($confObj);
         if ($confObj->smarty->debugging) {
             Smarty_Internal_Debug::start_render($confObj);
         }
@@ -29,7 +29,11 @@ class Smarty_Internal_Extension_Config
             Smarty_Internal_Debug::end_render($confObj);
         }
         if ($obj instanceof Smarty_Internal_Template) {
-            $obj->properties['file_dependency'][$confObj->source->uid] = array($confObj->source->filepath, $confObj->source->timestamp, $confObj->source->type);
+            $obj->properties['file_dependency'][$confObj->source->uid] = [
+                $confObj->source->filepath,
+                $confObj->source->timestamp,
+                $confObj->source->type
+            ];
         }
     }
 
@@ -37,7 +41,7 @@ class Smarty_Internal_Extension_Config
      * load config variables
      *
      * @param mixed  $sections array of section names, single section or null
-     * @param string $scope    global,parent or local
+     * @param string $scope global,parent or local
      *
      * @throws Exception
      */
@@ -50,7 +54,7 @@ class Smarty_Internal_Extension_Config
             if (isset($_template->parent->parent)) {
                 $scope_ptr = $_template->parent->parent;
             }
-        } elseif ($scope == 'root' || $scope == 'global') {
+        }elseif ($scope == 'root' || $scope == 'global') {
             while (isset($scope_ptr->parent)) {
                 $scope_ptr = $scope_ptr->parent;
             }
@@ -59,20 +63,22 @@ class Smarty_Internal_Extension_Config
         foreach ($_config_vars['vars'] as $variable => $value) {
             if ($_template->smarty->config_overwrite || !isset($scope_ptr->config_vars[$variable])) {
                 $scope_ptr->config_vars[$variable] = $value;
-            } else {
-                $scope_ptr->config_vars[$variable] = array_merge((array) $scope_ptr->config_vars[$variable], (array) $value);
+            }else {
+                $scope_ptr->config_vars[$variable] = array_merge((array)$scope_ptr->config_vars[$variable],
+                    (array)$value);
             }
         }
         // scan sections
         $sections = $_template->source->config_sections;
         if (!empty($sections)) {
-            foreach ((array) $sections as $_template_section) {
+            foreach ((array)$sections as $_template_section) {
                 if (isset($_config_vars['sections'][$_template_section])) {
                     foreach ($_config_vars['sections'][$_template_section]['vars'] as $variable => $value) {
                         if ($_template->smarty->config_overwrite || !isset($scope_ptr->config_vars[$variable])) {
                             $scope_ptr->config_vars[$variable] = $value;
-                        } else {
-                            $scope_ptr->config_vars[$variable] = array_merge((array) $scope_ptr->config_vars[$variable], (array) $value);
+                        }else {
+                            $scope_ptr->config_vars[$variable] = array_merge((array)$scope_ptr->config_vars[$variable],
+                                (array)$value);
                         }
                     }
                 }
@@ -90,26 +96,26 @@ class Smarty_Internal_Extension_Config
      */
     static function getConfigVars($obj, $varname = null, $search_parents = true)
     {
-        $_ptr = $obj;
-        $var_array = array();
+        $_ptr      = $obj;
+        $var_array = [];
         while ($_ptr !== null) {
             if (isset($varname)) {
                 if (isset($_ptr->config_vars[$varname])) {
                     return $_ptr->config_vars[$varname];
                 }
-            } else {
+            }else {
                 $var_array = array_merge($_ptr->config_vars, $var_array);
             }
             // not found, try at parent
             if ($search_parents) {
                 $_ptr = $_ptr->parent;
-            } else {
+            }else {
                 $_ptr = null;
             }
         }
         if (isset($varname)) {
             return '';
-        } else {
+        }else {
             return $var_array;
         }
     }
@@ -152,9 +158,10 @@ class Smarty_Internal_Extension_Config
     {
         if (isset($name)) {
             unset($obj->config_vars[$name]);
-        } else {
-            $obj->config_vars = array();
+        }else {
+            $obj->config_vars = [];
         }
+
         return $obj;
     }
 }

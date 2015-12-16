@@ -10,9 +10,10 @@ namespace app\example;
 
 use app\example\config\Base;
 
-class Config extends Base{
-	const JSON_FORMAT = JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT;
+class Config extends Base
+{
+    const JSON_FORMAT = JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT;
 
-	const TPL_CACHING = false;
-	const TPL_FORCE_COMPILE = true;
+    const TPL_CACHING       = false;
+    const TPL_FORCE_COMPILE = true;
 }

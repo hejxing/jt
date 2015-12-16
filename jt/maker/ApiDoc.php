@@ -32,6 +32,7 @@
  * TODO core:返回类型和请求object类型中，当键不是类型时是数据值时怎么表示？？？？其中，请求类型一定是object类型开始，因为请求参数一定是键值对,但是返回类型不一定
  * demo:
  * 获取最新的版本号
+ *
  * @description
  *    废弃特性:
  *        1.qweqwe
@@ -39,7 +40,7 @@
  *  新增特性:
  *        1.asda
  *        2.qweq
- * @param \jt\Requester $post/$get/$any/$variable 描述
+ * @param \jt\Requester $post /$get/$any/$variable 描述
  *    attr:type:value type2:value4 type3 type4:value4  描述
  *    attr:type:value type2:value4 type3 type4:value4  描述
  * @return type[int,float,bool,string,object,objectList,list,void(默认)] 描述1
@@ -66,6 +67,7 @@
  */
 namespace jt\maker;
 
-class ApiDoc extends Action{
+class ApiDoc extends Action
+{
 
 }

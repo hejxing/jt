@@ -10,20 +10,21 @@ namespace app\example;
 
 use app\example\config\Base;
 
-class Config extends Base{
-	const JSON_FORMAT = JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT;
-	const ACCEPT_MIME = ['json', 'html'];
+class Config extends Base
+{
+    const JSON_FORMAT = JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT;
+    const ACCEPT_MIME = ['json', 'html'];
 
-	const TPL_AUTO_LOAD       = true;
-	const TPL_CACHING = false;
+    const TPL_AUTO_LOAD = true;
+    const TPL_CACHING   = false;
 
-	const SESSION_NAME = 'sys_ses_id';
+    const SESSION_NAME = 'sys_ses_id';
 
-	public static $webDefaultOption = [
-		'titleSuffix' => '-金猫银猫',
-		'description' => '',
-		'keywords'    => ''
-	];
+    public static $webDefaultOption = [
+        'titleSuffix' => '-金猫银猫',
+        'description' => '',
+        'keywords'    => ''
+    ];
 }
 
 define('WEB_NAME', '金猫银猫');

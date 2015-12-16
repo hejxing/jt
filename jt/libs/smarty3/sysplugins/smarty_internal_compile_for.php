@@ -26,8 +26,8 @@ class Smarty_Internal_Compile_For extends Smarty_Internal_CompileBase
      * The parser is generating different sets of attribute by which this compiler can
      * determine which syntax is used.
      *
-     * @param  array  $args      array with attributes from parser
-     * @param  object $compiler  compiler object
+     * @param  array  $args array with attributes from parser
+     * @param  object $compiler compiler object
      * @param  array  $parameter array with compilation parameter
      *
      * @return string compiled code
@@ -35,11 +35,11 @@ class Smarty_Internal_Compile_For extends Smarty_Internal_CompileBase
     public function compile($args, $compiler, $parameter)
     {
         if ($parameter == 0) {
-            $this->required_attributes = array('start', 'to');
-            $this->optional_attributes = array('max', 'step');
-        } else {
-            $this->required_attributes = array('start', 'ifexp', 'var', 'step');
-            $this->optional_attributes = array();
+            $this->required_attributes = ['start', 'to'];
+            $this->optional_attributes = ['max', 'step'];
+        }else {
+            $this->required_attributes = ['start', 'ifexp', 'var', 'step'];
+            $this->optional_attributes = [];
         }
         // check and get attributes
         $_attr = $this->getAttributes($compiler, $args);
@@ -48,41 +48,41 @@ class Smarty_Internal_Compile_For extends Smarty_Internal_CompileBase
         if ($parameter == 1) {
             foreach ($_attr['start'] as $_statement) {
                 if (is_array($_statement['var'])) {
-                    $var = $_statement['var']['var'];
+                    $var   = $_statement['var']['var'];
                     $index = $_statement['var']['smarty_internal_index'];
-                } else {
-                    $var = $_statement['var'];
+                }else {
+                    $var   = $_statement['var'];
                     $index = '';
                 }
                 $output .= " \$_smarty_tpl->tpl_vars[$var] = new Smarty_Variable;";
                 $output .= " \$_smarty_tpl->tpl_vars[$var]->value{$index} = $_statement[value];\n";
             }
             if (is_array($_attr['var'])) {
-                $var = $_attr['var']['var'];
+                $var   = $_attr['var']['var'];
                 $index = $_attr['var']['smarty_internal_index'];
-            } else {
-                $var = $_attr['var'];
+            }else {
+                $var   = $_attr['var'];
                 $index = '';
             }
             $output .= "  if ($_attr[ifexp]) { for (\$_foo=true;$_attr[ifexp]; \$_smarty_tpl->tpl_vars[$var]->value{$index}$_attr[step]) {\n";
-        } else {
+        }else {
             $_statement = $_attr['start'];
             if (is_array($_statement['var'])) {
-                $var = $_statement['var']['var'];
+                $var   = $_statement['var']['var'];
                 $index = $_statement['var']['smarty_internal_index'];
-            } else {
-                $var = $_statement['var'];
+            }else {
+                $var   = $_statement['var'];
                 $index = '';
             }
             $output .= "\$_smarty_tpl->tpl_vars[$var] = new Smarty_Variable;";
             if (isset($_attr['step'])) {
                 $output .= "\$_smarty_tpl->tpl_vars[$var]->step = $_attr[step];";
-            } else {
+            }else {
                 $output .= "\$_smarty_tpl->tpl_vars[$var]->step = 1;";
             }
             if (isset($_attr['max'])) {
                 $output .= "\$_smarty_tpl->tpl_vars[$var]->total = (int) min(ceil((\$_smarty_tpl->tpl_vars[$var]->step > 0 ? $_attr[to]+1 - ($_statement[value]) : $_statement[value]-($_attr[to])+1)/abs(\$_smarty_tpl->tpl_vars[$var]->step)),$_attr[max]);\n";
-            } else {
+            }else {
                 $output .= "\$_smarty_tpl->tpl_vars[$var]->total = (int) ceil((\$_smarty_tpl->tpl_vars[$var]->step > 0 ? $_attr[to]+1 - ($_statement[value]) : $_statement[value]-($_attr[to])+1)/abs(\$_smarty_tpl->tpl_vars[$var]->step));\n";
             }
             $output .= "if (\$_smarty_tpl->tpl_vars[$var]->total > 0) {\n";
@@ -92,9 +92,10 @@ class Smarty_Internal_Compile_For extends Smarty_Internal_CompileBase
         }
         $output .= "?>";
 
-        $this->openTag($compiler, 'for', array('for', $compiler->nocache));
+        $this->openTag($compiler, 'for', ['for', $compiler->nocache]);
         // maybe nocache because of nocache variables
         $compiler->nocache = $compiler->nocache | $compiler->tag_nocache;
+
         // return compiled code
         return $output;
     }
@@ -111,8 +112,8 @@ class Smarty_Internal_Compile_Forelse extends Smarty_Internal_CompileBase
     /**
      * Compiles code for the {forelse} tag
      *
-     * @param  array  $args      array with attributes from parser
-     * @param  object $compiler  compiler object
+     * @param  array  $args array with attributes from parser
+     * @param  object $compiler compiler object
      * @param  array  $parameter array with compilation parameter
      *
      * @return string compiled code
@@ -122,8 +123,8 @@ class Smarty_Internal_Compile_Forelse extends Smarty_Internal_CompileBase
         // check and get attributes
         $_attr = $this->getAttributes($compiler, $args);
 
-        list($openTag, $nocache) = $this->closeTag($compiler, array('for'));
-        $this->openTag($compiler, 'forelse', array('forelse', $nocache));
+        list($openTag, $nocache) = $this->closeTag($compiler, ['for']);
+        $this->openTag($compiler, 'forelse', ['forelse', $nocache]);
 
         return "<?php }} else { ?>";
     }
@@ -140,8 +141,8 @@ class Smarty_Internal_Compile_Forclose extends Smarty_Internal_CompileBase
     /**
      * Compiles code for the {/for} tag
      *
-     * @param  array  $args      array with attributes from parser
-     * @param  object $compiler  compiler object
+     * @param  array  $args array with attributes from parser
+     * @param  object $compiler compiler object
      * @param  array  $parameter array with compilation parameter
      *
      * @return string compiled code
@@ -155,11 +156,11 @@ class Smarty_Internal_Compile_Forclose extends Smarty_Internal_CompileBase
             $compiler->tag_nocache = true;
         }
 
-        list($openTag, $compiler->nocache) = $this->closeTag($compiler, array('for', 'forelse'));
+        list($openTag, $compiler->nocache) = $this->closeTag($compiler, ['for', 'forelse']);
 
         if ($openTag == 'forelse') {
             return "<?php }  ?>";
-        } else {
+        }else {
             return "<?php }} ?>";
         }
     }

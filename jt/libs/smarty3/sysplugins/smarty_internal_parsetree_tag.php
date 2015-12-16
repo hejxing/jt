@@ -30,12 +30,12 @@ class Smarty_Internal_ParseTree_Tag extends Smarty_Internal_ParseTree
      * Create parse tree buffer for Smarty tag
      *
      * @param object $parser parser object
-     * @param string $data   content
+     * @param string $data content
      */
     public function __construct($parser, $data)
     {
-        $this->parser = $parser;
-        $this->data = $data;
+        $this->parser              = $parser;
+        $this->data                = $data;
         $this->saved_block_nesting = $parser->block_nesting_level;
     }
 
@@ -56,9 +56,11 @@ class Smarty_Internal_ParseTree_Tag extends Smarty_Internal_ParseTree
      */
     public function assign_to_var()
     {
-        $var = sprintf('$_tmp%d', ++ Smarty_Internal_Templateparser::$prefix_number);
-        $tmp = $this->parser->compiler->appendCode('<?php ob_start();?>', $this->data);
-        $tmp = $this->parser->compiler->appendCode($tmp, "<?php {$var}=ob_get_clean();?>");
+        $var                                   = sprintf('$_tmp%d', ++Smarty_Internal_Templateparser::$prefix_number);
+        $tmp                                   = $this->parser->compiler->appendCode('<?php ob_start();?>',
+            $this->data);
+        $tmp                                   = $this->parser->compiler->appendCode($tmp,
+            "<?php {$var}=ob_get_clean();?>");
         $this->parser->compiler->prefix_code[] = sprintf("%s", $tmp);
 
         return $var;

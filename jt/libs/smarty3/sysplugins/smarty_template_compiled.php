@@ -78,13 +78,14 @@ class Smarty_Template_Compiled
         $compiled = new Smarty_Template_Compiled();
         if (method_exists($_template->source->handler, 'populateCompiledFilepath')) {
             $_template->source->handler->populateCompiledFilepath($compiled, $_template);
-        } else {
+        }else {
             $compiled->populateCompiledFilepath($_template);
         }
         // runtime cache
         if (!$_template->source->recompiled && $_template->smarty->resource_caching) {
             $_template->source->compileds[$_cache_key] = $compiled;
         }
+
         return $compiled;
     }
 
@@ -97,18 +98,15 @@ class Smarty_Template_Compiled
     {
         $_compile_id = isset($_template->compile_id) ? preg_replace('![^\w\|]+!', '_', $_template->compile_id) : null;
         if ($_template->source->isConfig) {
-            $_flag = '_' . ((int) $_template->smarty->config_read_hidden + (int) $_template->smarty->config_booleanize * 2
-                    + (int) $_template->smarty->config_overwrite * 4);
-        } else {
-            $_flag = '_' . ((int) $_template->smarty->merge_compiled_includes + (int) $_template->smarty->escape_html * 2);
+            $_flag = '_' . ((int)$_template->smarty->config_read_hidden + (int)$_template->smarty->config_booleanize * 2 + (int)$_template->smarty->config_overwrite * 4);
+        }else {
+            $_flag = '_' . ((int)$_template->smarty->merge_compiled_includes + (int)$_template->smarty->escape_html * 2);
         }
         $_filepath = $_template->source->uid . $_flag;
         // if use_sub_dirs, break file into directories
         if ($_template->smarty->use_sub_dirs) {
-            $_filepath = substr($_filepath, 0, 2) . DS
-                . substr($_filepath, 2, 2) . DS
-                . substr($_filepath, 4, 2) . DS
-                . $_filepath;
+            $_filepath = substr($_filepath, 0, 2) . DS . substr($_filepath, 2, 2) . DS . substr($_filepath, 4,
+                    2) . DS . $_filepath;
         }
         $_compile_dir_sep = $_template->smarty->use_sub_dirs ? DS : '^';
         if (isset($_compile_id)) {
@@ -117,7 +115,7 @@ class Smarty_Template_Compiled
         // caching token
         if ($_template->caching) {
             $_cache = '.cache';
-        } else {
+        }else {
             $_cache = '';
         }
         $_compile_dir = $_template->smarty->getCompileDir();
@@ -131,7 +129,7 @@ class Smarty_Template_Compiled
             $_basename = '.' . $_basename;
         }
 
-        $this->filepath = $_compile_dir . $_filepath . '.' . $_template->source->type . $_basename . $_cache . '.php';
+        $this->filepath  = $_compile_dir . $_filepath . '.' . $_template->source->type . $_basename . $_cache . '.php';
         $this->timestamp = $this->exists = is_file($this->filepath);
         if ($this->exists) {
             $this->timestamp = @filemtime($this->filepath);
@@ -150,15 +148,14 @@ class Smarty_Template_Compiled
         $_smarty_tpl = $_template;
         if ($_template->source->recompiled || !$_template->compiled->exists || $_template->smarty->force_compile) {
             $this->compileTemplateSource($_template);
-            $compileCheck = $_template->smarty->compile_check;
+            $compileCheck                     = $_template->smarty->compile_check;
             $_template->smarty->compile_check = false;
             if ($_template->source->recompiled) {
                 $level = ob_get_level();
                 ob_start();
-                try {
+                try{
                     eval("?>" . $this->code);
-                }
-                catch (Exception $e) {
+                }catch (Exception $e){
                     while (ob_get_level() > $level) {
                         ob_end_clean();
                     }
@@ -166,21 +163,21 @@ class Smarty_Template_Compiled
                 }
                 ob_get_clean();
                 $this->code = null;
-            } else {
+            }else {
                 include($_template->compiled->filepath);
             }
             $_template->smarty->compile_check = $compileCheck;
-        } else {
+        }else {
             include($_template->compiled->filepath);
             if ($_template->mustCompile) {
                 $this->compileTemplateSource($_template);
-                $compileCheck = $_template->smarty->compile_check;
+                $compileCheck                     = $_template->smarty->compile_check;
                 $_template->smarty->compile_check = false;
                 include($_template->compiled->filepath);
                 $_template->smarty->compile_check = $compileCheck;
             }
         }
-        $this->unifunc = $_template->properties['unifunc'];
+        $this->unifunc   = $_template->properties['unifunc'];
         $this->processed = true;
     }
 
@@ -199,6 +196,7 @@ class Smarty_Template_Compiled
             $this->process($_template);
         }
         $_template->properties['unifunc'] = $this->unifunc;
+
         return $_template->getRenderedTemplateCode();
     }
 
@@ -213,7 +211,7 @@ class Smarty_Template_Compiled
     public function compileTemplateSource(Smarty_Internal_Template $_template)
     {
         if (!$_template->source->recompiled) {
-            $_template->properties['file_dependency'] = array();
+            $_template->properties['file_dependency'] = [];
         }
         // compile locking
         if (!$_template->source->recompiled) {
@@ -222,10 +220,9 @@ class Smarty_Template_Compiled
             }
         }
         // call compiler
-        try {
+        try{
             $code = $_template->compiler->compileTemplate($_template);
-        }
-        catch (Exception $e) {
+        }catch (Exception $e){
             // restore old timestamp in case of error
             if (!$_template->source->recompiled && $saved_timestamp) {
                 touch($_template->compiled->filepath, $saved_timestamp);
@@ -240,6 +237,7 @@ class Smarty_Template_Compiled
         }
         // release compiler object to free memory
         unset($_template->compiler);
+
         return $code;
     }
 
@@ -247,7 +245,7 @@ class Smarty_Template_Compiled
      * Write compiled code by handler
      *
      * @param Smarty_Internal_Template $_template template object
-     * @param string                   $code      compiled code
+     * @param string                   $code compiled code
      *
      * @return boolean success
      */
@@ -259,15 +257,18 @@ class Smarty_Template_Compiled
                 $this->timestamp = $this->exists = is_file($this->filepath);
                 if ($this->exists) {
                     $this->timestamp = @filemtime($this->filepath);
+
                     return true;
                 }
             }
+
             return false;
-        } else {
+        }else {
             $this->code = $code;
         }
         $this->timestamp = time();
-        $this->exists = true;
+        $this->exists    = true;
+
         return true;
     }
 
@@ -283,6 +284,7 @@ class Smarty_Template_Compiled
         if (!$_template->source->recompiled) {
             return file_get_contents($this->filepath);
         }
+
         return isset($this->content) ? $this->content : false;
     }
 }

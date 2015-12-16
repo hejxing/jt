@@ -19,7 +19,7 @@ class Smarty_Internal_Compile_Private_Special_Variable extends Smarty_Internal_C
     /**
      * Compiles code for the special $smarty variables
      *
-     * @param  array  $args     array with attributes from parser
+     * @param  array  $args array with attributes from parser
      * @param  object $compiler compiler object
      * @param         $parameter
      *
@@ -27,14 +27,17 @@ class Smarty_Internal_Compile_Private_Special_Variable extends Smarty_Internal_C
      */
     public function compile($args, $compiler, $parameter)
     {
-        $_index = preg_split("/\]\[/", substr($parameter, 1, strlen($parameter) - 2));
+        $_index       = preg_split("/\]\[/", substr($parameter, 1, strlen($parameter) - 2));
         $compiled_ref = ' ';
-        $variable = trim($_index[0], "'");
-        if (!isset($compiler->smarty->security_policy) || $compiler->smarty->security_policy->isTrustedSpecialSmartyVar($variable, $compiler)) {
+        $variable     = trim($_index[0], "'");
+        if (!isset($compiler->smarty->security_policy) || $compiler->smarty->security_policy->isTrustedSpecialSmartyVar($variable,
+                $compiler)
+        ) {
             switch ($variable) {
                 case 'foreach':
-                    $name = trim($_index[1], "'");
+                    $name       = trim($_index[1], "'");
                     $foreachVar = "'__foreach_{$name}'";
+
                     return "(isset(\$_smarty_tpl->tpl_vars[$foreachVar]->value[{$_index[2]}]) ? \$_smarty_tpl->tpl_vars[$foreachVar]->value[{$_index[2]}] : null)";
                 case 'section':
                     return "\$_smarty_tpl->getVariable('smarty')->value$parameter";
@@ -82,16 +85,16 @@ class Smarty_Internal_Compile_Private_Special_Variable extends Smarty_Internal_C
                         $compiler->trigger_template_error("(secure mode) constants not permitted");
                         break;
                     }
-                    if (strpos($_index[1], '$') === false && strpos($_index[1], '\'') === false ) {
+                    if (strpos($_index[1], '$') === false && strpos($_index[1], '\'') === false) {
                         return "@constant('{$_index[1]}')";
-                    } else {
+                    }else {
                         return "@constant({$_index[1]})";
                     }
 
                 case 'config':
                     if (isset($_index[2])) {
                         return "(is_array(\$tmp = \$_smarty_tpl->getConfigVariable($_index[1])) ? \$tmp[$_index[2]] : null)";
-                    } else {
+                    }else {
                         return "\$_smarty_tpl->getConfigVariable($_index[1])";
                     }
                 case 'ldelim':
@@ -115,6 +118,7 @@ class Smarty_Internal_Compile_Private_Special_Variable extends Smarty_Internal_C
                 }
             }
         }
+
         return $compiled_ref;
     }
 }

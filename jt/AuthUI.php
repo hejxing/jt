@@ -14,6 +14,7 @@
 namespace jt;
 
 
-class AuthUI{
+class AuthUI
+{
 
 }

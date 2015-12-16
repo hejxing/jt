@@ -33,69 +33,78 @@ use jt\exception\TaskException;
  * @ access get:public put:login list:public
  * @ router any /users auth:public
  */
-class Main extends Action{
+class Main extends Action
+{
 
-	/**
-	 * 首页
-	 *
-	 * @router get /index auth:public mime:html
-	 *
-	 */
-	public function index(){
-		$this->out('action', 'Hello');
-		$this->out('name', 'world');
-	}
+    /**
+     * 首页
+     *
+     * @router get /index auth:public mime:html
+     *
+     */
+    public function index()
+    {
+        $this->out('action', 'Hello');
+        $this->out('name', 'world');
+    }
 
-	/**
-	 * 演示参数获取和参数验证
-	 * @param \jt\Requester $query
-	 * size:int [default:20] 默认值为20
-	 * @param int $page [default:1 min:1] 默认值为1
-	 *
-	 * @return array
-	 *
-	 * @router get /list/:page mime:json
-	 */
-	public function turnPage($query, $page){
-		return [
-			'page' => $page,
-			'size' => $query->size
-		];
-	}
+    /**
+     * 演示参数获取和参数验证
+     *
+     * @param \jt\Requester $query
+     * size:int [default:20] 默认值为20
+     * @param int           $page [default:1 min:1] 默认值为1
+     *
+     * @return array
+     *
+     * @router get /list/:page mime:json
+     */
+    public function turnPage($query, $page)
+    {
+        return [
+            'page' => $page,
+            'size' => $query->size
+        ];
+    }
 
-	/**
-	 * 演示通配路径 比如可以访问 /test/414
-	 * @param string $path 获取到的路径
-	 *
-	 * @return array
-	 *
-	 * @router get /any/*path mime:html
-	 */
-	public function defaultPage($path, $query){
-		echo $path;
-		exit();
-	}
+    /**
+     * 演示通配路径 比如可以访问 /test/414
+     *
+     * @param string $path 获取到的路径
+     *
+     * @return array
+     *
+     * @router get /any/*path mime:html
+     */
+    public function defaultPage($path, $query)
+    {
+        echo $path;
+        exit();
+    }
 
-	/**
-	 * 演示抛出一个404
-	 *
-	 * @throws \jt\exception\TaskException
-	 *
-	 * @router get /show/404 auth:public mime:html
-	 */
-	public function custome404(){
-		throw new TaskException('404', 404);
-	}
+    /**
+     * 演示抛出一个404
+     *
+     * @throws \jt\exception\TaskException
+     *
+     * @router get /show/404 auth:public mime:html
+     */
+    public function custome404()
+    {
+        throw new TaskException('404', 404);
+    }
 
-	/**
-	 * 显示一个post请求
-	 * @param \jt\Requester $body
-	 * name [string max:36 min:6] 名称
-	 * @param $id [require] 产品ID
-	 *
-	 * @router post /product/:id mime:html
-	 */
-	public function postMethod($body, $id){
+    /**
+     * 显示一个post请求
+     *
+     * @param \jt\Requester $body
+     * name [string max:36 min:6] 名称
+     * @param               $id [require] 产品ID
+     *
+     * @router post /product/:id mime:html
+     */
+    public function postMethod($body, $id)
+    {
 
-	}
+    }
 }

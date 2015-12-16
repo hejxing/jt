@@ -7,10 +7,12 @@
 namespace jt\maker;
 
 
-class ParserTest extends \PHPUnit_Framework_TestCase{
-	public function testParser(){
-		$routerMapFile = \Config::RUNTIME_PATH_ROOT . '/router/'.MODULE.'.php';
-		$result = Router::general($routerMapFile);
-		var_export($result);
-	}
+class ParserTest extends \PHPUnit_Framework_TestCase
+{
+    public function testParser()
+    {
+        $routerMapFile = \Config::RUNTIME_PATH_ROOT . '/router/' . MODULE . '.php';
+        $result        = Router::general($routerMapFile);
+        var_export($result);
+    }
 }

@@ -10,767 +10,804 @@ namespace jt\maker;
 
 use jt\Requester;
 
-abstract class Action extends Loader{
-	protected $classType = 'action';//当前类的类型 区别于 model
-
-	protected $basePath     = '/';//URI的路径前缀
-	protected $baseTplPath  = '/';//TPL的路径前缀
-	protected $defaultRuler = [
-		'method' => 'get',
-		'tpl'    => '',
-		'auth'   => null,
-		'mime'   => ''
-	];//默认的规则
-
-	protected static $defaultIndex = 'index';//index
-
-	protected static $tabAsSpaceCount = 4;
-	protected static $requesterClass  = '\jt\Requester';
-	protected static $modelAction     = '\jt\ModelAction';
-
-	protected static $rulerOrder        = ['method', 'uri', 'tpl', 'auth', 'mime'];
-	protected static $methods           = ['get', 'post', 'put', 'delete', 'head', 'option'];//支持的动作
-	protected static $anyAsMethods      = ['get', 'post', 'put', 'delete'];//any 所代表的动作
-	protected static $requestParam      = ['body', 'query', 'request', 'header', 'cookie', 'session'];
-	protected static $valueParam        = ['int', 'string', 'array', 'float', 'bool'];
-	protected static $hasChildParamType = ['object', 'objectList', 'list'];
-	protected static $classInfoNames    = ['Auth', 'Create', 'version', 'title', 'desc', 'notice'];
-	protected static $globalBasePath    = ['basePath', 'baseTplPath'];
-
-	protected static $methodAttributes = [
-		'methods',
-		'path',
-		'class',
-		'method',
-		'param',
-		'tpl',
-		'mime',
-		'auth',
-		'return',
-		'name',
-		'desc',
-		'notice',
-		'line'
-	];
-
-
-	/**
-	 * 搜集全局设置
-	 * 全局设置只能放在第一个注释块中
-	 */
-	protected function collectGlobalValue(){
-		$this->collectValidateList();
-		foreach($this->commentBlocks as $commentBlock){
-			$this->commentLines = $commentBlock;
-			break;
-		}
-		foreach(static::$globalBasePath as $name){
-			$value = $this->getValue($name);
-			if($value){
-				if(substr($value, 0, 1) !== '/'){
-					$this->error($name . 'Error', 'Action Presets [' . $name . '] 没有以 / 开始，请修正');
-				}
-				if(substr($value, -1, 1) !== '/'){
-					$this->error($name . 'Error', 'Action Presets [' . $name . '] 没有以 / 结束，请修正');
-				}
-				$this->$name = $value;
-			}
-		}
-		foreach($this->defaultRuler as $name => &$ov){
-			$value = $this->getValue('default' . ucfirst($name));
-			if($value){
-				$ov = $value;
-			}
-		}
-		foreach(static::$classInfoNames as $name){
-			if($name === 'desc'){
-				$this->classInfo[$name][] = $this->getValue($name);
-				foreach($this->getValueList(['string']) as list(, $desc)){
-					$this->classInfo[$name][] = $desc;
-				}
-				$last = array_pop($this->classInfo[$name]);
-				if($last){
-					$this->classInfo[$name][] = $last;
-				}
-			}else{
-				$this->classInfo[$name] = $this->getValue($name);
-			}
-		}
-		$this->classInfo['methods'] = [];
-
-		$this->parsedContainer = $this->classInfo;
-	}
-
-	/**
-	 * 搜集全局的参数验证列表
-	 */
-	private function collectValidateList(){
-		$validate = [];
-		foreach($this->commentBlocks as $commentBlock){
-			$this->commentLines = $commentBlock;
-			while(1){
-				$value = $this->getValue('validate', false);
-				if($value === null){
-					break;
-				}
-				if($value === ''){
-					$value = 'any';
-				}
-				if(!in_array($value, ['any', 'param', 'return'])){
-					$this->error('validateTypeIll', '错误的参数验证类型:[' . $value . '],只能是[param,return]之一或为空');
-				}
-				$lines = $this->getValueList(['string']);
-				$lists = $this->parseParam($lines);
-				foreach($lists as $list){
-					$validate[$value][] = $list;
-				}
-			}
-		}
-		$this->classInfo['validate'] = $validate;
-	}
-
-	/**
-	 * 解释注解块
-	 * 该方法由Loader调用，一次处理一整块注释，包括name(接口名称), desc(接口描述), router(路由规则), param(参数列表), return(返回数据格式)
-	 */
-	protected function parseComment(){
-		$this->parseRouter();
-		if($this->parsed){
-			$this->parseDoc();
-			$this->pack();
-		}
-	}
-
-	/**
-	 * 计算注释向右移的位数
-	 *
-	 * @param $line
-	 *
-	 * @return int
-	 */
-	private function countIndent($line){
-		preg_match('/^([ \\t]*)/', $line, $matched);
-		$spaces = str_replace("\t", static::$tabAsSpaceCount, $matched[1]);
-
-		return strlen($spaces);
-	}
-
-	/**
-	 * 将注解中的某一行送到此处来分解
-	 *
-	 * @param $line
-	 *
-	 * @return mixed
-	 */
-	private function parseParamLine($line){
-		preg_match('/(\+?\w*)\:?([\w\\\\]*)(?: +\[([^\]]*)\])? *(.*)/', $line, $match);
-		array_shift($match);
-		$type = $match[1];
-		if(strpos($match[0], '+') === 0){
-			$match[1] = 'require';
-			$match[2] = preg_split('/ *, */', $match[2]);
-		}else{
-			$ruler = trim($match[2] . ' ' . $type);
-			$match[2] = Requester::parseValidate($ruler, 'paramNode:' . $ruler);
-		}
-		if(!$type && isset($match[2]['type'])){
-			$match[1] = $match[2]['type'];
-		}
-		$match[] = $this->line;
-
-		return $match;
-	}
-
-	/**
-	 * 搜集解析的参数结果
-	 * @param array $lines
-	 * @param int $indent
-	 * @param int $parentIndent
-	 * @return array
-	 */
-	private function collectParseParam(array &$lines, $indent, &$parentIndent = null){
-		$parsedList = [];
-		$parsed = [];
-		while(($item = array_shift($lines))){
-			$line = $item[1];
-			$lineNo = $item[2];
-			$currentIndent = $this->countIndent($line);//缩进数量
-			if($currentIndent !== $indent){
-				array_unshift($lines, $item);
-			}
-			if($currentIndent > $indent){//进入下一级
-				//判断是否允许降级,若不允许则报错
-				if(!in_array($parsed['ruler']['type'], static::$hasChildParamType)){
-					$this->line = $lineNo;
-					$this->error('indentNotAllow', '不允许的缩进，上一参数类型不支持有下级元素');
-				}
-				$parsedList[count($parsedList) - 1]['nodes'] = $this->collectParseParam($lines, $currentIndent, $parentIndent);
-				continue;
-			}elseif($currentIndent < $indent){//退出到上一级
-				$parentIndent = $currentIndent;
-				break;
-			}
-
-			if($parentIndent){//判断对齐$parentIndent了没
-				if($parentIndent < $indent){
-					$this->line = $lineNo;
-					$this->error('paramIndentNotAlignStart', '此处缩进未能对齐开始处');
-				}elseif($parentIndent > $indent){
-					break;
-				}
-			}
-
-			$parentIndent = null;
-			$p = $this->parseParamLine(trim($line));
-			$parsed = [
-				'name'  => $p[0],
-				'ruler' => $p[2],
-				'desc'  => $p[3],
-				'line'  => $this->line
-			];
-			$parsedList[] = $parsed;
-		}
-		return $parsedList;
-	}
-
-	/**
-	 * 解析参数
-	 *
-	 * @param array $lines 多行参数
-	 *
-	 * @return array
-	 */
-	private function parseParam($lines){
-		if(!$lines){
-			return [];
-		}
-		$indent = $this->countIndent($lines[0][1]);//缩进数量
-		$params = $this->collectParseParam($lines, $indent);
-		return $params;
-	}
-
-	/**
-	 * 解析在参数中捕获到的参数验证规则
-	 *
-	 * @param $ruler
-	 * @param $type 变量类型
-	 *
-	 * @return mixed
-	 */
-	private function parseParamRuler($ruler, $type){
-		if(in_array($type, Requester::VALUE_TYPE['single']) || in_array($type, Requester::VALUE_TYPE['composite'])){
-			$ruler = trim($ruler . ' ' . $type);
-		}elseif($type){
-			$ruler = trim($ruler . ' type:' . $type);
-		}
-
-		return $ruler;
-	}
-
-	/**
-	 * 解析暴露的Model的说明文档
-	 *
-	 * @return array
-	 */
-	private function parseModelDoc(){
-		//获取说明
-		$this->parsed['return'] = [];
-		$this->parsed['name'] = '';
-		$this->parsed['desc'] = [];
-		$this->parsed['notice'] = '';
-	}
-
-	/**
-	 * 搜集注解中的参数信息
-	 */
-	private function collectDocParam(){
-		\reset($this->commentLines);
-		while(($param = $this->getValue('param', false))){
-			preg_match('/([\w\\\\]*) *\$([a-z]\w*)(?: +\[([^\]]*)\])? *(.*)/', $param, $match);
-			array_shift($match);
-			$type = $this->prefixNamespace($match[0]);
-			$name = $match[1];
-			if(!isset($this->parsed['param'][$name])){//忽略在方法参数中不存在的参数
-				$this->error('docParamNotInMethod', '注解中的参数 [' . $name . '] 在方法 [' . $this->parsed['class'] . '::' . $this->parsed['method'] . '] 中不存在');
-				continue;
-			}
-			$mp = &$this->parsed['param'][$name];
-			$type = $type ?: $mp['type'];
-			if($type && !$mp['type']){
-				$mp['type'] = $type;
-				$mp['line'] = $this->line; //标明此处的类型定义来自注解
-			}elseif($type !== $mp['type']){
-				$this->error('paramTypeDiscord', '参数类型不一致。[' . $type . ']的参数类型[' . $name . '] 与方法声明中的类型[' . $mp[0] . '] 不一致');
-			}
-			$ruler = $this->parseParamRuler($match[2], $match[0]);
-			$desc = $match[3];
-			$nodes = [];
-
-			if(in_array($name, static::$requestParam)){
-				if($type && $type !== static::$requesterClass){
-					$this->error('commentParamTypeIll', '注释中参数类型错误，期待 [\jt\Requester],此处为 [' . $type . ']');
-				}
-				$lines = $this->getValueList(['string']);
-				$nodes = $this->parseParam($lines);
-			}
-			$mp['ruler'] = $ruler;
-			$mp['nodes'] = $nodes;
-			$mp['desc'] = $desc;
-		}
-	}
-
-	/**
-	 * 搜集注解中的返回值信息
-	 */
-	private function collectDocReturn(){
-		$return = $this->getValue('return');
-		if($return === null){
-			$this->parsed['return'] = [];
-
-			return;
-		}
-		preg_match('/([^ ]*) *(?:\[(.*)\])? *(.*)/', $return, $match);
-		array_shift($match);
-		$ruler = $match[1];
-		if(in_array($match[0], Requester::VALUE_TYPE['single']) || in_array($match[0], Requester::VALUE_TYPE['composite'])){
-			$ruler = $ruler . ' ' . $match[0];
-		}
-		$parsed = [
-			'name'  => '',
-			'type'  => $match[0],
-			'ruler' => Requester::parseValidate($ruler, 'return:' . $ruler),
-			'desc'  => $match[2],
-			'line'  => $this->line
-		];
-		if($match[0] === 'array'){
-			$lines = $this->getValueList(['string']);
-			$parsed['nodes'] = $this->parseParam($lines);
-		}
-		$this->parsed['return'] = $parsed;
-	}
-
-	/**
-	 * 解析带路由的方法的说明文档
-	 */
-	private function parseRouterDoc(){
-		//获取说明
-		$this->parsed['name'] = $this->getValue('string');
-		$this->parsed['desc'] = [];
-		foreach($this->getValueList(['string']) as list(, $desc)){
-			$this->parsed['desc'][] = $desc;
-		}
-		$this->parsed['notice'] = $this->getValue('notice');
-
-		$this->collectDocParam();
-		$this->collectDocReturn();
-	}
-
-	/**
-	 * 解析注解中用来生成说明文档的内容
-	 */
-	private function parseDoc(){
-		switch($this->parsed['scheme']){
-		case 'model':
-			$this->parseModelDoc();
-			break;
-		case 'method':
-		case 'router':
-			$this->parseRouterDoc();
-			break;
-		}
-	}
-
-	/**
-	 * 解析注解中的路由规则
-	 */
-	private function parseRouter(){
-		$this->parsed = [];
-		$scheme       = $this->collect([
-			T_USE,
-			T_PUBLIC,
-			T_FUNCTION,
-			T_PRIVATE,
-			T_PROTECTED
-		], [T_WHITESPACE], ['useful']);
-		$router       = $this->getValue('router');
-
-		if($this->collect([T_STATIC], [T_WHITESPACE])){
-			return;
-		}
-		$this->parsed = [
-			'scheme' => 'empty'
-		];
-
-		$this->parsed['line'] = $this->line;
-		if($router){
-			$model = $this->getValue('model');
-			if(!$model && $scheme === 'use'){//查看 use 或 method
-				$model = $this->collect([T_STRING, T_NS_SEPARATOR], [T_WHITESPACE]);
-			}
-			$this->parseRouterRuler($router);
-			if($model){
-				if(strpos($model, '\\') !== 0){
-					$model = '\\' . $model;
-				}
-				$this->parsed['scheme'] = 'model';
-				$this->parsed['model'] = $model;
-				$this->parsed['access'] = $this->getValue('access');
-			}elseif($scheme === 'public' || $scheme === 'function'){
-				$this->parsed['scheme'] = 'router';
-				$this->collectMethodParam();
-			}elseif($scheme === 'private' || $scheme === 'protected'){
-				$this->error('VisibleNotAllow', '该方法的可见性只能是 public');
-			}
-		}elseif($scheme && $scheme !== 'use'){//解析普通方法，也许可能会被其它方法引用
-			$this->parsed['scheme'] = 'method';
-			$this->parsed['uri'] = '';
-			$this->parsed['methods'] = [];
-			$this->collectMethodParam();
-		}
-	}
-
-	/**
-	 * 被充完整命名空间
-	 *
-	 * @param $name
-	 *
-	 * @return string
-	 */
-	private function prefixNamespace($name){
-		if(!$name){
-			return '';
-		}
-		if(in_array($name, static::$valueParam)){
-			return $name;
-		}
-		if(strpos($name, '\\') === 0){
-			return $name;
-		}
-
-		if(array_key_exists($name, $this->useList)){
-			return $this->useList[$name];
-		}
-
-		return '\\' . $this->namespace . '\\' . $name;
-	}
-
-	/**
-	 * 搜集方法中的参数 eg:public function method($param)中的 $param
-	 */
-	private function collectMethodParam(){
-		$method = $this->collect([T_STRING], [T_WHITESPACE, T_FUNCTION]);
-		if(!$method){//不是方法上的注释
-			return;
-		}
-		$this->parsed['class'] = $this->class;
-		$this->parsed['method'] = $method;
-
-		$this->collect(['('], [T_WHITESPACE], ['(']);
-		$params = [];
-		do{
-			$type = $this->collect([T_STRING, T_NS_SEPARATOR, T_ARRAY], [T_WHITESPACE, ','], [T_VARIABLE]);
-			$name = substr($this->collect([T_VARIABLE], [T_WHITESPACE], [T_VARIABLE]), 1);
-			if($name){
-				$default = $this->collect([T_STRING], [T_WHITESPACE, '=']);
-				$params[$name] = [
-					'type'    => $this->prefixNamespace($type),
-					'default' => $default,
-					'line'    => $this->line
-				];
-			}
-		}while($name);
-		$this->parsed['param'] = $params;
-	}
-
-	/**
-	 * 解析路由规则中每一项的值
-	 *
-	 * @param $ruler
-	 */
-	private function parseRouterRuler($ruler){
-		$as = \preg_split('/ +/', $ruler);
-		foreach($as as $index => $a){
-			if(\strpos($a, ':')){
-				list($type, $name) = \explode(':', $a, 2);
-				if(\in_array($type, self::$rulerOrder)){
-					$this->parsed[$type] = $name;
-				}elseif($index === 1){
-					$this->parsed['uri'] = $a;
-				}else{
-					$this->error('routerRulerNameError', 'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 中规则名 [' . $type . '] 不正确，请检查');
-				}
-			}else{
-				if($a && isset(self::$rulerOrder[$index])){
-					$this->parsed[self::$rulerOrder[$index]] = $a;
-				}else{
-					$this->error('routerRulerOverflow', 'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 数量太多，请检查');
-				}
-			}
-		}
-
-		$methods = explode(',', isset($this->parsed['method']) ? $this->parsed['method'] : 'get');
-		$this->parsed['methods'] = $methods;
-	}
-
-	/**
-	 * 将全局值应用到此处来
-	 *
-	 * @param $parsed
-	 */
-	protected function applyDefaultValue(&$parsed){
-		foreach(static::$rulerOrder as $name){
-			if(!isset($parsed[$name])){
-				$parsed[$name] = isset($this->defaultRuler[$name]) ? $this->defaultRuler[$name] : '';
-			}
-		}
-		//为路径加上前缀
-		if(substr($parsed['uri'], 0, 1) !== '/'){
-			$parsed['uri'] = $this->basePath . $parsed['uri'];
-		}
-		//为路径加上index
-		if(substr($parsed['uri'], -1, 1) === '/'){
-			$parsed['uri'] .= static::$defaultIndex;
-		}
-		//加上模板前缀
-		if(substr($parsed['tpl'], 0, 1) !== '/'){
-			$parsed['tpl'] = $this->baseTplPath . $parsed['tpl'];
-		}
-		//自动设定模板文件
-		if(substr($parsed['tpl'], -1, 1) === '/'){
-			$parsed['tpl'] .= substr($parsed['uri'], 1);
-		}
-	}
-
-	/**
-	 * 搜集路径中的参数
-	 *
-	 * @param $uri
-	 *
-	 * @return array
-	 */
-	protected function collectPathParam($uri){
-		$uris = \explode('/', $uri);
-		array_shift($uris);
-		$paths = [];
-		$pathParam = [];
-
-		foreach($uris as $u){
-			if(strpos($u, ':') !== false){//是一个变量
-				list($type, $name) = \explode(':', $u, 2);
-				$pathParam[$name] = $type;
-				$u = '__var';
-			}elseif(strpos($u, '*') === 0){
-				$pathParam[substr($u, 1)] = '';
-				$u = '__*';
-			}
-			$paths[] = $u;
-		}
-
-		return [$paths, $pathParam];
-	}
-
-	/**
-	 * 检查获得的参数
-	 *
-	 * @param array $attr
-	 *
-	 * @return array
-	 */
-	protected function checkParsedValue(array $attr){
-		if($attr['auth'] && $attr['auth'] !== 'public' && strpos($attr['auth'], '\\') !== 0){
-			$attr['auth'] = MODULE_NAMESPACE_ROOT . '\\auth\\' . $attr['auth'];
-		}
-
-		return $attr;
-	}
-
-	/**
-	 * 整理解析结果
-	 *
-	 * @return array
-	 */
-	protected function packParsed(){
-		$parsed = $this->parsed;
-		$action = $this->class . '::' . $this->method;
-
-		$this->applyDefaultValue($parsed);
-		//生成参数
-		$this->line = $parsed['line'];
-		list($paths, $pathParam) = $this->collectPathParam($parsed['uri']);
-		//分离Path参数和Request参数
-		$param = [];
-		//对比参数类型
-
-
-		$processPathParamCount = 0;
-		$pathParamKeys = array_keys($pathParam);
-		foreach($parsed['param'] as $name => $item){
-			$this->line = $item['line'];
-			$type = $item['type'];
-			if(in_array($name, static::$requestParam)){
-				if($type && $type !== static::$requesterClass){
-					$this->error('paramTypeIll', '参数 [' . $name . '] 的类型此处为 [' . $type . '], 应该为 [' . static::$requesterClass . ']');
-				}
-				$item['behave'] = 'request';
-			}elseif($type && !in_array($type, static::$valueParam)){
-				$item['behave'] = 'inject';
-			}elseif(isset($pathParam[$name])){
-				if($type && $pathParam[$name] && $pathParam[$name] !== $type){
-					$this->error('pathParamTypeIll', '路径中的参数 [' . $name . '] 的类型与规则中声明的不一致');
-				}
-				if(!$type){
-					$item['type'] = $pathParam[$name] ?: 'string';
-				}
-				$item['ruler'] = trim(isset($item['ruler'])?$item['ruler']:'' . ' ' . $item['type']);
-				$item['behave'] = 'value';
-				$item['pos'] = array_search($name, $pathParamKeys);//在参数中出现的顺序，便于后序生成参数
-				$processPathParamCount++;
-			}elseif($this->parsed['scheme'] !== 'method'){
-				$this->error('routerMapNameError', $action . ' 对应的参数名 [' . $name . '] 不一致，请检查');
-			}
-			if(isset($item['ruler']) && $item['ruler']){
-				$item['ruler'] = Requester::parseValidate($item['ruler'], 'param[' . $name . ']:' . $item['ruler']);
-			}else{
-				$item['ruler'] = [];
-			}
-			$param[$name] = $item;
-		}
-
-		if(count($pathParam) !== $processPathParamCount){//参数数量不一致
-			$this->error('routerMapCountError', $action . '对应的参数个数不一致，请检查');
-		}
-
-		$parsed['path'] = $paths;
-		$parsed['param'] = $param;
-
-		$res = [];
-		foreach(self::$methodAttributes as $name){
-			$res[$name] = $parsed[$name];
-		}
-
-		return $this->checkParsedValue($res);
-	}
-
-	/**
-	 * 解析控制Model的访问范围
-	 *
-	 * @param $access
-	 *
-	 * @return array
-	 */
-	private function parseAccess($access){
-		$as = preg_split('/ *, */', $access);
-		$ruler = [];
-		foreach($as as $v){
-			$vs = explode(':', $v);
-			$ruler[$vs[0]] = $vs[1];
-		}
-
-		return $ruler;
-	}
-
-	/**
-	 * 构建Model的参数
-	 *
-	 * @param string $type
-	 *
-	 * @return array
-	 */
-	private function buildModelParam($type = null){
-		return [
-			'type'  => $type ?: static::$requesterClass,
-			'model' => $this->parsed['model'],
-			'ruler' => '',
-			'line'  => $this->line
-		];
-	}
-
-	/**
-	 * 为暴露的Model构建访问路由
-	 *
-	 * @param $method
-	 * @param $list
-	 *
-	 * @return array
-	 */
-	private function buildModelRouter($method, $list){
-		$router = array_merge($this->parsed, [
-			'class'   => static::$modelAction,
-			'scheme'  => 'router',
-			'param'   => [
-				'model' => $this->buildModelParam($this->parsed['model'])
-			],
-			'methods' => [$method],
-			'uri'     => $this->parsed['uri'] . ($list ? 'list' : '')
-		]);
-
-		if($list){
-			if($method === 'post' || $method === 'put'){
-				$router['param']['body'] = $this->buildModelParam();
-			}else{
-				$router['param']['query'] = $this->buildModelParam();
-			}
-		}else{
-			if($method !== 'post'){
-				$router['uri'] .= ':id';
-				$router['param']['id'] = $this->buildModelParam('string');
-			}
-			if($method === 'post' || $method === 'put'){
-				$router['param']['body'] = $this->buildModelParam();
-			}
-		}
-
-		if(isset($access[$method . $list])){
-			$router['auth'] = $access[$method . $list];
-		}
-		$router['method'] = $method . $list;
-
-		return $router;
-	}
-
-	/**
-	 * 处理注解中暴露到前端的Model
-	 *
-	 * @return array
-	 */
-	private function expansionModel(){
-		$access = $this->parseAccess($this->parsed['access']);
-		unset($this->parsed['access']);
-		$methods = $this->parsed['methods'];
-
-		if(substr($this->parsed['uri'], 0, -1) !== '/'){
-			$this->parsed['uri'] .= '/';
-		}
-
-		$parsedPatch = [];
-
-		foreach($methods as $m){
-			if(!isset($access[$m]) || $access[$m] !== 'block'){
-				$parsedPatch[$m] = $this->buildModelRouter($m, '');
-			}
-			if(!isset($access[$m . 'List']) || $access[$m . 'List'] !== 'block'){
-				$parsedPatch[$m . 'List'] = $this->buildModelRouter($m, 'List');
-			}
-		}
-
-		return $parsedPatch;
-	}
-
-	/**
-	 * 整理打包路由的解析结果
-	 *
-	 * @return array
-	 */
-	protected function pack(){
-		if($this->parsed['scheme'] === 'model'){
-			$ps = $this->expansionModel();
-			foreach($ps as $method => $parsed){
-				$this->method = $method;
-				$this->parsed = $parsed;
-				$this->pack();
-			}
-		}elseif($this->parsed['scheme'] !== 'empty'){
-			$this->parsedContainer['methods'][$this->method][] = $this->packParsed();
-		}
-	}
+abstract class Action extends Loader
+{
+    protected $classType = 'action';//当前类的类型 区别于 model
+
+    protected $basePath     = '/';//URI的路径前缀
+    protected $baseTplPath  = '/';//TPL的路径前缀
+    protected $defaultRuler = [
+        'method' => 'get',
+        'tpl'    => '',
+        'auth'   => null,
+        'mime'   => ''
+    ];//默认的规则
+
+    protected static $defaultIndex = 'index';//index
+
+    protected static $tabAsSpaceCount = 4;
+    protected static $requesterClass  = '\jt\Requester';
+    protected static $modelAction     = '\jt\ModelAction';
+
+    protected static $rulerOrder        = ['method', 'uri', 'tpl', 'auth', 'mime'];
+    protected static $methods           = ['get', 'post', 'put', 'delete', 'head', 'option'];//支持的动作
+    protected static $anyAsMethods      = ['get', 'post', 'put', 'delete'];//any 所代表的动作
+    protected static $requestParam      = ['body', 'query', 'request', 'header', 'cookie', 'session'];
+    protected static $valueParam        = ['int', 'string', 'array', 'float', 'bool'];
+    protected static $hasChildParamType = ['object', 'objectList', 'list'];
+    protected static $classInfoNames    = ['Auth', 'Create', 'version', 'title', 'desc', 'notice'];
+    protected static $globalBasePath    = ['basePath', 'baseTplPath'];
+
+    protected static $methodAttributes = [
+        'methods',
+        'path',
+        'class',
+        'method',
+        'param',
+        'tpl',
+        'mime',
+        'auth',
+        'return',
+        'name',
+        'desc',
+        'notice',
+        'line'
+    ];
+
+
+    /**
+     * 搜集全局设置
+     * 全局设置只能放在第一个注释块中
+     */
+    protected function collectGlobalValue()
+    {
+        $this->collectValidateList();
+        foreach ($this->commentBlocks as $commentBlock) {
+            $this->commentLines = $commentBlock;
+            break;
+        }
+        foreach (static::$globalBasePath as $name) {
+            $value = $this->getValue($name);
+            if ($value) {
+                if (substr($value, 0, 1) !== '/') {
+                    $this->error($name . 'Error', 'Action Presets [' . $name . '] 没有以 / 开始，请修正');
+                }
+                if (substr($value, -1, 1) !== '/') {
+                    $this->error($name . 'Error', 'Action Presets [' . $name . '] 没有以 / 结束，请修正');
+                }
+                $this->$name = $value;
+            }
+        }
+        foreach ($this->defaultRuler as $name => &$ov) {
+            $value = $this->getValue('default' . ucfirst($name));
+            if ($value) {
+                $ov = $value;
+            }
+        }
+        foreach (static::$classInfoNames as $name) {
+            if ($name === 'desc') {
+                $this->classInfo[$name][] = $this->getValue($name);
+                foreach ($this->getValueList(['string']) as list(, $desc)) {
+                    $this->classInfo[$name][] = $desc;
+                }
+                $last = array_pop($this->classInfo[$name]);
+                if ($last) {
+                    $this->classInfo[$name][] = $last;
+                }
+            }else {
+                $this->classInfo[$name] = $this->getValue($name);
+            }
+        }
+        $this->classInfo['methods'] = [];
+
+        $this->parsedContainer = $this->classInfo;
+    }
+
+    /**
+     * 搜集全局的参数验证列表
+     */
+    private function collectValidateList()
+    {
+        $validate = [];
+        foreach ($this->commentBlocks as $commentBlock) {
+            $this->commentLines = $commentBlock;
+            while (1) {
+                $value = $this->getValue('validate', false);
+                if ($value === null) {
+                    break;
+                }
+                if ($value === '') {
+                    $value = 'any';
+                }
+                if (!in_array($value, ['any', 'param', 'return'])) {
+                    $this->error('validateTypeIll', '错误的参数验证类型:[' . $value . '],只能是[param,return]之一或为空');
+                }
+                $lines = $this->getValueList(['string']);
+                $lists = $this->parseParam($lines);
+                foreach ($lists as $list) {
+                    $validate[$value][] = $list;
+                }
+            }
+        }
+        $this->classInfo['validate'] = $validate;
+    }
+
+    /**
+     * 解释注解块
+     * 该方法由Loader调用，一次处理一整块注释，包括name(接口名称), desc(接口描述), router(路由规则), param(参数列表), return(返回数据格式)
+     */
+    protected function parseComment()
+    {
+        $this->parseRouter();
+        if ($this->parsed) {
+            $this->parseDoc();
+            $this->pack();
+        }
+    }
+
+    /**
+     * 计算注释向右移的位数
+     *
+     * @param $line
+     *
+     * @return int
+     */
+    private function countIndent($line)
+    {
+        preg_match('/^([ \\t]*)/', $line, $matched);
+        $spaces = str_replace("\t", static::$tabAsSpaceCount, $matched[1]);
+
+        return strlen($spaces);
+    }
+
+    /**
+     * 将注解中的某一行送到此处来分解
+     *
+     * @param $line
+     *
+     * @return mixed
+     */
+    private function parseParamLine($line)
+    {
+        preg_match('/(\+?\w*)\:?([\w\\\\]*)(?: +\[([^\]]*)\])? *(.*)/', $line, $match);
+        array_shift($match);
+        $type = $match[1];
+        if (strpos($match[0], '+') === 0) {
+            $match[1] = 'require';
+            $match[2] = preg_split('/ *, */', $match[2]);
+        }else {
+            $ruler    = trim($match[2] . ' ' . $type);
+            $match[2] = Requester::parseValidate($ruler, 'paramNode:' . $ruler);
+        }
+        if (!$type && isset($match[2]['type'])) {
+            $match[1] = $match[2]['type'];
+        }
+        $match[] = $this->line;
+
+        return $match;
+    }
+
+    /**
+     * 搜集解析的参数结果
+     *
+     * @param array $lines
+     * @param int   $indent
+     * @param int   $parentIndent
+     * @return array
+     */
+    private function collectParseParam(array &$lines, $indent, &$parentIndent = null)
+    {
+        $parsedList = [];
+        $parsed     = [];
+        while (($item = array_shift($lines))) {
+            $line          = $item[1];
+            $lineNo        = $item[2];
+            $currentIndent = $this->countIndent($line);//缩进数量
+            if ($currentIndent !== $indent) {
+                array_unshift($lines, $item);
+            }
+            if ($currentIndent > $indent) {//进入下一级
+                //判断是否允许降级,若不允许则报错
+                if (!in_array($parsed['ruler']['type'], static::$hasChildParamType)) {
+                    $this->line = $lineNo;
+                    $this->error('indentNotAllow', '不允许的缩进，上一参数类型不支持有下级元素');
+                }
+                $parsedList[count($parsedList) - 1]['nodes'] = $this->collectParseParam($lines, $currentIndent,
+                    $parentIndent);
+                continue;
+            }elseif ($currentIndent < $indent) {//退出到上一级
+                $parentIndent = $currentIndent;
+                break;
+            }
+
+            if ($parentIndent) {//判断对齐$parentIndent了没
+                if ($parentIndent < $indent) {
+                    $this->line = $lineNo;
+                    $this->error('paramIndentNotAlignStart', '此处缩进未能对齐开始处');
+                }elseif ($parentIndent > $indent) {
+                    break;
+                }
+            }
+
+            $parentIndent = null;
+            $p            = $this->parseParamLine(trim($line));
+            $parsed       = [
+                'name'  => $p[0],
+                'ruler' => $p[2],
+                'desc'  => $p[3],
+                'line'  => $this->line
+            ];
+            $parsedList[] = $parsed;
+        }
+
+        return $parsedList;
+    }
+
+    /**
+     * 解析参数
+     *
+     * @param array $lines 多行参数
+     *
+     * @return array
+     */
+    private function parseParam($lines)
+    {
+        if (!$lines) {
+            return [];
+        }
+        $indent = $this->countIndent($lines[0][1]);//缩进数量
+        $params = $this->collectParseParam($lines, $indent);
+
+        return $params;
+    }
+
+    /**
+     * 解析在参数中捕获到的参数验证规则
+     *
+     * @param $ruler
+     * @param $type 变量类型
+     *
+     * @return mixed
+     */
+    private function parseParamRuler($ruler, $type)
+    {
+        if (in_array($type, Requester::VALUE_TYPE['single']) || in_array($type, Requester::VALUE_TYPE['composite'])) {
+            $ruler = trim($ruler . ' ' . $type);
+        }elseif ($type) {
+            $ruler = trim($ruler . ' type:' . $type);
+        }
+
+        return $ruler;
+    }
+
+    /**
+     * 解析暴露的Model的说明文档
+     *
+     * @return array
+     */
+    private function parseModelDoc()
+    {
+        //获取说明
+        $this->parsed['return'] = [];
+        $this->parsed['name']   = '';
+        $this->parsed['desc']   = [];
+        $this->parsed['notice'] = '';
+    }
+
+    /**
+     * 搜集注解中的参数信息
+     */
+    private function collectDocParam()
+    {
+        \reset($this->commentLines);
+        while (($param = $this->getValue('param', false))) {
+            preg_match('/([\w\\\\]*) *\$([a-z]\w*)(?: +\[([^\]]*)\])? *(.*)/', $param, $match);
+            array_shift($match);
+            $type = $this->prefixNamespace($match[0]);
+            $name = $match[1];
+            if (!isset($this->parsed['param'][$name])) {//忽略在方法参数中不存在的参数
+                $this->error('docParamNotInMethod',
+                    '注解中的参数 [' . $name . '] 在方法 [' . $this->parsed['class'] . '::' . $this->parsed['method'] . '] 中不存在');
+                continue;
+            }
+            $mp   = &$this->parsed['param'][$name];
+            $type = $type ?: $mp['type'];
+            if ($type && !$mp['type']) {
+                $mp['type'] = $type;
+                $mp['line'] = $this->line; //标明此处的类型定义来自注解
+            }elseif ($type !== $mp['type']) {
+                $this->error('paramTypeDiscord',
+                    '参数类型不一致。[' . $type . ']的参数类型[' . $name . '] 与方法声明中的类型[' . $mp[0] . '] 不一致');
+            }
+            $ruler = $this->parseParamRuler($match[2], $match[0]);
+            $desc  = $match[3];
+            $nodes = [];
+
+            if (in_array($name, static::$requestParam)) {
+                if ($type && $type !== static::$requesterClass) {
+                    $this->error('commentParamTypeIll', '注释中参数类型错误，期待 [\jt\Requester],此处为 [' . $type . ']');
+                }
+                $lines = $this->getValueList(['string']);
+                $nodes = $this->parseParam($lines);
+            }
+            $mp['ruler'] = $ruler;
+            $mp['nodes'] = $nodes;
+            $mp['desc']  = $desc;
+        }
+    }
+
+    /**
+     * 搜集注解中的返回值信息
+     */
+    private function collectDocReturn()
+    {
+        $return = $this->getValue('return');
+        if ($return === null) {
+            $this->parsed['return'] = [];
+
+            return;
+        }
+        preg_match('/([^ ]*) *(?:\[(.*)\])? *(.*)/', $return, $match);
+        array_shift($match);
+        $ruler = $match[1];
+        if (in_array($match[0], Requester::VALUE_TYPE['single']) || in_array($match[0],
+                Requester::VALUE_TYPE['composite'])
+        ) {
+            $ruler = $ruler . ' ' . $match[0];
+        }
+        $parsed = [
+            'name'  => '',
+            'type'  => $match[0],
+            'ruler' => Requester::parseValidate($ruler, 'return:' . $ruler),
+            'desc'  => $match[2],
+            'line'  => $this->line
+        ];
+        if ($match[0] === 'array') {
+            $lines           = $this->getValueList(['string']);
+            $parsed['nodes'] = $this->parseParam($lines);
+        }
+        $this->parsed['return'] = $parsed;
+    }
+
+    /**
+     * 解析带路由的方法的说明文档
+     */
+    private function parseRouterDoc()
+    {
+        //获取说明
+        $this->parsed['name'] = $this->getValue('string');
+        $this->parsed['desc'] = [];
+        foreach ($this->getValueList(['string']) as list(, $desc)) {
+            $this->parsed['desc'][] = $desc;
+        }
+        $this->parsed['notice'] = $this->getValue('notice');
+
+        $this->collectDocParam();
+        $this->collectDocReturn();
+    }
+
+    /**
+     * 解析注解中用来生成说明文档的内容
+     */
+    private function parseDoc()
+    {
+        switch ($this->parsed['scheme']) {
+            case 'model':
+                $this->parseModelDoc();
+                break;
+            case 'method':
+            case 'router':
+                $this->parseRouterDoc();
+                break;
+        }
+    }
+
+    /**
+     * 解析注解中的路由规则
+     */
+    private function parseRouter()
+    {
+        $this->parsed = [];
+        $scheme       = $this->collect([
+            T_USE,
+            T_PUBLIC,
+            T_FUNCTION,
+            T_PRIVATE,
+            T_PROTECTED
+        ], [T_WHITESPACE], ['useful']);
+        $router       = $this->getValue('router');
+
+        if ($this->collect([T_STATIC], [T_WHITESPACE])) {
+            return;
+        }
+        $this->parsed = [
+            'scheme' => 'empty'
+        ];
+
+        $this->parsed['line'] = $this->line;
+        if ($router) {
+            $model = $this->getValue('model');
+            if (!$model && $scheme === 'use') {//查看 use 或 method
+                $model = $this->collect([T_STRING, T_NS_SEPARATOR], [T_WHITESPACE]);
+            }
+            $this->parseRouterRuler($router);
+            if ($model) {
+                if (strpos($model, '\\') !== 0) {
+                    $model = '\\' . $model;
+                }
+                $this->parsed['scheme'] = 'model';
+                $this->parsed['model']  = $model;
+                $this->parsed['access'] = $this->getValue('access');
+            }elseif ($scheme === 'public' || $scheme === 'function') {
+                $this->parsed['scheme'] = 'router';
+                $this->collectMethodParam();
+            }elseif ($scheme === 'private' || $scheme === 'protected') {
+                $this->error('VisibleNotAllow', '该方法的可见性只能是 public');
+            }
+        }elseif ($scheme && $scheme !== 'use') {//解析普通方法，也许可能会被其它方法引用
+            $this->parsed['scheme']  = 'method';
+            $this->parsed['uri']     = '';
+            $this->parsed['methods'] = [];
+            $this->collectMethodParam();
+        }
+    }
+
+    /**
+     * 被充完整命名空间
+     *
+     * @param $name
+     *
+     * @return string
+     */
+    private function prefixNamespace($name)
+    {
+        if (!$name) {
+            return '';
+        }
+        if (in_array($name, static::$valueParam)) {
+            return $name;
+        }
+        if (strpos($name, '\\') === 0) {
+            return $name;
+        }
+
+        if (array_key_exists($name, $this->useList)) {
+            return $this->useList[$name];
+        }
+
+        return '\\' . $this->namespace . '\\' . $name;
+    }
+
+    /**
+     * 搜集方法中的参数 eg:public function method($param)中的 $param
+     */
+    private function collectMethodParam()
+    {
+        $method = $this->collect([T_STRING], [T_WHITESPACE, T_FUNCTION]);
+        if (!$method) {//不是方法上的注释
+            return;
+        }
+        $this->parsed['class']  = $this->class;
+        $this->parsed['method'] = $method;
+
+        $this->collect(['('], [T_WHITESPACE], ['(']);
+        $params = [];
+        do {
+            $type = $this->collect([T_STRING, T_NS_SEPARATOR, T_ARRAY], [T_WHITESPACE, ','], [T_VARIABLE]);
+            $name = substr($this->collect([T_VARIABLE], [T_WHITESPACE], [T_VARIABLE]), 1);
+            if ($name) {
+                $default       = $this->collect([T_STRING], [T_WHITESPACE, '=']);
+                $params[$name] = [
+                    'type'    => $this->prefixNamespace($type),
+                    'default' => $default,
+                    'line'    => $this->line
+                ];
+            }
+        }while ($name);
+        $this->parsed['param'] = $params;
+    }
+
+    /**
+     * 解析路由规则中每一项的值
+     *
+     * @param $ruler
+     */
+    private function parseRouterRuler($ruler)
+    {
+        $as = \preg_split('/ +/', $ruler);
+        foreach ($as as $index => $a) {
+            if (\strpos($a, ':')) {
+                list($type, $name) = \explode(':', $a, 2);
+                if (\in_array($type, self::$rulerOrder)) {
+                    $this->parsed[$type] = $name;
+                }elseif ($index === 1) {
+                    $this->parsed['uri'] = $a;
+                }else {
+                    $this->error('routerRulerNameError',
+                        'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 中规则名 [' . $type . '] 不正确，请检查');
+                }
+            }else {
+                if ($a && isset(self::$rulerOrder[$index])) {
+                    $this->parsed[self::$rulerOrder[$index]] = $a;
+                }else {
+                    $this->error('routerRulerOverflow', 'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 数量太多，请检查');
+                }
+            }
+        }
+
+        $methods                 = explode(',', isset($this->parsed['method']) ? $this->parsed['method'] : 'get');
+        $this->parsed['methods'] = $methods;
+    }
+
+    /**
+     * 将全局值应用到此处来
+     *
+     * @param $parsed
+     */
+    protected function applyDefaultValue(&$parsed)
+    {
+        foreach (static::$rulerOrder as $name) {
+            if (!isset($parsed[$name])) {
+                $parsed[$name] = isset($this->defaultRuler[$name]) ? $this->defaultRuler[$name] : '';
+            }
+        }
+        //为路径加上前缀
+        if (substr($parsed['uri'], 0, 1) !== '/') {
+            $parsed['uri'] = $this->basePath . $parsed['uri'];
+        }
+        //为路径加上index
+        if (substr($parsed['uri'], -1, 1) === '/') {
+            $parsed['uri'] .= static::$defaultIndex;
+        }
+        //加上模板前缀
+        if (substr($parsed['tpl'], 0, 1) !== '/') {
+            $parsed['tpl'] = $this->baseTplPath . $parsed['tpl'];
+        }
+        //自动设定模板文件
+        if (substr($parsed['tpl'], -1, 1) === '/') {
+            $parsed['tpl'] .= substr($parsed['uri'], 1);
+        }
+    }
+
+    /**
+     * 搜集路径中的参数
+     *
+     * @param $uri
+     *
+     * @return array
+     */
+    protected function collectPathParam($uri)
+    {
+        $uris = \explode('/', $uri);
+        array_shift($uris);
+        $paths     = [];
+        $pathParam = [];
+
+        foreach ($uris as $u) {
+            if (strpos($u, ':') !== false) {//是一个变量
+                list($type, $name) = \explode(':', $u, 2);
+                $pathParam[$name] = $type;
+                $u                = '__var';
+            }elseif (strpos($u, '*') === 0) {
+                $pathParam[substr($u, 1)] = '';
+                $u                        = '__*';
+            }
+            $paths[] = $u;
+        }
+
+        return [$paths, $pathParam];
+    }
+
+    /**
+     * 检查获得的参数
+     *
+     * @param array $attr
+     *
+     * @return array
+     */
+    protected function checkParsedValue(array $attr)
+    {
+        if ($attr['auth'] && $attr['auth'] !== 'public' && strpos($attr['auth'], '\\') !== 0) {
+            $attr['auth'] = MODULE_NAMESPACE_ROOT . '\\auth\\' . $attr['auth'];
+        }
+
+        return $attr;
+    }
+
+    /**
+     * 整理解析结果
+     *
+     * @return array
+     */
+    protected function packParsed()
+    {
+        $parsed = $this->parsed;
+        $action = $this->class . '::' . $this->method;
+
+        $this->applyDefaultValue($parsed);
+        //生成参数
+        $this->line = $parsed['line'];
+        list($paths, $pathParam) = $this->collectPathParam($parsed['uri']);
+        //分离Path参数和Request参数
+        $param = [];
+        //对比参数类型
+
+
+        $processPathParamCount = 0;
+        $pathParamKeys         = array_keys($pathParam);
+        foreach ($parsed['param'] as $name => $item) {
+            $this->line = $item['line'];
+            $type       = $item['type'];
+            if (in_array($name, static::$requestParam)) {
+                if ($type && $type !== static::$requesterClass) {
+                    $this->error('paramTypeIll',
+                        '参数 [' . $name . '] 的类型此处为 [' . $type . '], 应该为 [' . static::$requesterClass . ']');
+                }
+                $item['behave'] = 'request';
+            }elseif ($type && !in_array($type, static::$valueParam)) {
+                $item['behave'] = 'inject';
+            }elseif (isset($pathParam[$name])) {
+                if ($type && $pathParam[$name] && $pathParam[$name] !== $type) {
+                    $this->error('pathParamTypeIll', '路径中的参数 [' . $name . '] 的类型与规则中声明的不一致');
+                }
+                if (!$type) {
+                    $item['type'] = $pathParam[$name] ?: 'string';
+                }
+                $item['ruler']  = trim(isset($item['ruler']) ? $item['ruler'] : '' . ' ' . $item['type']);
+                $item['behave'] = 'value';
+                $item['pos']    = array_search($name, $pathParamKeys);//在参数中出现的顺序，便于后序生成参数
+                $processPathParamCount++;
+            }elseif ($this->parsed['scheme'] !== 'method') {
+                $this->error('routerMapNameError', $action . ' 对应的参数名 [' . $name . '] 不一致，请检查');
+            }
+            if (isset($item['ruler']) && $item['ruler']) {
+                $item['ruler'] = Requester::parseValidate($item['ruler'], 'param[' . $name . ']:' . $item['ruler']);
+            }else {
+                $item['ruler'] = [];
+            }
+            $param[$name] = $item;
+        }
+
+        if (count($pathParam) !== $processPathParamCount) {//参数数量不一致
+            $this->error('routerMapCountError', $action . '对应的参数个数不一致，请检查');
+        }
+
+        $parsed['path']  = $paths;
+        $parsed['param'] = $param;
+
+        $res = [];
+        foreach (self::$methodAttributes as $name) {
+            $res[$name] = $parsed[$name];
+        }
+
+        return $this->checkParsedValue($res);
+    }
+
+    /**
+     * 解析控制Model的访问范围
+     *
+     * @param $access
+     *
+     * @return array
+     */
+    private function parseAccess($access)
+    {
+        $as    = preg_split('/ *, */', $access);
+        $ruler = [];
+        foreach ($as as $v) {
+            $vs            = explode(':', $v);
+            $ruler[$vs[0]] = $vs[1];
+        }
+
+        return $ruler;
+    }
+
+    /**
+     * 构建Model的参数
+     *
+     * @param string $type
+     *
+     * @return array
+     */
+    private function buildModelParam($type = null)
+    {
+        return [
+            'type'  => $type ?: static::$requesterClass,
+            'model' => $this->parsed['model'],
+            'ruler' => '',
+            'line'  => $this->line
+        ];
+    }
+
+    /**
+     * 为暴露的Model构建访问路由
+     *
+     * @param $method
+     * @param $list
+     *
+     * @return array
+     */
+    private function buildModelRouter($method, $list)
+    {
+        $router = array_merge($this->parsed, [
+            'class'   => static::$modelAction,
+            'scheme'  => 'router',
+            'param'   => [
+                'model' => $this->buildModelParam($this->parsed['model'])
+            ],
+            'methods' => [$method],
+            'uri'     => $this->parsed['uri'] . ($list ? 'list' : '')
+        ]);
+
+        if ($list) {
+            if ($method === 'post' || $method === 'put') {
+                $router['param']['body'] = $this->buildModelParam();
+            }else {
+                $router['param']['query'] = $this->buildModelParam();
+            }
+        }else {
+            if ($method !== 'post') {
+                $router['uri'] .= ':id';
+                $router['param']['id'] = $this->buildModelParam('string');
+            }
+            if ($method === 'post' || $method === 'put') {
+                $router['param']['body'] = $this->buildModelParam();
+            }
+        }
+
+        if (isset($access[$method . $list])) {
+            $router['auth'] = $access[$method . $list];
+        }
+        $router['method'] = $method . $list;
+
+        return $router;
+    }
+
+    /**
+     * 处理注解中暴露到前端的Model
+     *
+     * @return array
+     */
+    private function expansionModel()
+    {
+        $access = $this->parseAccess($this->parsed['access']);
+        unset($this->parsed['access']);
+        $methods = $this->parsed['methods'];
+
+        if (substr($this->parsed['uri'], 0, -1) !== '/') {
+            $this->parsed['uri'] .= '/';
+        }
+
+        $parsedPatch = [];
+
+        foreach ($methods as $m) {
+            if (!isset($access[$m]) || $access[$m] !== 'block') {
+                $parsedPatch[$m] = $this->buildModelRouter($m, '');
+            }
+            if (!isset($access[$m . 'List']) || $access[$m . 'List'] !== 'block') {
+                $parsedPatch[$m . 'List'] = $this->buildModelRouter($m, 'List');
+            }
+        }
+
+        return $parsedPatch;
+    }
+
+    /**
+     * 整理打包路由的解析结果
+     *
+     * @return array
+     */
+    protected function pack()
+    {
+        if ($this->parsed['scheme'] === 'model') {
+            $ps = $this->expansionModel();
+            foreach ($ps as $method => $parsed) {
+                $this->method = $method;
+                $this->parsed = $parsed;
+                $this->pack();
+            }
+        }elseif ($this->parsed['scheme'] !== 'empty') {
+            $this->parsedContainer['methods'][$this->method][] = $this->packParsed();
+        }
+    }
 }

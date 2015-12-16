@@ -19,7 +19,7 @@ class Smarty_Internal_Extension_CodeFrame
      *
      * @param Smarty_Internal_Template $_template
      * @param  string                  $content optional template content
-     * @param  bool                    $cache   flag for cache file
+     * @param  bool                    $cache flag for cache file
      *
      * @return string
      */
@@ -27,9 +27,9 @@ class Smarty_Internal_Extension_CodeFrame
     {
         // build property code
         $_template->properties['has_nocache_code'] = $_template->has_nocache_code || !empty($_template->required_plugins['nocache']);
-        $_template->properties['version'] = Smarty::SMARTY_VERSION;
+        $_template->properties['version']          = Smarty::SMARTY_VERSION;
         if (!isset($_template->properties['unifunc'])) {
-            $_template->properties['unifunc'] = 'content_' . str_replace(array('.', ','), '_', uniqid('', true));
+            $_template->properties['unifunc'] = 'content_' . str_replace(['.', ','], '_', uniqid('', true));
         }
         $properties = $_template->properties;
         if (!$cache) {
@@ -43,7 +43,8 @@ class Smarty_Internal_Extension_CodeFrame
         if ($_template->smarty->direct_access_security) {
             $output .= "if(!defined('SMARTY_DIR')) exit('no direct access allowed');\n";
         }
-        $output .= "\$_valid = \$_smarty_tpl->decodeProperties(" . var_export($properties, true) . ',' . ($cache ? 'true' : 'false') . ");\n";
+        $output .= "\$_valid = \$_smarty_tpl->decodeProperties(" . var_export($properties,
+                true) . ',' . ($cache ? 'true' : 'false') . ");\n";
         $output .= "/*/%%SmartyHeaderCode%%*/\n";
         $output .= "if (\$_valid && !is_callable('{$_template->properties['unifunc']}')) {\n";
         $output .= "function {$_template->properties['unifunc']} (\$_smarty_tpl) {\n";
@@ -55,7 +56,7 @@ class Smarty_Internal_Extension_CodeFrame
                         $file = addslashes($data['file']);
                         if (is_Array($data['function'])) {
                             $output .= "if (!is_callable(array('{$data['function'][0]}','{$data['function'][1]}'))) require_once '{$file}';\n";
-                        } else {
+                        }else {
                             $output .= "if (!is_callable('{$data['function']}')) require_once '{$file}';\n";
                         }
                     }
@@ -69,7 +70,7 @@ class Smarty_Internal_Extension_CodeFrame
                         $file = addslashes($data['file']);
                         if (is_Array($data['function'])) {
                             $output .= addslashes("if (!is_callable(array('{$data['function'][0]}','{$data['function'][1]}'))) require_once '{$file}';\n");
-                        } else {
+                        }else {
                             $output .= addslashes("if (!is_callable('{$data['function']}')) require_once '{$file}';\n");
                         }
                     }
@@ -79,6 +80,7 @@ class Smarty_Internal_Extension_CodeFrame
         }
         $output .= "?>\n";
         $output = self::appendCode($output, $content);
+
         return self::appendCode($output, "<?php }\n}\n?>");
     }
 
@@ -93,7 +95,7 @@ class Smarty_Internal_Extension_CodeFrame
     public static function createFunctionFrame(Smarty_Internal_Template $_template, $content = '')
     {
         if (!isset($_template->properties['unifunc'])) {
-            $_template->properties['unifunc'] = 'content_' . str_replace(array('.', ','), '_', uniqid('', true));
+            $_template->properties['unifunc'] = 'content_' . str_replace(['.', ','], '_', uniqid('', true));
         }
         $output = "<?php\n";
         $output .= "/*%%SmartyHeaderCode:{$_template->properties['nocache_hash']}%%*/\n";
@@ -103,6 +105,7 @@ class Smarty_Internal_Extension_CodeFrame
         $output .= "<?php\n";
         $output .= "/*/%%SmartyNocache:{$_template->properties['nocache_hash']}%%*/\n";
         $output .= "}\n}\n?>";
+
         return $output;
     }
 
@@ -119,9 +122,10 @@ class Smarty_Internal_Extension_CodeFrame
         if (preg_match('/\s*\?>$/', $left) && preg_match('/^<\?php\s+/', $right)) {
             $left = preg_replace('/\s*\?>$/', "\n", $left);
             $left .= preg_replace('/^<\?php\s+/', '', $right);
-        } else {
+        }else {
             $left .= $right;
         }
+
         return $left;
     }
 }

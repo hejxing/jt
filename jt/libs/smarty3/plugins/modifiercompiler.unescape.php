@@ -25,7 +25,7 @@ function smarty_modifiercompiler_unescape($params)
     }
     if (!isset($params[2])) {
         $params[2] = '\'' . addslashes(Smarty::$_CHARSET) . '\'';
-    } else {
+    }else {
         $params[2] = "'" . $params[2] . "'";
     }
 

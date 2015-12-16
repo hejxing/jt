@@ -22,12 +22,12 @@ class Smarty_Internal_ParseTree_Code extends Smarty_Internal_ParseTree
      * Create parse tree buffer for code fragment
      *
      * @param object $parser parser object
-     * @param string $data   content
+     * @param string $data content
      */
     public function __construct($parser, $data)
     {
         $this->parser = $parser;
-        $this->data = $data;
+        $this->data   = $data;
     }
 
     /**

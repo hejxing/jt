@@ -8,6 +8,7 @@
 
 namespace jt\database;
 
-class Table extends \jt\Model{
+class Table extends \jt\Model
+{
 
 }

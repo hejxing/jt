@@ -7,8 +7,10 @@
  * @author widyhu
  *
  */
-class WxPayException extends Exception{
-	public function errorMessage(){
-		return $this->getMessage();
-	}
+class WxPayException extends Exception
+{
+    public function errorMessage()
+    {
+        return $this->getMessage();
+    }
 }
