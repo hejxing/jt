@@ -15,13 +15,14 @@ use jt\Error;
  */
 abstract class Loader
 {
-    protected static $root         = '';
-    protected static $cacheFile    = '';
-    protected static $cacheStore   = [];
-    protected static $originCache  = [];
-    protected static $parsedStore  = [];
-    protected static $parseNewFile = false;
-    protected static $sysDirName   = 'sys';
+    protected static $root          = '';
+    protected static $cacheFile     = '';
+    protected static $cacheStore    = [];
+    protected static $originCache   = [];
+    protected static $parsedStore   = [];
+    protected static $parseNewFile  = false;
+    protected static $sysDirName    = 'sys';
+    protected static $namespaceRoot = '';
 
     protected $dir             = '';
     protected $path            = '';
@@ -75,13 +76,13 @@ abstract class Loader
         //全局生成新的解析结果
         $appRoot = CORE_ROOT . '/app';
         $hd      = opendir($appRoot);
-        $modules = ['sys' => CORE_ROOT . '/' . static::$sysDirName];
+        $modules = ['sys' => [CORE_ROOT . '/' . static::$sysDirName, 'sys']];
         while (($file = readdir($hd))) {
             if (in_array($file, self::$ignoreFiles)) {
                 continue;
             }
             if (is_dir($appRoot . '/' . $file)) {
-                $modules['app_' . $file] = $appRoot . '/' . $file;
+                $modules['app_' . $file] = [$appRoot . '/' . $file, 'app\\' . $file];
             }
         }
 
@@ -99,7 +100,9 @@ abstract class Loader
 
         $currentModule = MODULE ? 'app_' . MODULE : 'sys';
         $currentCache  = [];
-        foreach ($modules as $moduleName => $dir) {
+        foreach ($modules as $moduleName => $config) {
+            list($dir, self::$namespaceRoot) = $config;
+
             static::$cacheStore = [];
             static::$root       = $dir . '/action';
             static::$cacheFile  = $cacheRoot . '/' . $moduleName . '.php';

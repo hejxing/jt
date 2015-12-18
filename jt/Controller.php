@@ -484,11 +484,7 @@ class Controller
                     }
                     break;
                 default:
-                    $value = $p[$option[4]];
-                    if ($value === 'index') {
-                        $value = null;
-                    }
-                    $this->param[] = Requester::doProcess($value, $option[2], 'path:' . $name, true);
+                    $this->param[] = Requester::doProcess($p[$option[4]], $option[2], 'path:' . $name, true);
                     break;
             }
         }

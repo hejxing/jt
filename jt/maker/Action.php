@@ -608,7 +608,7 @@ abstract class Action extends Loader
     protected function checkParsedValue(array $attr)
     {
         if ($attr['auth'] && $attr['auth'] !== 'public' && strpos($attr['auth'], '\\') !== 0) {
-            $attr['auth'] = MODULE_NAMESPACE_ROOT . '\\auth\\' . $attr['auth'];
+            $attr['auth'] = self::$namespaceRoot . '\\auth\\' . $attr['auth'];
         }
 
         return $attr;

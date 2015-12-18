@@ -4,7 +4,7 @@
  */
 namespace jt;
 
-require CORE_ROOT . '/jt/libs/smarty3/Smarty.class.php';
+require CORE_ROOT . '/jt/lib/smarty3/Smarty.class.php';
 
 use Config;
 

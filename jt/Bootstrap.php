@@ -119,8 +119,8 @@ class Bootstrap
 
         //注册错误、异常入口
         \ini_set("display_errors", "1");
-        //\set_error_handler('\jt\Error::errorHandler', E_ALL | E_STRICT);
-        //\set_exception_handler('\jt\Error::exceptionHandler');
+        \set_error_handler('\jt\Error::errorHandler', E_ALL | E_STRICT);
+        \set_exception_handler('\jt\Error::exceptionHandler');
 
         \class_alias(MODULE ? 'app\\' . MODULE . '\Config' : '\\config\\Base', '\Config');
 

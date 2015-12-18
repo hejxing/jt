@@ -1334,6 +1334,7 @@ abstract class Model
         foreach ($list as $name => $value) {
             $this->where("$name=:$name", [$name => $value]);
         }
+        array_walk();
 
         return $this;
     }
