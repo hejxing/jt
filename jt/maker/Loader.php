@@ -15,6 +15,8 @@ use jt\Error;
  */
 abstract class Loader
 {
+    protected static $ignoreCache = false;
+
     protected static $root          = '';
     protected static $cacheFile     = '';
     protected static $cacheStore    = [];
@@ -142,7 +144,9 @@ abstract class Loader
 
     private static function loadCache()
     {
-        //return;
+        if (self::$ignoreCache && RUN_MODE === 'develop') {
+            return;
+        }
         if (file_exists(static::$cacheFile)) {
             static::$originCache = include(static::$cacheFile);
         }
@@ -409,18 +413,24 @@ abstract class Loader
      * @param       $use
      * @param array $ignore
      * @param array $broke
+     * @param bool  $reset
      * @return array
      */
-    protected function getValueList($use, $ignore = [], $broke = [])
+    protected function getValueList($use, $ignore = [], $broke = [], $reset = false)
     {
         $list = [];
+        if ($reset) {
+            reset($this->commentLines);
+        }
         while (list(, $item) = each($this->commentLines)) {
             if (in_array($item[0], $use)) {
                 if ($item[1]) {
                     $list[] = $item;
                 }
                 $this->line = $item[2];
-            }elseif (in_array($item[0], $broke) || !in_array($item[0], $ignore)) {
+            }elseif (in_array($item[0], $broke) || (!in_array($item[0], $ignore) && array_search('all',
+                        $ignore) === false)
+            ) {
                 $this->prev($this->commentLines);
                 break;
             }

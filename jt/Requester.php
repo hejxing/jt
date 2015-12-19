@@ -8,12 +8,13 @@
 
 namespace jt;
 
+use jt\exception\TaskException;
+
 /**
  * 处理外部获取到的参数
  *
  * @package jt
  */
-
 class Requester
 {
     protected $originData = [];
@@ -227,8 +228,8 @@ class Requester
      *
      * @param string $a
      * @param string $name
-     *
      * @return array
+     * @throws \jt\exception\TaskException
      */
     private static function attr($a, $name)
     {
@@ -265,7 +266,7 @@ class Requester
                 }
                 break;
             default:
-                Error::msg('actionRulerError', "当前 Action 配置表中 [{$name}] 项值 [{$key}] 有误，请检查");
+                throw new TaskException("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 有误，请检查");
                 break;
         }
 

@@ -138,10 +138,15 @@ abstract class Action extends Loader
      */
     protected function parseComment()
     {
-        $this->parseRouter();
+        $this->parsed = [];
+        $this->parseScheme();
         if ($this->parsed) {
             $this->parseDoc();
-            $this->pack();
+            $routers = $this->parseRouter();
+            foreach ($routers as $router) {
+                $this->parsed = array_merge($this->parsed, $router);
+                $this->pack();
+            }
         }
     }
 
@@ -176,8 +181,12 @@ abstract class Action extends Loader
             $match[1] = 'require';
             $match[2] = preg_split('/ *, */', $match[2]);
         }else {
-            $ruler    = trim($match[2] . ' ' . $type);
-            $match[2] = Requester::parseValidate($ruler, 'paramNode:' . $ruler);
+            $ruler = trim($match[2] . ' ' . $type);
+            try{
+                $match[2] = Requester::parseValidate($ruler, 'paramNode:' . $ruler);
+            }catch (\Exception $e){
+                $this->error(...explode(':', $e->getMessage(), 2));
+            }
         }
         if (!$type && isset($match[2]['type'])) {
             $match[1] = $match[2]['type'];
@@ -405,51 +414,63 @@ abstract class Action extends Loader
     /**
      * 解析注解中的路由规则
      */
-    private function parseRouter()
+    private function parseScheme()
     {
-        $this->parsed = [];
-        $scheme       = $this->collect([
+        $scheme = $this->collect([
             T_USE,
             T_PUBLIC,
             T_FUNCTION,
             T_PRIVATE,
             T_PROTECTED
         ], [T_WHITESPACE], ['useful']);
-        $router       = $this->getValue('router');
 
         if ($this->collect([T_STATIC], [T_WHITESPACE])) {
             return;
         }
-        $this->parsed = [
-            'scheme' => 'empty'
-        ];
 
-        $this->parsed['line'] = $this->line;
-        if ($router) {
-            $model = $this->getValue('model');
-            if (!$model && $scheme === 'use') {//查看 use 或 method
-                $model = $this->collect([T_STRING, T_NS_SEPARATOR], [T_WHITESPACE]);
+        $model = $this->getValue('model');
+        if (!$model && $scheme === 'use') {//查看 use 或 method
+            $model = $this->collect([T_STRING, T_NS_SEPARATOR], [T_WHITESPACE]);
+        }
+
+        if ($model) {
+            if (strpos($model, '\\') !== 0) {
+                $model = '\\' . $model;
             }
-            $this->parseRouterRuler($router);
-            if ($model) {
-                if (strpos($model, '\\') !== 0) {
-                    $model = '\\' . $model;
-                }
-                $this->parsed['scheme'] = 'model';
-                $this->parsed['model']  = $model;
-                $this->parsed['access'] = $this->getValue('access');
-            }elseif ($scheme === 'public' || $scheme === 'function') {
-                $this->parsed['scheme'] = 'router';
-                $this->collectMethodParam();
-            }elseif ($scheme === 'private' || $scheme === 'protected') {
-                $this->error('VisibleNotAllow', '该方法的可见性只能是 public');
-            }
-        }elseif ($scheme && $scheme !== 'use') {//解析普通方法，也许可能会被其它方法引用
-            $this->parsed['scheme']  = 'method';
-            $this->parsed['uri']     = '';
-            $this->parsed['methods'] = [];
+            $this->parsed['scheme'] = 'model';
+            $this->parsed['model']  = $model;
+            $this->parsed['access'] = $this->getValue('access');
+        }elseif ($scheme === 'public' || $scheme === 'function') {
+            $this->parsed['scheme'] = 'router';
+            $this->collectMethodParam();
+        }elseif ($scheme === 'private' || $scheme === 'protected') {
+            $this->parsed['scheme'] = 'method';
             $this->collectMethodParam();
         }
+    }
+
+    private function parseRouter()
+    {
+        $res     = [];
+        $routers = $this->getValueList(['router'], ['all'], [], true);
+        foreach ($routers as $router) {
+            $this->parsed['line'] = $router[2];
+            $this->line           = $router[2];
+            $item                 = $this->parseRouterRuler($router[1]);
+            if ($item['scheme'] === 'method') {
+                $this->error('VisibleNotAllow', '该方法不存在或可见性不为 public');
+            }
+            $res[] = $item;
+        }
+        if (!$res) {
+            $res[] = [
+                'scheme'  => 'method',
+                'uri'     => '',
+                'methods' => [],
+            ];
+        }
+
+        return $res;
     }
 
     /**
@@ -511,32 +532,37 @@ abstract class Action extends Loader
      * 解析路由规则中每一项的值
      *
      * @param $ruler
+     * @return array
      */
     private function parseRouterRuler($ruler)
     {
-        $as = \preg_split('/ +/', $ruler);
+        $res = [];
+        $as  = \preg_split('/ +/', $ruler);
         foreach ($as as $index => $a) {
             if (\strpos($a, ':')) {
                 list($type, $name) = \explode(':', $a, 2);
                 if (\in_array($type, self::$rulerOrder)) {
-                    $this->parsed[$type] = $name;
+                    $res[$type] = $name;
                 }elseif ($index === 1) {
-                    $this->parsed['uri'] = $a;
+                    $res['uri'] = $a;
                 }else {
                     $this->error('routerRulerNameError',
                         'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 中规则名 [' . $type . '] 不正确，请检查');
                 }
             }else {
                 if ($a && isset(self::$rulerOrder[$index])) {
-                    $this->parsed[self::$rulerOrder[$index]] = $a;
+                    $res[self::$rulerOrder[$index]] = $a;
                 }else {
                     $this->error('routerRulerOverflow', 'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 数量太多，请检查');
                 }
             }
         }
 
-        $methods                 = explode(',', isset($this->parsed['method']) ? $this->parsed['method'] : 'get');
-        $this->parsed['methods'] = $methods;
+        $methods = explode(',', isset($res['method']) ? $res['method'] : 'get');
+        unset($res['method']);
+        $res['methods'] = $methods;
+
+        return $res;
     }
 
     /**
@@ -806,7 +832,7 @@ abstract class Action extends Loader
                 $this->parsed = $parsed;
                 $this->pack();
             }
-        }elseif ($this->parsed['scheme'] !== 'empty') {
+        }else {
             $this->parsedContainer['methods'][$this->method][] = $this->packParsed();
         }
     }
