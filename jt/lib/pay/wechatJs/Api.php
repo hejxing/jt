@@ -9,7 +9,6 @@
 
 namespace jt\lib\pay\wechatJs;
 
-use jt\utils\Helper;
 use jt\utils\Url;
 
 require(__DIR__ . '/WxPay.Api.php');
@@ -49,7 +48,7 @@ class Api
         $tools  = new \JsApiPay();
         $openId = $tools->GetOpenid();    //获取用户openID
 
-        $outTradeNo = Helper::uuid();
+        $outTradeNo = \tools\Tools::uuid();
 
         $input = new \WxPayUnifiedOrder();
         $input->SetBody($this->data['memo']);

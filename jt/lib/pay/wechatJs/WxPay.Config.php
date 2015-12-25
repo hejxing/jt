@@ -24,10 +24,10 @@ class WxPayConfig
      * @var string
      */
 
-    const APPID     = \Config::WE_CHAT_APP_ID;
-    const MCHID     = \Config::WE_CHAT_MCHID;
-    const KEY       = \Config::WE_CHAT_KEY;
-    const APPSECRET = \Config::WE_CHAT_SECRET;
+    const APPID     = \Config::WE_CHAT_PAY_APP_ID;
+    const MCHID     = \Config::WE_CHAT_PAY_MCH_ID;
+    const KEY       = \Config::WE_CHAT_PAY_KEY;
+    const APPSECRET = \Config::WE_CHAT_PAY_SECRET;
 
     //=======【证书路径设置】=====================================
     /**

@@ -138,7 +138,6 @@ abstract class Action extends Loader
      */
     protected function parseComment()
     {
-        $this->parsed = [];
         $this->parseScheme();
         if ($this->parsed) {
             $this->parseDoc();
@@ -424,6 +423,12 @@ abstract class Action extends Loader
             T_PROTECTED
         ], [T_WHITESPACE], ['useful']);
 
+        $this->parsed = [
+            'line'   => $this->line,
+            'scheme' => '',
+            'param'  => []
+        ];
+
         if ($this->collect([T_STATIC], [T_WHITESPACE])) {
             return;
         }
@@ -457,7 +462,7 @@ abstract class Action extends Loader
             $this->parsed['line'] = $router[2];
             $this->line           = $router[2];
             $item                 = $this->parseRouterRuler($router[1]);
-            if ($item['scheme'] === 'method') {
+            if ($this->parsed['scheme'] === 'method') {
                 $this->error('VisibleNotAllow', '该方法不存在或可见性不为 public');
             }
             $res[] = $item;
@@ -637,6 +642,8 @@ abstract class Action extends Loader
             $attr['auth'] = self::$namespaceRoot . '\\auth\\' . $attr['auth'];
         }
 
+        $attr['mime'] = $attr['mime'] ? preg_split('/ *, */', $attr['mime']) : [];
+
         return $attr;
     }
 
@@ -703,7 +710,7 @@ abstract class Action extends Loader
 
         $res = [];
         foreach (self::$methodAttributes as $name) {
-            $res[$name] = $parsed[$name];
+            $res[$name] = isset($parsed[$name]) ? $parsed[$name] : '';
         }
 
         return $this->checkParsedValue($res);

@@ -66,14 +66,14 @@ class JsApiPay
      *
      * @throws WxPayException
      *
-     * @return json数据，可直接填入js函数作为参数
+     * @return string json数据，可直接填入js函数作为参数
      */
     public function GetJsApiParameters($UnifiedOrderResult)
     {
         if (!array_key_exists("appid", $UnifiedOrderResult) || !array_key_exists("prepay_id",
                 $UnifiedOrderResult) || $UnifiedOrderResult['prepay_id'] == ""
         ) {
-            throw new WxPayException("参数错误");
+            throw new WxPayException(isset($UnifiedOrderResult['err_code_des']) ? $UnifiedOrderResult['err_code_des'] : (isset($UnifiedOrderResult['return_msg']) ? $UnifiedOrderResult['return_msg'] : "参数错误"));
         }
         $jsapi = new WxPayJsApiPay();
         $jsapi->SetAppid($UnifiedOrderResult["appid"]);
@@ -94,7 +94,7 @@ class JsApiPay
      *
      * @param string $code 微信跳转回来带上的code
      *
-     * @return openid
+     * @return string openid
      */
     public function GetOpenidFromMp($code)
     {
@@ -129,7 +129,7 @@ class JsApiPay
      *
      * @param array $urlObj
      *
-     * @return 返回已经拼接好的字符串
+     * @return string 返回已经拼接好的字符串
      */
     private function ToUrlParams($urlObj)
     {

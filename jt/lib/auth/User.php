@@ -204,14 +204,4 @@ class User extends Auth
     {
         return self::$token;
     }
-
-    public function auth()
-    {
-        // TODO: Implement auth() method.
-    }
-
-    public function filter()
-    {
-        // TODO: Implement filter() method.
-    }
 }

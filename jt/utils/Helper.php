@@ -106,7 +106,7 @@ class Helper
     /**
      * 判断是否为该终端
      *
-     * @param $flag
+     * @param string $flag MicroMessenger,
      *
      * @return bool
      */

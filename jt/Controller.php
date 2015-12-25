@@ -298,7 +298,6 @@ class Controller
         $this->paths[] = $last;
     }
 
-
     /**
      * 设置输出的文档类型
      *
@@ -449,7 +448,9 @@ class Controller
             }
         }
         if ($this->ruler[5]) { //应用Mime
-            $this->setMime($this->ruler[5]);
+            if (!$this->mime || !in_array($this->mime, $this->ruler[5])) {
+                $this->mime = $this->ruler[5][0];
+            }
         }
         $this->requestMethod = $method;
         $this->loadAction($this->ruler[0], $this->ruler[1], true);
