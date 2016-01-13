@@ -116,6 +116,11 @@ abstract class Model
      */
     private $errorAction = 'fail';
     /**
+     * 自定义错误消息列表
+     * @type array
+     */
+    private $errMsgList = [];
+    /**
      * 遇到错误已经重试的次数
      *
      * @type int
@@ -315,10 +320,12 @@ abstract class Model
 
     private function processError(\PDOException $e)
     {
+        $errName = database\ErrorCode::getName($this->pdo->getType(), $e->getCode());
+        if(isset($this->errMsgList[$errName])){
+            throw new TaskException($this->errMsgList[$errName]);
+        }
         if ($this->retryTimes >= 3) {
             throw $e;
-
-            return;
         }
         switch ($e->getCode()) {
             case '7': //数据库不存在
@@ -1625,6 +1632,16 @@ abstract class Model
     {
         $this->errorAction = $action;
 
+        return $this;
+    }
+
+    /**
+     * 当遇到错误时返回的自定义错误消息
+     * @param $list
+     * @return $this
+     */
+    public function errMsg($list){
+        $this->errMsgList = $list;
         return $this;
     }
 }

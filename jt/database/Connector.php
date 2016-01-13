@@ -231,4 +231,12 @@ class Connector extends \PDO
 
         return $config['tablePrefix'];
     }
+
+    /**
+     * 获取的连接的数据库类型
+     * @return string
+     */
+    public function getType(){
+        return $this->config['type'];
+    }
 }
