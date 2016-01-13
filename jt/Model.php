@@ -151,7 +151,8 @@ abstract class Model
         //解析表结构和属性
         if ($className !== __CLASS__) {
             self::parseColumns();
-            static::$module = substr($className, 0, strpos($className, '\\model\\'));
+            $module = substr($className, 0, strpos($className, '\\model\\'));
+            static::$module = str_replace('\\', DIRECTORY_SEPARATOR, $module);
         }
     }
 

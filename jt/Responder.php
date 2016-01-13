@@ -116,9 +116,9 @@ class Responder
     public static function write()
     {
         $content = static::render();
-        if (RUN_MODE !== 'production') {
-            Debug::output($content);
-        }
+        //if (RUN_MODE !== 'production') {
+        //    Debug::output($content);
+        //}
         //拦截
         echo $content;
     }

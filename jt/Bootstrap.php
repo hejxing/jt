@@ -32,7 +32,8 @@ class Bootstrap
      */
     public static function loadClass($className)
     {
-        $classFile = CORE_ROOT . DIRECTORY_SEPARATOR . \str_replace('\\', DIRECTORY_SEPARATOR, $className) . '.php';
+        $root = \strpos($className, 'jt') === 0?CORE_ROOT:PROJECT_ROOT;
+        $classFile = $root . DIRECTORY_SEPARATOR . \str_replace('\\', DIRECTORY_SEPARATOR, $className) . '.php';
         //$isConfig  = false;
         if (\strpos($className, '\Config')) {
             //$isConfig = true;
@@ -102,14 +103,16 @@ class Bootstrap
 
         //入口模块
         $module = '';
+        $projectRoot = $option['docRoot'];
         if (\strpos($option['docRoot'], DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR) > 0) {
-            list(, $module) = \explode(DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR, $option['docRoot']);
+            list($projectRoot, $module) = \explode(DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR, $option['docRoot']);
         }
 
         //定义基本常量
         define('RUN_START_TIME', self::$now);
         define('RUN_MODE', $option['runMode']);
         define('CORE_ROOT', substr(__DIR__, 0, -3));
+        define('PROJECT_ROOT', $projectRoot);
         define('DOCUMENT_ROOT', $option['docRoot']);
         define('MODULE', $module);
         define('MODULE_NAMESPACE_ROOT', 'app\\' . $module);

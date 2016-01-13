@@ -16,7 +16,7 @@ use jt\utils\Helper;
  *
  * @package jt\lib\auth
  */
-class User extends Auth
+abstract class User extends Auth
 {
     /**
      * 用户资料

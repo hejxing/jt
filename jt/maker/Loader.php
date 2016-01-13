@@ -15,7 +15,7 @@ use jt\Error;
  */
 abstract class Loader
 {
-    protected static $ignoreCache = true;
+    protected static $ignoreCache = false;
 
     protected static $root          = '';
     protected static $cacheFile     = '';
@@ -76,9 +76,9 @@ abstract class Loader
     public static function parse()
     {
         //全局生成新的解析结果
-        $appRoot = CORE_ROOT . '/app';
+        $appRoot = PROJECT_ROOT . '/app';
         $hd      = opendir($appRoot);
-        $modules = ['sys' => [CORE_ROOT . '/' . static::$sysDirName, 'sys']];
+        $modules = ['sys' => [PROJECT_ROOT . '/' . static::$sysDirName, 'sys']];
         while (($file = readdir($hd))) {
             if (in_array($file, self::$ignoreFiles)) {
                 continue;

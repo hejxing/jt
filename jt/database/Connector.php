@@ -10,6 +10,7 @@ namespace jt\database;
 
 use \jt\Bootstrap;
 use jt\Error;
+use jt\exception\TaskException;
 
 class Connector extends \PDO
 {
@@ -80,7 +81,7 @@ class Connector extends \PDO
         if (isset(self::$pdoList[$connSeed])) {
             $pdo = self::$pdoList[$connSeed];
         }else {
-            $pdo                      = new static($module, $conn);
+            $pdo                      = new self($module, $conn);
             self::$pdoList[$connSeed] = $pdo;
         }
         if (!$pdo->inTransaction()) {
@@ -130,13 +131,14 @@ class Connector extends \PDO
      * @param $file
      *
      * @return mixed
-     * @throws \ErrorException
+     * @throws TaskException
      */
     protected static function readConfig($file)
     {
-        $result = include(CORE_ROOT . '/' . $file);
+        $result = include(PROJECT_ROOT . '/' . $file);
+
         if ($result === false) {
-            Error::fatal('404', '文件：' . $file . ' 不存在');
+            throw new TaskException('databaseConfigNotFound: 数据库配置文件 [' . $file . '] 不存在');
         }
 
         return $result;
