@@ -311,15 +311,13 @@ abstract class Action
      * @param array  $param 传递的参数
      * @param int    $status 错误状态
      */
-    public function fail($msg, $code = '', $param = [], $status = 200)
+    public function fail($msg, $code = 'fail', $param = [], $status = 200)
     {
         self::$taskSuccess = false;
         \header('Status: ' . $status, true);
-        if ($code) {
-            $this->header('code', $code);
-        }
+        $this->header('code', $code);
         $this->header('msg', $msg);
-        Error::fatal('fail', $msg, $param);
+        //Error::fatal('fail', $msg, $param);
     }
 
     /**

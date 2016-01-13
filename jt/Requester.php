@@ -88,14 +88,17 @@ class Requester
      */
     public static function doProcess($value, array $option, $name, $strict = true)
     {
-        if ($value === null && isset($option['default'])) {
-            $value = $option['default'];
-        }
-        if ($value === null && isset($option['require'])) {
-            return self::error('value_empty', '该项值必填', $name, $option, $strict);
+        if (!$option) {
+            return $value;
         }
         if ($value === null) {
-            return null;
+            if (isset($option['default'])) {
+                $value = $option['default'];
+            }elseif (isset($option['require'])) {
+                return self::error('value_empty', '该项值必填', $name, $option, $strict);
+            }else {
+                return null;
+            }
         }
 
         if (isset($option['enum']) && !in_array($value, $option['enum'])) {

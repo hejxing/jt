@@ -6,6 +6,8 @@
  */
 namespace jt;
 
+use jt\exception\TaskException;
+
 abstract class Model
 {
     /**
