@@ -8,8 +8,6 @@
 
 namespace jt;
 
-use jt\utils\Debug;
-
 /**
  * 给客户端输出请求结果
  *
@@ -17,13 +15,6 @@ use jt\utils\Debug;
  */
 class Responder
 {
-    /**
-     * 模板中所用到插件 工具
-     *
-     * @type array
-     */
-    private $tplPlugins = [];
-
     /**
      * 生成内容
      *

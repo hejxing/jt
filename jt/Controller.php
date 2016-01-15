@@ -379,7 +379,6 @@ class Controller
             return self::$routerMapPool[MODULE];
         }
         $routerMapFile = \Config::RUNTIME_PATH_ROOT . '/router/' . MODULE . '.php';
-
         //加载不成功则生成
         if (RUN_MODE === 'develop') { //生成路由
             $result = maker\Router::general($routerMapFile);

@@ -156,7 +156,8 @@ abstract class Action
     {
         $headerStore = self::$headerStore;
         if (RUN_MODE === 'develop') {
-            $headerStore['queryCount']     = \jt\Model::getQueryTimes();// + \dal\Dal::selectQueryTimes();
+            $headerStore['queryCount']     = class_exists('\jt\Model',
+                false) ? Model::getQueryTimes() : 0;// + \dal\Dal::selectQueryTimes();
             $includeFiles                  = get_included_files();
             $headerStore['loadFilesCount'] = count($includeFiles);
             //$headerStore['loadFiles'] = $includeFiles;

@@ -78,9 +78,13 @@ class Bootstrap
     public static function exeComplete()
     {
         if (Action::isRunComplete() && Action::isSuccess()) {//代码执行 && 业务成功
-            Model::commit();
+            if (class_exists('\jt\Model', false)) {
+                Model::commit();
+            }
         }else {
-            Model::rollBack();
+            if (class_exists('\jt\Model', false)) {
+                Model::rollBack();
+            }
             $lastError = \error_get_last();
             if ($lastError) {
                 Error::errorHandler($lastError['type'], $lastError['message'], $lastError['file'], $lastError['line'],
