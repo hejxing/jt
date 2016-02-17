@@ -11,40 +11,13 @@ namespace jt\database;
 class Schema extends Connector
 {
     /**
-     * 当前模块
-     *
-     * @type string
-     */
-    private $moudle = '';
-    /**
-     * 连接信息
-     *
-     * @type string
-     */
-    private $conn = '';
-
-    /**
-     * 构造连接
-     *
-     * @param $module
-     * @param $conn
-     */
-    public function __construct($module, $conn)
-    {
-        $this->moudle = $module;
-        $this->conn   = $conn;
-        $this->config = self::loadConfig($module, $conn);
-    }
-
-    /**
      * 执行DDL
      *
      * @param $sql
      */
     private function executeDDL($sql)
     {
-        parent::__construct($this->moudle, $this->conn);
-        $this->query($sql);
+        $this->createPDO()->query($sql);
     }
 
     /**

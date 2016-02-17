@@ -8,6 +8,8 @@
 namespace jt\service\cache;
 
 
+use jt\exception\TaskException;
+
 class Factory
 {
     /**
@@ -22,6 +24,9 @@ class Factory
         $saver = new \Memcached($persistentId);
         if (!count($saver->getServerList())) {
             $saver->addServers($serverList);
+        }
+        if (!$saver->set('checkServer', true)) {
+            throw new TaskException('MemcachedServiceDisable:Memcached服务不可用');
         }
 
         return $saver;

@@ -50,6 +50,9 @@ class Bootstrap
 
         if (\file_exists($classFile)) {
             require $classFile;
+            if (\method_exists($className, '__init')) {
+                $className::__init($className);
+            }
         }else {
             //if($isConfig){
             //	Error::fatal('404', '配置文件：' . $classFile . ' 不存在');
@@ -67,9 +70,6 @@ class Bootstrap
         //				return false;
         //			}
         //		}
-        if (\method_exists($className, '__init')) {
-            $className::__init($className);
-        }
     }
 
     /**

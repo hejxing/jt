@@ -17,7 +17,7 @@ abstract class Model
      */
     protected $conn = 'generic';
     /**
-     * @type \jt\database\Connector
+     * @type \PDO
      */
     private $pdo = null;
     /**
@@ -26,6 +26,12 @@ abstract class Model
      * @type string
      */
     protected $table = '';
+    /**
+     * 数据库类型
+     *
+     * @type database\Connector
+     */
+    protected $connector = null;
     /**
      * 表前缀 无需设定，通过配置文件设定
      *
@@ -117,6 +123,7 @@ abstract class Model
     private $errorAction = 'fail';
     /**
      * 自定义错误消息列表
+     *
      * @type array
      */
     private $errMsgList = [];
@@ -157,9 +164,10 @@ abstract class Model
     {
         //解析表结构和属性
         if ($className !== __CLASS__) {
+            static::$module = str_replace('\\', DIRECTORY_SEPARATOR, MODULE_NAMESPACE_ROOT);
             self::parseColumns();
-            $module = substr($className, 0, strpos($className, '\\model\\'));
-            static::$module = str_replace('\\', DIRECTORY_SEPARATOR, $module);
+        }else {
+            define('MODEL_UUID_ZERO', '00000000-0000-0000-0000-000000000000');
         }
     }
 
@@ -170,14 +178,12 @@ abstract class Model
      */
     public function __construct()
     {
-        $prefix      = database\Connector::getTablePrefix(static::$module, $this->conn);
-        $this->table = $prefix . $this->table;
+        $this->connector = new database\Connector(static::$module, $this->conn);
+        $this->table     = $this->connector->getTablePrefix() . $this->table;
     }
 
     /**
      * 模型中字段解析器
-     *
-     * @return array
      */
     private static function parseColumns()
     {
@@ -185,7 +191,6 @@ abstract class Model
         foreach (static::$columns as $name => $column) {
             $parsed[$name] = self::line($column, $name);
         }
-
         static::$columns = $parsed;
     }
 
@@ -293,7 +298,7 @@ abstract class Model
     private function connectDb()
     {
         if ($this->pdo === null) {
-            $this->pdo = database\Connector::open(static::$module, $this->conn);
+            $this->pdo = $this->connector->open();
         }
     }
 
@@ -316,12 +321,15 @@ abstract class Model
      * 修正错误
      *
      * @param \PDOException $e
+     * @throws \Exception
+     *
+     * @return bool 是否处理了错误
      */
 
-    private function processError(\PDOException $e)
+    private function processError(\PDOException $e, $sql)
     {
-        $errName = database\ErrorCode::getName($this->pdo->getType(), $e->getCode());
-        if(isset($this->errMsgList[$errName])){
+        $errName = database\ErrorCode::getName($this->connector->getDatabaseType(), $e->getCode());
+        if (isset($this->errMsgList[$errName])) {
             throw new TaskException($this->errMsgList[$errName]);
         }
         if ($this->retryTimes >= 3) {
@@ -336,11 +344,30 @@ abstract class Model
                 $creator->createTable($this->table, static::$columns);
                 break;
             default:
+                if (RUN_MODE !== 'production') {
+                    $trace = debug_backtrace()[3];
+                    $e     = new TaskException('dbOperError:' . $e->getMessage() . "\r\n  SQL: " . $sql . "\r\n  IN: " . $trace['file'] . ' line ' . $trace['line']);
+                }
                 throw $e;
-
-                return;
+                break;
         }
         $this->retryTimes++;
+    }
+
+    /**
+     * 替换Sql中的占位符
+     *
+     * @param $sql
+     * @return mixed
+     */
+    private function applyDtatToPresql($sql)
+    {
+        foreach ($this->data as $name => $value) {
+            $value = is_string($value) ? '"' . $value . '"' : $value;
+            $sql   = str_replace(':' . $name, $value, $sql);
+        }
+
+        return $sql;
     }
 
     /**
@@ -361,7 +388,8 @@ abstract class Model
             $sth = $this->prepare($preSql);
             $sth->execute($data);
         }catch (\PDOException $e){
-            $this->processError($e);
+            $this->processError($e, $this->applyDtatToPresql($preSql));
+            $this->pdo->rollBack();
             $sth = $this->query($preSql, $data);
         }
         //$this->logs[] = $sth->queryString; //写入文件
@@ -369,6 +397,7 @@ abstract class Model
         $this->sqlCollect = []; //一旦查询完成，清理掉上次用过的数据
         $this->preSql     = '';
         $this->data       = [];
+        $this->errMsgList = [];
 
         return $sth;
     }
@@ -816,7 +845,8 @@ abstract class Model
         foreach ($this->sqlCollect['where'] as $index => $where) {
             $sql = $where[0];
             foreach ($where[1] as $k => $v) {
-                $sql                              = str_replace(":{$k}", ":w_{$index}_{$k}", $sql);
+                $sql = str_replace(":{$k}", ":w_{$index}_{$k}", $sql);
+
                 $collectedData["w_{$index}_{$k}"] = $v;
             }
             $whereSql .= $whereCode[$index][1] . $whereCode[$index][0] . $sql . $whereCode[$index][2];
@@ -1105,7 +1135,7 @@ abstract class Model
      *
      * @param array $data
      *
-     * @return array
+     * @return int
      */
     public function edit(array $data)
     {
@@ -1616,7 +1646,11 @@ abstract class Model
      */
     public function order($attr, $order = 'asc', $model = null)
     {
-        $this->sqlCollect['order'][] = [$attr, $order, $model];
+        $fields = \explode(',', $attr);
+        foreach ($fields as $field) {
+            $field                       = trim($field);
+            $this->sqlCollect['order'][] = [$field, $order, $model];
+        }
 
         return $this;
     }
@@ -1637,11 +1671,14 @@ abstract class Model
 
     /**
      * 当遇到错误时返回的自定义错误消息
+     *
      * @param $list
      * @return $this
      */
-    public function errMsg($list){
+    public function errMsg($list)
+    {
         $this->errMsgList = $list;
+
         return $this;
     }
 }

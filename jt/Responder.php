@@ -107,9 +107,16 @@ class Responder
     public static function write()
     {
         $content = static::render();
-        //if (RUN_MODE !== 'production') {
-        //    Debug::output($content);
-        //}
+        if (RUN_MODE !== 'production') {
+            //Debug::output($content);
+            $hData = Error::prepareHeader();
+            foreach (['fatal', 'notice', 'info'] as $type) {
+                if (isset($hData[$type])) {
+                    echo '<b>' . $type . '</b><br>';
+                    var_export($hData[$type]);
+                }
+            }
+        }
         //拦截
         echo $content;
     }

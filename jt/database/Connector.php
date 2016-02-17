@@ -8,11 +8,10 @@
 
 namespace jt\database;
 
-use \jt\Bootstrap;
 use jt\Error;
 use jt\exception\TaskException;
 
-class Connector extends \PDO
+class Connector
 {
     /**
      * 已经打开的数据库连接列表
@@ -45,6 +44,11 @@ class Connector extends \PDO
      */
     protected $selectDb = true;
     /**
+     * 生成当前连接的标识
+     * @type string
+     */
+    protected $connSeed = '';
+    /**
      * 缓存已经生成的连接
      *
      * @type array
@@ -59,30 +63,39 @@ class Connector extends \PDO
 
     public function __construct($module, $conn)
     {
-        $this->config = self::loadConfig($module, $conn);
-        parent::__construct($this->generateDsn(), $this->config['user'], $this->config['password']);
-        $this->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true); //不使用数据库提供的prepares
-        $this->setAttribute(\PDO::ATTR_PERSISTENT, true); //长连接
-        $this->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION); //抛出异常
-        //$this->setAttribute(\PDO::ATTR_CASE, \PDO::CASE_NATURAL);
+        $this->connSeed = $module . '/' . $conn;
+        $this->config   = self::loadConfig($module, $conn);
+    }
+
+    /**
+     * 创建PDO
+     * @return \PDO
+     * @throws \ErrorException
+     */
+    protected function createPDO()
+    {
+        $pdo = new \PDO($this->generateDsn(), $this->config['user'], $this->config['password']);
+        $pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true); //不使用数据库提供的prepares
+        $pdo->setAttribute(\PDO::ATTR_PERSISTENT, true); //长连接
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION); //抛出异常
+        $pdo->setAttribute(\PDO::ATTR_TIMEOUT, $this->config['timeout']);
+
+        //$pdo->setAttribute(\PDO::ATTR_CASE, \PDO::CASE_NATURAL);
+        return $pdo;
     }
 
     /**
      * 打开一个连接
      *
-     * @param string $module 当前所在模块
-     * @param string $conn 数据库连接名
-     *
-     * @return Connector
+     * @return \PDO
      */
-    public static function open($module, $conn)
+    public function open()
     {
-        $connSeed = $module . '/' . $conn;
-        if (isset(self::$pdoList[$connSeed])) {
-            $pdo = self::$pdoList[$connSeed];
+        if (isset(self::$pdoList[$this->connSeed])) {
+            $pdo = self::$pdoList[$this->connSeed];
         }else {
-            $pdo                      = new self($module, $conn);
-            self::$pdoList[$connSeed] = $pdo;
+            $pdo                            = $this->createPDO();
+            self::$pdoList[$this->connSeed] = $pdo;
         }
         if (!$pdo->inTransaction()) {
             $pdo->beginTransaction();
@@ -220,23 +233,20 @@ class Connector extends \PDO
     /**
      * 获取表前缀
      *
-     * @param $module
-     * @param $conn
-     *
      * @return mixed
      */
-    public static function getTablePrefix($module, $conn)
+    public function getTablePrefix()
     {
-        $config = self::loadConfig($module, $conn);
-
-        return $config['tablePrefix'];
+        return $this->config['tablePrefix'];
     }
 
     /**
      * 获取的连接的数据库类型
+     *
      * @return string
      */
-    public function getType(){
+    public function getDatabaseType()
+    {
         return $this->config['type'];
     }
 }
