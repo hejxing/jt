@@ -752,13 +752,15 @@ abstract class Model
         }
         $data   = $this->sqlCollect['data'];
         $fields = [];
-        foreach (static::$columns as $name => $column) {
-            if (isset($column['at']) && $column['at'] === 'update') {
-                //TOD记录仍例用了数据库字段名的内容
-                if (isset($data[$name])) {
-                    continue;
+        if(!isset($this->sqlCollect['ignoreUpdateTime']) || !$this->sqlCollect['ignoreUpdateTime']){
+            foreach (static::$columns as $name => $column) {
+                if (isset($column['at']) && $column['at'] === 'update') {
+                    //TODO 记录仍例用了数据库字段名的内容
+                    if (isset($data[$name])) {
+                        continue;
+                    }
+                    $data[$name] = Bootstrap::$now;
                 }
-                $data[$name] = Bootstrap::$now;
             }
         }
         foreach ($data as $name => $value) {
@@ -953,6 +955,47 @@ abstract class Model
     }
 
     /**
+     * 应用删除标记
+     */
+    private function applyTrashed()
+    {
+        $sign = 'hidden';
+        if (isset($this->sqlCollect['trashed'])) { //标记为删除的也列出
+            $sign = $this->sqlCollect['trashed'];
+        }
+        if ($sign === 'with') {
+            return;
+        }
+        foreach (static::$columns as $name => $column) {
+            if (isset($column['del'])) {
+                if ($sign === 'only') {
+                    $this->aloneWhere("$name=true");
+                }else {
+                    $this->aloneWhere("$name=false");
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * 生成查询语句
+     * @return string
+     */
+    private function getSelectSql()
+    {
+        $this->applyTrashed();
+        $this->genSelectNames();
+        $this->preSql .= ' FROM ' . $this->table;
+        $this->genWhere();
+        $this->genGroup();
+        $this->genOrder();
+        $this->genLimit();
+
+        return $this->preSql;
+    }
+
+    /**
      * 根据主键取出一条记录
      *
      * @param string $primary 主键值
@@ -965,6 +1008,17 @@ abstract class Model
         $this->where(static::$primary . '=:key', ['key' => $primary]);
 
         return $this->first($names);
+    }
+
+    /**
+     * 获取指定记录的指定值
+     * @param $primary
+     * @param $name
+     * @return mixed
+     */
+    public function getValue($primary, $name){
+        $res = $this->get($primary, $name);
+        return $res[$name];
     }
 
     /**
@@ -998,43 +1052,6 @@ abstract class Model
         $this->limit($length);
 
         return $this->fetch($names);
-    }
-
-    /**
-     * 应用删除标记
-     */
-    private function applyTrashed()
-    {
-        $sign = 'hidden';
-        if (isset($this->sqlCollect['trashed'])) { //标记为删除的也列出
-            $sign = $this->sqlCollect['trashed'];
-        }
-        if ($sign === 'with') {
-            return;
-        }
-        foreach (static::$columns as $name => $column) {
-            if (isset($column['del'])) {
-                if ($sign === 'only') {
-                    $this->aloneWhere("$name=true");
-                }else {
-                    $this->aloneWhere("$name=false");
-                }
-                break;
-            }
-        }
-    }
-
-    private function getSelectSql()
-    {
-        $this->applyTrashed();
-        $this->genSelectNames();
-        $this->preSql .= ' FROM ' . $this->table;
-        $this->genWhere();
-        $this->genGroup();
-        $this->genOrder();
-        $this->genLimit();
-
-        return $this->preSql;
     }
 
     /**
@@ -1652,6 +1669,16 @@ abstract class Model
             $this->sqlCollect['order'][] = [$field, $order, $model];
         }
 
+        return $this;
+    }
+
+    /**
+     * 是否忽略更新时间
+     * @param bool $is
+     * @return $this
+     */
+    public function ignoreUpdateTime($is = true){
+        $this->sqlCollect['ignoreUpdateTime'] = $is;
         return $this;
     }
 
