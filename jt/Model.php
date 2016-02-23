@@ -1152,7 +1152,7 @@ abstract class Model
      *
      * @param array $data
      *
-     * @return int
+     * @return array
      */
     public function edit(array $data)
     {
@@ -1165,7 +1165,7 @@ abstract class Model
         /** @type \PDOStatement $sth */
         $sth = $this->update($this->preSql, $this->data);
 
-        return $sth->rowCount();
+        return ['count' => $sth->rowCount()];
     }
 
     /**
