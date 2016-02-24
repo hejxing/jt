@@ -434,13 +434,13 @@ abstract class Model
      * @param $preSql
      * @param $data
      *
-     * @return string 新插入记录的ID
+     * @return array 包含新插入记录的ID
      */
     public function insert($preSql, array $data = [])
     {
         $this->query('INSERT INTO ' . $preSql, $data);
 
-        return $this->insertId ?: $this->pdo->lastInsertId(static::$primary ?: null);
+        return ['insertId' => $this->insertId ?: $this->pdo->lastInsertId(static::$primary ?: null)];
     }
 
     /**
@@ -453,7 +453,8 @@ abstract class Model
      */
     public function update($preSql, array $data = [])
     {
-        return $this->query('UPDATE ' . $preSql, $data);
+        $sth = $this->query('UPDATE ' . $preSql, $data);
+        return ['count' => $sth->rowCount()];
     }
 
     /**
@@ -466,7 +467,8 @@ abstract class Model
      */
     public function delete($preSql, array $data = [])
     {
-        return $this->query('DELETE ' . $preSql, $data);
+        $sth = $this->query('DELETE ' . $preSql, $data);
+        return ['count' => $sth->rowCount()];
     }
 
     /**
@@ -636,16 +638,31 @@ abstract class Model
     }
 
     /**
+     * 搜集传入的数据
+     *
+     * @return array
+     */
+    private function collectData()
+    {
+        $data = [];
+        foreach ($this->sqlCollect['data'] as $item) {
+            $data = array_merge($data, $item);
+        }
+
+        return $data;
+    }
+
+    /**
      * 生成插入记录用的属性列表
      *
      * @throws \ErrorException
      */
     private function genInsertNames()
     {
-        if (!isset($this->sqlCollect['data'])) {
+        $data = $this->collectData();
+        if (count($data) === 0) {
             return;
         }
-        $data           = $this->sqlCollect['data'];
         $fields         = [];
         $this->insertId = null;
         foreach (static::$columns as $name => $column) {
@@ -741,18 +758,40 @@ abstract class Model
     }
 
     /**
+     * 通过名字寻找字段的配置信息
+     *
+     * @param $name
+     * @return array|null
+     */
+    private function findColumnByName($name)
+    {
+        if (isset(static::$columns[$name])) { //找到了属性
+            $column = static::$columns[$name];
+        }else {
+            if (isset(static::$fieldMap[$name])) {
+                $column = static::$columns[static::$fieldMap[$name]];
+                //TODO 警告不应在此处使用字段名
+            }else {
+                $column = null;
+            }
+        }
+
+        return $column;
+    }
+
+    /**
      * 生成插入记录用的属性列表
      *
      * @throws \ErrorException
      */
     private function genUpdateNames()
     {
-        if (!isset($this->sqlCollect['data'])) {
+        $data = $this->collectData();
+        if (count($data) === 0) {
             return;
         }
-        $data   = $this->sqlCollect['data'];
         $fields = [];
-        if(!isset($this->sqlCollect['ignoreUpdateTime']) || !$this->sqlCollect['ignoreUpdateTime']){
+        if (!isset($this->sqlCollect['ignoreUpdateTime']) || !$this->sqlCollect['ignoreUpdateTime']) {
             foreach (static::$columns as $name => $column) {
                 if (isset($column['at']) && $column['at'] === 'update') {
                     //TODO 记录仍例用了数据库字段名的内容
@@ -765,20 +804,11 @@ abstract class Model
         }
         foreach ($data as $name => $value) {
             //将属性名与字段名进行映射
-            $field = $name;
-            if (isset(static::$columns[$name])) { //找到了属性
-                $column = static::$columns[$name];
-                if (isset($column['field'])) {
-                    $field = $column['field'];
-                }
-            }else {
-                if (isset(static::$fieldMap[$name])) {
-                    $column = static::$columns[static::$fieldMap[$name]];
-                    //TODO 警告不应在此处使用字段名
-                }else {
-                    continue;
-                }
+            $column = $this->findColumnByName($name);
+            if ($column === null) {
+                continue;
             }
+            $field = isset($column['field']) ? $column['field'] : $name;
 
             $fields[]                  = $field;
             $fieldValues[]             = ':u_' . $field;
@@ -980,6 +1010,7 @@ abstract class Model
 
     /**
      * 生成查询语句
+     *
      * @return string
      */
     private function getSelectSql()
@@ -1012,12 +1043,15 @@ abstract class Model
 
     /**
      * 获取指定记录的指定值
+     *
      * @param $primary
      * @param $name
      * @return mixed
      */
-    public function getValue($primary, $name){
+    public function getValue($primary, $name)
+    {
         $res = $this->get($primary, $name);
+
         return $res[$name];
     }
 
@@ -1119,12 +1153,12 @@ abstract class Model
      *
      * @param array $data
      *
-     * @return string 新增记录的ID
+     * @return array 包含新增记录的ID
      */
-    public function add(array $data)
+    public function add(array $data = [])
     {
-        $this->sqlCollect['data'] = $data;
-        $this->preSql             = $this->table;
+        $this->sqlCollect['data'][] = $data;
+        $this->preSql               = $this->table;
         $this->genInsertNames();
 
         return $this->insert($this->preSql, $this->data);
@@ -1135,16 +1169,16 @@ abstract class Model
      *
      * @param array $data
      *
-     * @return array 执行结果 新增记录的ID
+     * @return array 执行结果 包含新增记录的ID列表
      */
     public function addMass(array $data)
     {
         $insertIds = [];
         foreach ($data as $d) {
-            $insertIds[] = $this->add($d);
+            $insertIds[] = $this->add($d)['insertId'];
         }
 
-        return $insertIds;
+        return ['insertIdList' => $insertIds];
     }
 
     /**
@@ -1154,18 +1188,47 @@ abstract class Model
      *
      * @return array
      */
-    public function edit(array $data)
+    public function edit(array $data = [])
     {
         $this->applyLimitForEdit();
-        $this->sqlCollect['data'] = $data;
-        $this->preSql             = $this->table;
+        $this->sqlCollect['data'][] = $data;
+        $this->preSql               = $this->table;
         $this->genUpdateNames();
         $this->genWhere();
 
         /** @type \PDOStatement $sth */
-        $sth = $this->update($this->preSql, $this->data);
+        return $this->update($this->preSql, $this->data);
+    }
 
-        return ['count' => $sth->rowCount()];
+    /**
+     * 存入数据，供后续使用
+     *
+     * @param array $data
+     * @return $this
+     */
+    public function pushData(array $data)
+    {
+        $this->sqlCollect['data'][] = $data;
+
+        return $this;
+    }
+
+    /**
+     * 某一字段值增长
+     *
+     * @param     $name
+     * @param int $value
+     * @return $this
+     */
+    public function increment($name, $value = 1)
+    {
+        $column = $this->findColumnByName($name);
+        if ($column) {
+            $field                      = isset($column['field']) ? $column['field'] : $name;
+            $this->sqlCollect['data'][] = [$name => "{$field}+{$value}"];
+        }
+
+        return $this;
     }
 
     /**
@@ -1237,9 +1300,7 @@ abstract class Model
         $this->genWhere();
         $this->genLimit();
         /** @type \PDOStatement $sth */
-        $sth = $this->delete($this->preSql, $this->data);
-
-        return $sth->rowCount();
+        return $this->delete($this->preSql, $this->data);
     }
 
     /**
@@ -1674,11 +1735,14 @@ abstract class Model
 
     /**
      * 是否忽略更新时间
+     *
      * @param bool $is
      * @return $this
      */
-    public function ignoreUpdateTime($is = true){
+    public function ignoreUpdateTime($is = true)
+    {
         $this->sqlCollect['ignoreUpdateTime'] = $is;
+
         return $this;
     }
 
