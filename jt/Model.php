@@ -60,7 +60,7 @@ abstract class Model
      *
      * @type array
      */
-    protected $lastPageInfo = null;
+    private $lastPageInfo = null;
     /**
      * 每页条数.
      *
@@ -454,6 +454,7 @@ abstract class Model
     public function update($preSql, array $data = [])
     {
         $sth = $this->query('UPDATE ' . $preSql, $data);
+
         return ['count' => $sth->rowCount()];
     }
 
@@ -468,6 +469,7 @@ abstract class Model
     public function delete($preSql, array $data = [])
     {
         $sth = $this->query('DELETE ' . $preSql, $data);
+
         return ['count' => $sth->rowCount()];
     }
 
@@ -544,11 +546,11 @@ abstract class Model
             $this->sqlCollect['hidden'] = 'hidden';
         }
         $collectedNames = [];
+        $excludeFields  = $this->collectExclude();
         foreach ($this->sqlCollect['names'] as $nameStr) {
-            $ns = \explode(',', $nameStr);
+            $ns = \preg_split('/ *, */', $nameStr);
             foreach ($ns as &$n) {
-                $n = \trim($n);
-                if ($n === '*' && (static::$fieldMap && $this->sqlCollect['hidden'] !== 'show')) { //如果需要映射到字段，需要在sql中使用as,则不能直接使用"*"
+                if ($n === '*' && ((static::$fieldMap && $this->sqlCollect['hidden'] !== 'show') || $excludeFields)) { //如果需要映射到字段，需要在sql中使用as,则不能直接使用"*"
                     foreach (static::$columns as $name => $v) {
                         if (isset($v['hidden']) && $this->sqlCollect['hidden'] !== 'show') {
                             continue;
@@ -561,7 +563,14 @@ abstract class Model
             }
         }
 
-        return array_unique($collectedNames);
+        $collectedNames = array_unique($collectedNames);
+
+        foreach ($excludeFields as $name) {
+            $index = array_search($name, $collectedNames);
+            unset($collectedNames[$index]);
+        }
+
+        return $collectedNames;
     }
 
     /**
@@ -631,6 +640,9 @@ abstract class Model
                     $value = intval($value) + 28800;
                     $value = \date('Y-m-d H:i:s', intval($value));
                 }
+                break;
+            case 'bool':
+                return $value ? 1 : 0;
                 break;
         }
 
@@ -780,6 +792,23 @@ abstract class Model
     }
 
     /**
+     * 搜集整理需要忽略的字段列表
+     *
+     * @return array
+     */
+    private function collectExclude()
+    {
+        $list = [];
+        if (isset($this->sqlCollect['exclude'])) {
+            foreach ($this->sqlCollect['exclude'] as $exclude) {
+                $list = \array_merge($list, \preg_split('/ *, */', $exclude));
+            }
+        }
+
+        return $list;
+    }
+
+    /**
      * 生成插入记录用的属性列表
      *
      * @throws \ErrorException
@@ -802,17 +831,28 @@ abstract class Model
                 }
             }
         }
+        $fieldValues   = [];
+        $excludeFields = $this->collectExclude();
+
+        foreach ($excludeFields as $name) {
+            if (isset($data[$name])) {
+                unset($data[$name]);
+            }
+        }
         foreach ($data as $name => $value) {
             //将属性名与字段名进行映射
             $column = $this->findColumnByName($name);
-            if ($column === null) {
+            if ($column === null || isset($column['primary'])) {//不允许更新主键的内容
                 continue;
             }
-            $field = isset($column['field']) ? $column['field'] : $name;
-
-            $fields[]                  = $field;
-            $fieldValues[]             = ':u_' . $field;
-            $this->data['u_' . $field] = $this->checkData($value, $column, $name);
+            $field    = isset($column['field']) ? $column['field'] : $name;
+            $fields[] = $field;
+            if (is_string($value) && substr($value, 0, 1) === '`' && substr($value, -1, 1) === '`') {
+                $fieldValues[] = trim($value, '`');
+            }else {
+                $fieldValues[]             = ':u_' . $field;
+                $this->data['u_' . $field] = $this->checkData($value, $column, $name);
+            }
         }
         //TODO: 记录丢弃的数据
         //TODO: 数据完整性检查
@@ -1052,7 +1092,7 @@ abstract class Model
     {
         $res = $this->get($primary, $name);
 
-        return $res[$name];
+        return isset($res[$name]) ? $res[$name] : null;
     }
 
     /**
@@ -1105,22 +1145,24 @@ abstract class Model
         $groupSql = $this->genGroup();
         $this->genOrder();
         $this->genLimit();
-        $needTotal = isset($this->sqlCollect['needTotal']) && $this->sqlCollect['needTotal'];
-        if ($needTotal && isset($this->sqlCollect['limit'])) {
+
+        $data               = $this->data;
+        $this->lastPageInfo = [];
+
+        if (isset($this->sqlCollect['needTotal']) && $this->sqlCollect['needTotal'] && isset($this->sqlCollect['limit'])) {
             $pageSize  = $this->sqlCollect['limit'][0];
             $pageIndex = $this->sqlCollect['limit'][1];
-        }else {
-            $needTotal = false;
-        }
-        $data = $this->data;
-        $list = $this->select($this->preSql, $data);
-        if ($needTotal) {
+
             $this->lastPageInfo = [
-                $this->select('COUNT(*) FROM ' . $this->table . $whereSql . $groupSql, $data)[0]['count'],
+                -1,
                 $pageIndex,
-                $pageSize
+                $pageSize,
+                'COUNT(*) FROM ' . $this->table . $whereSql . $groupSql,
+                $data
             ];
         }
+
+        $list = $this->select($this->preSql, $data);
 
         return $list;
     }
@@ -1133,7 +1175,17 @@ abstract class Model
      */
     public function getLastPageInfo()
     {
-        return $this->lastPageInfo;
+        if ($this->lastPageInfo) {
+            if ($this->lastPageInfo[0] === -1) {
+                $this->lastPageInfo[0] = $this->select($this->lastPageInfo[3], $this->lastPageInfo[4]);
+                unset($this->lastPageInfo[3]);
+                unset($this->lastPageInfo[4]);
+            }
+
+            return $this->lastPageInfo;
+        }else {
+            return [];
+        }
     }
 
     /**
@@ -1196,7 +1248,6 @@ abstract class Model
         $this->genUpdateNames();
         $this->genWhere();
 
-        /** @type \PDOStatement $sth */
         return $this->update($this->preSql, $this->data);
     }
 
@@ -1222,10 +1273,15 @@ abstract class Model
      */
     public function increment($name, $value = 1)
     {
+        $symbol = '+';
+        if($value < 0){
+            $symbol = '-';
+            $value = abs($value);
+        }
         $column = $this->findColumnByName($name);
         if ($column) {
             $field                      = isset($column['field']) ? $column['field'] : $name;
-            $this->sqlCollect['data'][] = [$name => "{$field}+{$value}"];
+            $this->sqlCollect['data'][] = [$name => "`{$field}{$symbol}{$value}`"];
         }
 
         return $this;
@@ -1253,6 +1309,7 @@ abstract class Model
         $data = [];
         foreach (static::$columns as $name => $column) {
             if (isset($column['del'])) {
+                $data[$name] = true;
                 $this->aloneWhere("{$name}=false");
             }
         }
@@ -1287,19 +1344,22 @@ abstract class Model
     /**
      * 物理删除记录
      *
-     * @param bool $onlyTrashed 当有软删除标记栏目时，是否只键除标记为软删除的记录
+     * @param bool $force 配合软删除标记，如果不为真则只删除软标记为删除的记录
      *
      * @return array
      */
-    public function erase($onlyTrashed = true)
+    public function destroy($force = false)
     {
-        if ($onlyTrashed) {
+        if ($force === true) {
+            $this->hiddenTrashed();
+        }else {
             $this->onlyTrashed();
         }
+        $this->applyTrashed();
         $this->preSql = ' FROM ' . $this->table;
         $this->genWhere();
         $this->genLimit();
-        /** @type \PDOStatement $sth */
+
         return $this->delete($this->preSql, $this->data);
     }
 
@@ -1359,6 +1419,19 @@ abstract class Model
     public function find($primary)
     {
         $this->where(static::$primary . ' = :primary', ['primary' => $primary]);
+
+        return $this;
+    }
+
+    /**
+     * 在操作中需要排除的字段
+     *
+     * @param $fields
+     * @return $this
+     */
+    public function exclude($fields)
+    {
+        $this->sqlCollect['exclude'][] = $fields;
 
         return $this;
     }
@@ -1724,9 +1797,8 @@ abstract class Model
      */
     public function order($attr, $order = 'asc', $model = null)
     {
-        $fields = \explode(',', $attr);
+        $fields = \preg_split('/ *, */', $attr);
         foreach ($fields as $field) {
-            $field                       = trim($field);
             $this->sqlCollect['order'][] = [$field, $order, $model];
         }
 
