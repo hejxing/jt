@@ -89,7 +89,9 @@ for ($k = 0; $k < 0x40; $k++)
 	foreach ($rec[$k] as $w => $v)
 	{
 		$flag = (isset($v['tf']) ? 0x01 : 0);
-		if ($v['part']) $flag |= 0x02;
+		if (isset($v['part']) && $v['part']){
+			$flag |= 0x02;
+		}
 		$data = pack('ffCa3', $v['tf'], $v['idf'], $flag, $v['attr']);
 		$xdb->Put($w, $data);
 		$cnt++;
