@@ -67,7 +67,7 @@ class Responder
      * 将数组转为XML
      *
      * @param $array
-     * @param $xml
+     * @param \SimpleXMLElement $xml
      *
      * @return mixed
      */
@@ -106,6 +106,7 @@ class Responder
      */
     public static function write()
     {
+        ob_clean();
         $content = static::render();
         if (RUN_MODE !== 'production') {
             //Debug::output($content);

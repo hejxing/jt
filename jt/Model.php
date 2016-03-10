@@ -6,9 +6,11 @@
  */
 namespace jt;
 
+define('MODEL_UUID_ZERO', '00000000-0000-0000-0000-000000000000');
+
 use jt\exception\TaskException;
 
-abstract class Model
+class Model
 {
     /**
      * 连接名
@@ -138,7 +140,13 @@ abstract class Model
      *
      * @type string
      */
-    protected static $module = '';
+    protected static $module = null;
+    /**
+     * 查询完成后是否不清空上次的数据
+     *
+     * @type bool
+     */
+    protected $isCleanSqlCollect = true;
     /**
      * 解析表内容用到的值
      *
@@ -162,13 +170,11 @@ abstract class Model
      */
     public static function __init($className)
     {
-        //解析表结构和属性
-        if ($className !== __CLASS__) {
+        if (static::$module === null) {
             static::$module = str_replace('\\', DIRECTORY_SEPARATOR, MODULE_NAMESPACE_ROOT);
-            self::parseColumns();
-        }else {
-            define('MODEL_UUID_ZERO', '00000000-0000-0000-0000-000000000000');
         }
+        //解析表结构和属性
+        self::parseColumns();
     }
 
     /**
@@ -257,6 +263,20 @@ abstract class Model
      * 提交事务
      */
     public static function commit()
+    {
+        foreach (database\Connector::getPdoList() as $pdo) {
+            /* @var $pdo \PDO */
+            if ($pdo->inTransaction()) {
+                $pdo->commit();
+                $pdo->beginTransaction();
+            }
+        }
+    }
+
+    /**
+     * 开始自动事务
+     */
+    public static function autoCommit()
     {
         foreach (database\Connector::getPdoList() as $pdo) {
             /* @var $pdo \PDO */
@@ -394,12 +414,49 @@ abstract class Model
         }
         //$this->logs[] = $sth->queryString; //写入文件
         self::$queryTimes++;
-        $this->sqlCollect = []; //一旦查询完成，清理掉上次用过的数据
-        $this->preSql     = '';
-        $this->data       = [];
-        $this->errMsgList = [];
+        $this->preSql = '';
+
+        if ($this->isCleanSqlCollect) {
+            $this->cleanSqlCollect();
+        }
 
         return $sth;
+    }
+
+    /**
+     * 清除之前操作搜集的参数
+     */
+    private function cleanSqlCollect()
+    {
+        $this->sqlCollect = []; //一旦查询完成，清理掉上次用过的数据
+        $this->data       = [];
+        $this->errMsgList = [];
+    }
+
+    /**
+     * 整理查询结果
+     *
+     * @param array $list
+     * @return array
+     */
+    private function combQueryResult(array &$list)
+    {
+        $convertList = [];
+        foreach (static::$columns as $name => $column) {
+            if (isset($column['array'])) {
+                $convertList[] = $name;
+            }
+        }
+
+        if ($convertList) {
+            foreach ($list as &$item) {
+                foreach ($convertList as $name) {
+                    $item[$name] = \json_decode($item[$name], true);
+                }
+            }
+        }
+
+        return $list;
     }
 
     /**
@@ -412,20 +469,10 @@ abstract class Model
      */
     public function select($preSql, array $data = [])
     {
-        $list = $this->query('SELECT ' . $preSql, $data)->fetchAll();
-        //http://my.oschina.net/lxrm/blog/210301
+        $sth  = $this->query('SELECT ' . $preSql, $data);
+        $list = $sth->fetchAll();
 
-        foreach (static::$columns as $name => $column) {
-            if (isset($column['array'])) {
-                foreach ($list as &$d) {
-                    if (isset($d[$name])) {
-                        $d[$name] = \json_decode($d[$name], true);
-                    }
-                }
-            }
-        }
-
-        return $list;
+        return $this->combQueryResult($list);
     }
 
     /**
@@ -485,25 +532,6 @@ abstract class Model
 
     /*获取查询结果********************/
     /**
-     * 魔术引用静态方法
-     *
-     * @param $name
-     * @param $arg
-     *
-     * @return \jt\Model
-     */
-    public static function __callStatic($name, $arg)
-    {
-        $model = new static();
-
-        if (method_exists($model, $name)) {
-            call_user_func_array([$model, $name], $arg);
-        }
-
-        return $model;
-    }
-
-    /**
      * 打开一个数据模型
      *
      * @param string $model 要打开的数据模型或表
@@ -515,23 +543,6 @@ abstract class Model
     public static function open($model = '', $type = 'model', $conn = null)
     {
         return new static();
-    }
-
-    /**
-     * 调用构造语句
-     *
-     * @param $name
-     * @param $arg
-     *
-     * @return $this
-     */
-    public function __call($name, $arg)
-    {
-        if (method_exists($this, $name)) {
-            call_user_func_array([$this, $name], $arg);
-        }
-
-        return $this;
     }
 
     /**
@@ -694,7 +705,7 @@ abstract class Model
                 if (isset($column['default'])) {
                     $data[$field] = $column['default'];
                 }elseif (isset($column['at'])) {
-                    $data[$field] = Bootstrap::$now;
+                    $data[$field] = \microtime(true);
                 }elseif ($column['type'] === 'uuid' && isset($column['primary'])) {
                     $data[$field] = \jt\utils\Helper::uuid([], '-');
                 }elseif (isset($column['increment'])) {//自增类型
@@ -737,6 +748,7 @@ abstract class Model
     {
         $isClosed  = true;
         $whereCode = [];
+        $index     = -1;
         foreach ($this->sqlCollect['where'] as $index => $where) { //通观全局
             $whereCode[$index]    = ['', '', ' '];
             $whereCode[$index][1] = $where[2] ? 'OR ' : 'AND ';
@@ -827,7 +839,7 @@ abstract class Model
                     if (isset($data[$name])) {
                         continue;
                     }
-                    $data[$name] = Bootstrap::$now;
+                    $data[$name] = \microtime(true);
                 }
             }
         }
@@ -1017,6 +1029,7 @@ abstract class Model
         if (isset($this->sqlCollect['limit'])) {
             $length = $this->sqlCollect['limit'][0];
             $this->preSql .= " LIMIT {$length}";
+
             if ($this->sqlCollect['limit'][1] >= 2) {
                 $offset = ($this->sqlCollect['limit'][1] - 1) * $length;
                 $this->preSql .= " OFFSET {$offset}";
@@ -1096,6 +1109,19 @@ abstract class Model
     }
 
     /**
+     * 直接获取指定的属性的值
+     *
+     * @param $name
+     * @return mixed|null
+     */
+    public function value($name)
+    {
+        $res = $this->first($name);
+
+        return isset($res[$name]) ? $res[$name] : null;
+    }
+
+    /**
      * 取出符合条件的第一条记录
      *
      * @param string $names 要取出的字段表
@@ -1128,16 +1154,8 @@ abstract class Model
         return $this->fetch($names);
     }
 
-    /**
-     * 取出查询结果
-     *
-     * @param string $field 要获取的属性列表
-     *
-     * @return array
-     */
-    public function fetch($field = '*')
+    private function parseSelectSql()
     {
-        $this->sqlCollect['names'][] = $field;
         $this->applyTrashed();
         $this->genSelectNames();
         $this->preSql .= ' FROM ' . $this->table;
@@ -1146,7 +1164,6 @@ abstract class Model
         $this->genOrder();
         $this->genLimit();
 
-        $data               = $this->data;
         $this->lastPageInfo = [];
 
         if (isset($this->sqlCollect['needTotal']) && $this->sqlCollect['needTotal'] && isset($this->sqlCollect['limit'])) {
@@ -1158,13 +1175,45 @@ abstract class Model
                 $pageIndex,
                 $pageSize,
                 'COUNT(*) FROM ' . $this->table . $whereSql . $groupSql,
-                $data
+                $this->data
             ];
         }
+    }
 
-        $list = $this->select($this->preSql, $data);
+    /**
+     * 取出查询结果
+     *
+     * @param string $field 要获取的属性列表
+     *
+     * @return array
+     */
+    public function fetch($field = '*')
+    {
+        $this->field($field);
+        $this->parseSelectSql();
+
+        $list = $this->select($this->preSql, $this->data);
 
         return $list;
+    }
+
+    /**
+     * 获取结果，连同分页信息
+     *
+     * @param string $field
+     * @return array
+     */
+    public function fetchWithPage($field = '*')
+    {
+        $data = $this->fetch($field);
+        $page = $this->getLastPageInfo();
+
+        return [
+            'list'  => $data,
+            'total' => $page[0],
+            'page'  => $page[1],
+            'size'  => $page[2]
+        ];
     }
 
     /**
@@ -1177,7 +1226,7 @@ abstract class Model
     {
         if ($this->lastPageInfo) {
             if ($this->lastPageInfo[0] === -1) {
-                $this->lastPageInfo[0] = $this->select($this->lastPageInfo[3], $this->lastPageInfo[4]);
+                $this->lastPageInfo[0] = $this->select($this->lastPageInfo[3], $this->lastPageInfo[4])[0]['count'];
                 unset($this->lastPageInfo[3]);
                 unset($this->lastPageInfo[4]);
             }
@@ -1189,15 +1238,43 @@ abstract class Model
     }
 
     /**
-     * 分批处理
-     * TODO: 实现分批处理
+     * 要操作的字段
      *
-     * @param int      $length 一批的长度
-     * @param callback $process 回调
+     * @param string $field
+     * @param bool   $clean
+     *
+     * @return $this
      */
-    public function chunk($length, $process)
+    public function field($field, $clean = false)
     {
+        if ($clean) {
+            $this->sqlCollect['names'] = [];
+        }
+        if ($field) {
+            $this->sqlCollect['names'][] = $field;
+        }
 
+        return $this;
+    }
+
+    /**
+     * 将查询结果难叠代器的形式返回
+     *
+     * @param string $field 获取的字段列表
+     *
+     * @return \Generator
+     */
+    public function fetchIterate($field)
+    {
+        $this->field($field);
+        $this->parseSelectSql();
+
+        $sth = $this->query('SELECT ' . $this->preSql, $this->data);
+
+        while ($item = $sth->fetch()) {
+            $list = [$item];
+            yield $this->combQueryResult($list)[0];
+        }
     }
 
     /**
@@ -1274,9 +1351,9 @@ abstract class Model
     public function increment($name, $value = 1)
     {
         $symbol = '+';
-        if($value < 0){
+        if ($value < 0) {
             $symbol = '-';
-            $value = abs($value);
+            $value  = abs($value);
         }
         $column = $this->findColumnByName($name);
         if ($column) {
@@ -1525,7 +1602,8 @@ abstract class Model
         foreach ($list as $name => $value) {
             $this->where("$name=:$name", [$name => $value]);
         }
-        array_walk();
+
+        //array_walk();
 
         return $this;
     }
@@ -1587,25 +1665,37 @@ abstract class Model
     /**
      * 按分页查询
      *
-     * @param int  $length
+     * @param int  $pageSize
      * @param int  $page
      * @param bool $needTotal 是否输出总数
      *
      * @return $this
      */
-    public function page($length, $page = null, $needTotal = true)
+    public function page($pageSize, $page = null, $needTotal = true)
     {
-        if ($page === null) {
+        if ($pageSize === null) {
             if (isset($this->sqlCollect['limit'])) {
-                $page = $this->sqlCollect['limit'][1];
+                $pageSize = $this->sqlCollect['limit'][1];
             }else {
-                $page = 1;
+                $pageSize = 1;
             }
         }
-        $this->sqlCollect['limit'] = [$length, $page];
+        $this->sqlCollect['limit'] = [$pageSize, $page];
         $this->needTotal($needTotal);
 
         return $this;
+    }
+
+    /**
+     * 设置分页信息
+     *
+     * @param array $options
+     * @param bool  $needTotal
+     * @return \jt\Model
+     */
+    public function setPage(array $options, $needTotal = true)
+    {
+        return $this->page($options['pageSize'], $options['page'], $needTotal);
     }
 
     /**

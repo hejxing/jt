@@ -510,22 +510,18 @@ class Requester
     /**
      * 获取分页参数 如果未定义，返回默认值
      *
-     * @param int $size 每页条数
-     * @param int $index 当前页数
+     * @param int $pageSize 每页条数
+     * @param int $page 当前页数
      *
      * @return array
      */
-    public function fetchPage($size = 10, $index = 1)
+    public function fetchPage($pageSize = 10, $page = 1)
     {
-        $page = $this->fetch('index', 'size');
-        if (!$page['index']) {
-            $page['index'] = $index;
-        }
-        if (!$page['size']) {
-            $page['size'] = $size;
-        }
+        $option             = $this->fetch('page', 'pageSize');
+        $option['pageSize'] = $option['pageSize'] ? \intval($option['pageSize']) : $pageSize;
+        $option['page']     = $option['page'] ? \intval($option['page']) : $page;
 
-        return $page;
+        return $option;
     }
 
     /**
