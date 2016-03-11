@@ -92,6 +92,7 @@ for ($k = 0; $k < 0x40; $k++)
 		if (isset($v['part']) && $v['part']){
 			$flag |= 0x02;
 		}
+        $v = array_merge(['tf'=>'','idf'=>'','attr'=>''], $v);
 		$data = pack('ffCa3', $v['tf'], $v['idf'], $flag, $v['attr']);
 		$xdb->Put($w, $data);
 		$cnt++;

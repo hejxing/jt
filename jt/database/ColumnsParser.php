@@ -16,8 +16,13 @@ class ColumnsParser
      *
      * @type array
      */
-    protected static $bools           = ['require', 'increment', 'primary', 'hidden', 'visible', 'fillable', 'guarded'];
-    protected static $types           = [
+    protected static $boolList = ['require', 'increment', 'primary', 'hidden', 'visible', 'fillable', 'guarded'];
+    /**
+     * 字段类型
+     *
+     * @type array
+     */
+    protected static $types = [
         'uuid',
         'bit',
         'bytea',
@@ -34,8 +39,18 @@ class ColumnsParser
         'float4',
         'float8'
     ];
+    /**
+     * 需要长度的类型
+     *
+     * @type array
+     */
     protected static $typesWithLength = ['char', 'varchar', 'text'];
-    protected static $command         = ['format', 'touch', 'foreign', 'as'];
+    /**
+     * 需要执行特殊处理的值
+     *
+     * @type array
+     */
+    protected static $command = ['format', 'touch', 'foreign', 'as'];
 
     /**
      * 模型中字段解析器
@@ -73,7 +88,7 @@ class ColumnsParser
         }
         $result = [];
         switch (true) {
-            case in_array($key, self::$bools):
+            case in_array($key, self::$boolList):
                 $result[$key] = $value === null || ($value !== 'false' && (bool)$value);
                 break;
             case in_array($key, self::$typesWithLength):

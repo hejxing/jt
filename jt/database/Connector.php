@@ -45,6 +45,7 @@ class Connector
     protected $selectDb = true;
     /**
      * 生成当前连接的标识
+     *
      * @type string
      */
     protected $connSeed = '';
@@ -61,14 +62,33 @@ class Connector
      */
     protected static $baseConfig = [];
 
+    protected static $quotesList = [
+        'mysql' => '`',
+        'pgsql' => '"'
+    ];
+
     public function __construct($module, $conn)
     {
         $this->connSeed = $module . '/' . $conn;
         $this->config   = self::loadConfig($module, $conn);
+        if (!isset(self::$quotesList[$this->config['type']])) {
+            throw new \ErrorException('DatabaseTypeIll:数据库类型 [' . $this->config['type'] . '] 错误，不存在此种数据库或未实现对此种数据库的支持');
+        }
+    }
+
+    /**
+     * 构建Sql时对表名，字段名所用的引号
+     *
+     * @return mixed
+     */
+    public function getQuotes()
+    {
+        return self::$quotesList[$this->config['type']];
     }
 
     /**
      * 创建PDO
+     *
      * @return \PDO
      * @throws \ErrorException
      */
@@ -166,15 +186,14 @@ class Connector
     private function generateDsn()
     {
         $config = $this->config;
-        if (\method_exists($this, $config['type'])) {
-            try{
-                return \call_user_func_array([$this, $config['type']], [$config]);
-            }catch (\PDOException $e){
-                Error::fatal($e->getMessage(), $e->getCode());
-            }
-        }else {
-            throw new \ErrorException('数据库类型 [' . $config['type'] . '] 不存在');
+
+        try{
+            return \call_user_func_array([$this, $config['type']], [$config]);
+        }catch (\PDOException $e){
+            Error::fatal($e->getMessage(), $e->getCode());
         }
+
+        return null;
     }
 
     /**

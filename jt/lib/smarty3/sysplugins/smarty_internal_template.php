@@ -373,6 +373,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
     public function getRenderedTemplateCode()
     {
         $level = ob_get_level();
+
         try{
             ob_start();
             if (empty($this->properties['unifunc']) || !is_callable($this->properties['unifunc'])) {
@@ -394,7 +395,6 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
             if (isset($this->smarty->security_policy)) {
                 $this->smarty->security_policy->exitTemplate($this);
             }
-
             return ob_get_clean();
         }catch (Exception $e){
             while (ob_get_level() > $level) {
