@@ -633,12 +633,13 @@ class Model{
 	 */
 	private function convertType($value, $type){
 		switch($type){
-			//case 'timestamp':
-			//    if (is_numeric($value)) {
-			//        $value = intval($value) + 28800;
-			//        $value = \date('Y-m-d H:i:s', intval($value));
-			//    }
-			//    break;
+			case 'timestamp':
+			    if (is_numeric($value)) {
+					$date = new \DateTime();
+					$date->setTimestamp($value);
+					$value = $date->format('Y-m-d\TH:i:s.uP');
+			    }
+			    break;
 		case 'bool':
 			return $value ? 1 : 0;
 			break;
