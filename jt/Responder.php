@@ -106,7 +106,7 @@ class Responder
      */
     public static function write()
     {
-        ob_clean();
+        //ob_clean();
         $content = static::render();
         if (RUN_MODE !== 'production') {
             //Debug::output($content);

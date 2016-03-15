@@ -585,8 +585,11 @@ class Requester
     private static function error($code, $msg, $name, array $option, $strict)
     {
         $field = isset($option['_desc']) ? $name . ':' . $option['_desc'] : $name;
-        $line  = isset($option['_line']) ? ' At line: ' . $option['_line'] : '';
-        $msg   = '[' . $field . '] ' . $msg . '.' . $line;
+        $msg   = '[' . $field . '] ' . $msg;
+        if(RUN_MODE !== 'production'){
+            $line  = isset($option['_line']) ? ' At line: ' . $option['_line'] : '';
+            $msg .= '.'.$line;
+        }
         if ($strict) {
             Error::msg('inputIll', $msg, ['field' => $name, 'code' => $code]);
         }elseif (RUN_MODE !== 'production') {

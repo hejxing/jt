@@ -243,7 +243,7 @@ abstract class Action extends Loader
                 'name'  => $p[0],
                 'ruler' => $p[2],
                 'desc'  => $p[3],
-                'line'  => $this->line
+                'line'  => $lineNo
             ];
             $parsedList[] = $parsed;
         }
