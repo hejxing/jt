@@ -134,20 +134,23 @@ class Connector
      */
     protected static function loadConfig($module, $conn)
     {
-        $connSeed = $module . '/' . $conn;
+        if($module){
+            $module .= '/';
+        }
+        $connSeed = $module . $conn;
         if (isset(static::$configPool[$connSeed])) {
             return static::$configPool[$connSeed];
         }
 
         //获取全局配置
         if (empty(static::$baseConfig)) {
-            static::$baseConfig = static::readConfig($module . '/config/database.php');
+            static::$baseConfig = static::readConfig($module . 'config/database.php');
         }
         //获取模块配置
         if (isset(static::$configModelPool[$module])) {
             $modelConfig = static::$configModelPool[$module];
         }else {
-            $modelConfig                      = static::readConfig($module . '/config/' . RUN_MODE . '/database.php');
+            $modelConfig                      = static::readConfig($module . 'config/' . RUN_MODE . '/database.php');
             $modelConfig                      = \array_replace_recursive(static::$baseConfig, $modelConfig);
             static::$configModelPool[$module] = $modelConfig;
         }

@@ -32,19 +32,6 @@ class Bootstrap{
 	public static function loadClass($className){
 		$root      = \strpos($className, 'jt') === 0 ? CORE_ROOT : PROJECT_ROOT;
 		$classFile = $root . DIRECTORY_SEPARATOR . \str_replace('\\', DIRECTORY_SEPARATOR, $className) . '.php';
-		//$isConfig  = false;
-		if(\strpos($className, '\Config')){
-			//$isConfig = true;
-			//if(\strpos($className, 'app') !== 0){//非配置文件
-			//	return false;
-			//}
-			$configDir = 'config' . DIRECTORY_SEPARATOR . RUN_MODE . DIRECTORY_SEPARATOR;
-			if(\strpos($className, '\database\Config')){
-				$classFile = \substr($classFile, 0, -19) . $configDir . 'Database.php';
-			}else{
-				$classFile = \substr($classFile, 0, -10) . $configDir . 'Config.php';
-			}
-		}
 
 		if(\file_exists($classFile)){
 			require $classFile;
@@ -124,7 +111,8 @@ class Bootstrap{
 		\set_error_handler('\jt\Error::errorHandler', E_ALL | E_STRICT);
 		\set_exception_handler('\jt\Error::exceptionHandler');
 
-		\class_alias(MODULE ? 'app\\' . MODULE . '\Config' : '\\config\\Base', '\Config');
+		$config = (MODULE?'app\\' . MODULE:'').'\\config\\'.RUN_MODE.'\Config';
+		\class_alias($config, '\Config');
 
 		\date_default_timezone_set(\Config::TIME_ZONE);
 	}
