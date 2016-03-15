@@ -81,7 +81,7 @@ abstract class Loader
                 }
             }
         }else{
-            $modules = ['app' => [PROJECT_ROOT, '']];
+            $modules = ['sys' => [PROJECT_ROOT, '']];
         }
 
         return $modules;
@@ -110,6 +110,7 @@ abstract class Loader
 
         $currentModule = MODULE ? 'app_' . MODULE : 'sys';
         $currentCache  = [];
+
         foreach ($modules as $moduleName => $config) {
             list($dir, self::$namespaceRoot) = $config;
 
@@ -121,9 +122,11 @@ abstract class Loader
             static::traverseFile('/');
             static::processReference();
             static::saveCache();
+
             if ($currentModule === $moduleName) {
                 $currentCache = static::$cacheStore;
             }
+
             unset($cacheFiles[$moduleName . '.php']);
         }
         static::$cacheStore = $currentCache;
