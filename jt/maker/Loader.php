@@ -67,7 +67,25 @@ abstract class Loader
         $this->dir  = static::$root . $path;
     }
 
+    private static function collectModules(){
+        if(is_dir(PROJECT_ROOT . '/app')){
+            $appRoot = PROJECT_ROOT . '/app';
+            $hd      = opendir($appRoot);
+            $modules = ['sys' => [PROJECT_ROOT . '/' . static::$sysDirName, 'sys']];
+            while (($file = readdir($hd))) {
+                if (in_array($file, self::$ignoreFiles)) {
+                    continue;
+                }
+                if (is_dir($appRoot . '/' . $file)) {
+                    $modules['app_' . $file] = [$appRoot . '/' . $file, 'app\\' . $file];
+                }
+            }
+        }else{
+            $modules = ['app' => [PROJECT_ROOT, '']];
+        }
 
+        return $modules;
+    }
     /**
      * 解析源代码
      *
@@ -76,17 +94,7 @@ abstract class Loader
     public static function parse()
     {
         //全局生成新的解析结果
-        $appRoot = PROJECT_ROOT . '/app';
-        $hd      = opendir($appRoot);
-        $modules = ['sys' => [PROJECT_ROOT . '/' . static::$sysDirName, 'sys']];
-        while (($file = readdir($hd))) {
-            if (in_array($file, self::$ignoreFiles)) {
-                continue;
-            }
-            if (is_dir($appRoot . '/' . $file)) {
-                $modules['app_' . $file] = [$appRoot . '/' . $file, 'app\\' . $file];
-            }
-        }
+        $modules = self::collectModules();
 
         $cacheRoot  = \Config::RUNTIME_PATH_ROOT . '/cache/parse';
         $cacheFiles = [];
