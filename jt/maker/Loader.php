@@ -296,7 +296,7 @@ abstract class Loader
                         break;
                     case T_CLASS:
                         $this->class = ($this->namespace ? '\\' . $this->namespace . '\\' : '') . $this->collect([T_STRING]);
-                        $extend      = $this->collect([361]);
+                        $extend      = $this->collect([T_EXTENDS]);
                         if (!$extend) {
                             Error::fatal('ActionClassError',
                                 'Action Class [' . $this->class . '] 不正确，该类必须为\jt\Action的子类，请检查');
