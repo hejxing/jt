@@ -7,6 +7,7 @@
 
 namespace jt;
 
+use jt\exception\TaskException;
 use jt\utils\Url;
 
 /**
@@ -311,6 +312,7 @@ abstract class Action
      * @param string $code 错误代码
      * @param array  $param 传递的参数
      * @param int    $status 错误状态
+     * @throws \jt\exception\TaskException
      */
     public function fail($msg, $code = 'fail', $param = [], $status = 200)
     {
@@ -318,6 +320,7 @@ abstract class Action
         \header('Status: ' . $status, true);
         $this->header('code', $code);
         $this->header('msg', $msg);
+        throw new TaskException("{$code}:{$msg}");
         //Error::fatal('fail', $msg, $param);
     }
 

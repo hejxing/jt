@@ -8,6 +8,8 @@
 
 namespace jt;
 
+use jt\exception\TaskException;
+
 class Error extends Action
 {
     /**
@@ -43,13 +45,16 @@ class Error extends Action
      */
     static public function exceptionHandler($e)
     {
-        //if($e instanceof \ErrorException || $e instanceof \PDOException){
         $msg  = $e->getMessage();
         $code = $e->getCode();
         if (strpos($msg, ':') !== false) {
             list($code, $msg) = explode(':', $msg, 2);
         }
-        self::fatal($code, $msg);
+        if($e instanceof TaskException){
+            self::error($code, $msg, false, []);
+        }else{
+            self::fatal($code, $msg);
+        }
         //}else{
         //	self::notice($e->getCode(), $e->getMessage());
         //}
@@ -69,6 +74,7 @@ class Error extends Action
             'msg'  => $msg
         ];
         //$handler = new ErrorHandler();
+        \header('Status: 500', true);
         self::error($code, $msg, true, $param);
     }
 
