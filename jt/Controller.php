@@ -302,12 +302,15 @@ class Controller
      * 设置输出的文档类型
      *
      * @param string $mime 文档类型
+     * @return bool
      */
     public function setMime($mime)
     {
         if (in_array($mime, \Config::ACCEPT_MIME) || $mime === 'none') {
             $this->mime = $mime;
+            return true;
         }
+        return false;
     }
 
 
@@ -318,12 +321,7 @@ class Controller
      */
     public function getMime()
     {
-        if (!$this->mime) {
-            $mimes      = \Config::ACCEPT_MIME;
-            $this->mime = $mimes[0];
-        }
-
-        return $this->mime;
+        return $this->mime?:\Config::ACCEPT_MIME[0];
     }
 
     /**
@@ -337,6 +335,7 @@ class Controller
     public function loadAction($class, $method, $strict = false)
     {
         if (class_exists($class)) {
+            /** @type Action $action */
             $action = new $class();
         }else {
             if ($strict) {
@@ -426,16 +425,10 @@ class Controller
         }
 
         $method = \strtolower($_SERVER['REQUEST_METHOD']);
-        if ($this->ruler[5]) { //应用Mime
-            if (!$this->mime || !in_array($this->mime, $this->ruler[5])) {
-                $this->mime = $this->ruler[5][0];
-            }
-        }
-
         //检查是否是一个有效的$router
         if (!isset($router['__method']) && !isset($anyMatch['__method'])) {
             //判断是否可以补'/'
-            //if($this->mime === 'html' && $method === 'get' && $p !== 'index' && $index + 1 === \count($this->paths)){
+            //if($this->getMime() === 'html' && $method === 'get' && $p !== 'index' && $index + 1 === \count($this->paths)){
             //    $router = $router['index']??$router['__*']??[];
             //    if(isset($router['__method']) && (isset($router['__method'][$method]) || isset($router['__method']['any']))){
             //        Responder::redirect($this->uri.'/');
@@ -463,7 +456,14 @@ class Controller
                 }
             }
         }
-
+        //应用Mime
+        if ($this->ruler[5] && (!$this->mime || !in_array($this->mime, $this->ruler[5]))) {
+            foreach($this->ruler[5] as $mime){
+                if($this->setMime($mime) === true){
+                    break;
+                }
+            }
+        }
         $this->requestMethod = $method;
         $this->loadAction($this->ruler[0], $this->ruler[1], true);
         $this->combParam($param, $this->ruler[2]);

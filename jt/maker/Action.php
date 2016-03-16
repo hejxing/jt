@@ -272,8 +272,8 @@ abstract class Action extends Loader
     /**
      * 解析在参数中捕获到的参数验证规则
      *
-     * @param $ruler
-     * @param $type 变量类型
+     * @param string $ruler
+     * @param string $type 变量类型
      *
      * @return mixed
      */

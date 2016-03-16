@@ -8,7 +8,6 @@
 namespace jt;
 
 use jt\exception\TaskException;
-use jt\utils\Url;
 
 /**
  * Action基类
@@ -530,8 +529,7 @@ abstract class Action
      */
     public function redirect($url, $status = 302)
     {
-        Url::redirect($url, $status);
-        self::quiet();
+        Responder::redirect($url, $status);
     }
 
     /**
@@ -563,9 +561,10 @@ abstract class Action
 
     /**
      * 初始化Action
+     * @return bool
      */
     public function init()
     {
-
+        return true;
     }
 }
