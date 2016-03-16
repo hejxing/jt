@@ -407,6 +407,8 @@ class Controller
         $anyMatch          = [];
         $startAnyMathIndex = 0;
         //匹配路由
+        $index = 0;
+        $p = '';
         foreach ($this->paths as $index => $p) {
             if (isset($router['__*'])) {
                 $anyMatch          = $router['__*'];
@@ -422,12 +424,21 @@ class Controller
                 break;
             }
         }
+
+        $method = \strtolower($_SERVER['REQUEST_METHOD']);
+
         //检查是否是一个有效的$router
         if (!isset($router['__method']) && !isset($anyMatch['__method'])) {
+            //判断是否可以补'/'
+            if($method === 'get' && $p !== 'index' && $index + 1 === \count($this->paths)){
+                $router = $router['index']??$router['__*']??[];
+                if(isset($router['__method']) && (isset($router['__method'][$method]) || isset($router['__method']['any']))){
+                    Responder::redirect($this->uri.'/');
+                }
+            }
             Error::fatal('404', 'Router not found [' . implode('/', $this->paths) . ']');
         }
 
-        $method = \strtolower($_SERVER['REQUEST_METHOD']);
         if (isset($router['__method'][$method])) {
             $this->ruler = $router['__method'][$method];
         }else {

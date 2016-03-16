@@ -8,6 +8,8 @@
 
 namespace jt;
 
+use jt\exception\TaskException;
+
 /**
  * 给客户端输出请求结果
  *
@@ -120,5 +122,28 @@ class Responder
         }
         //拦截
         echo $content;
+    }
+
+    /**
+     * 跳转到指定地址
+     *
+     * @param     $url
+     * @param int $status
+     */
+    public static function redirect($url, $status = 302)
+    {
+        header('Location:' . $url, true, $status);
+        self::end($status);
+    }
+
+    /**
+     * 结束本次请求
+     *
+     * @param int $status
+     * @throws \jt\exception\TaskException
+     */
+    public static function end($status = 200){
+        \header('Status: ' . $status, true);
+        throw new TaskException();
     }
 }

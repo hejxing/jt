@@ -155,17 +155,6 @@ class Url
     }
 
     /**
-     * 跳转到指定地址
-     *
-     * @param     $url
-     * @param int $responseCode
-     */
-    public static function redirect($url, $responseCode = 302)
-    {
-        header('Location:' . $url, true, $responseCode);
-    }
-
-    /**
      * 在地址后附加参数
      *
      * @param        $data
