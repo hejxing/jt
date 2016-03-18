@@ -95,7 +95,7 @@ class Requester
             if (isset($option['default'])) {
                 $value = $option['default'];
             }elseif (isset($option['require'])) {
-                return self::error('value_empty', '该项值必填', $name, $option, $strict);
+                self::error('value_empty', '该项值必填', $name, $option, $strict);
             }else {
                 return null;
             }
@@ -449,6 +449,7 @@ class Requester
     {
         $data = [];
         $this->collectAsMap();
+        
         $originStrict = $this->strict;
         $this->strict = false;
         foreach ($this->originData as $input => $value) {
@@ -456,6 +457,12 @@ class Requester
             $value = $this->__get($name);
             if ($value !== null) {
                 $data[$name] = $value;
+            }
+        }
+        //检查是否含有必填项
+        foreach($this->validate as $name => $validate){
+            if(isset($validate['require']) && !isset($data[$name])){
+                self::error('value_empty', '该项值必填', $name, [], true);
             }
         }
         $this->strict = $originStrict;

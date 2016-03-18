@@ -17,6 +17,13 @@ use jt\exception\TaskException;
  */
 class Responder{
 	/**
+	 * 解析html用到的模板引擎
+	 *
+	 * @type null
+	 */
+	protected static $tplEngine = null;
+
+	/**
 	 * 生成内容
 	 *
 	 * @return string
@@ -52,12 +59,19 @@ class Responder{
 	 */
 	protected static function html(){
 		\header('Content-type: text/html; charset=' . \Config::CHARSET);
-		$tpl = new Template();
-		foreach(\Config::TPL_PLUGINS as $name => $class){
-			$tpl->assignGlobal($name, new $class());
-		}
+		$tpl = self::$tplEngine ?: new Template([
+			'pathRoot'        => \Config::TPL_PATH_ROOT,
+			'plugins'         => \Config::TPL_PLUGINS,
+			'caching'         => \Config::TPL_CACHING,
+			'debugging'       => \Config::TPL_DEBUGGING,
+			'force_compile'   => \Config::TPL_FORCE_COMPILE,
+			'cache_lifetime'  => \Config::TPL_CACHE_LIFETIME,
+			'left_delimiter'  => \Config::TPL_LEFT_DELIMITER,
+			'right_delimiter' => \Config::TPL_RIGHT_DELIMITER,
+			'baseData'        => \Config::$webDefaultData
+		]);
 
-		return $tpl->render(\Config::TPL_PATH_ROOT . Controller::current()->getTemplate(), Action::getDataStore());
+		return $tpl->render(Controller::current()->getTemplate(), Action::getDataStore());
 	}
 
 
@@ -101,7 +115,6 @@ class Responder{
 	 * 输出结果
 	 */
 	public static function write(){
-		//ob_clean();
 		$content = static::render();
 		if(RUN_MODE !== 'production'){
 			//Debug::output($content);
@@ -135,7 +148,19 @@ class Responder{
 	 * @throws \jt\exception\TaskException
 	 */
 	public static function end($status = 200){
-		\header('Status: ' . $status, true);
-		throw new TaskException();
+		if($status){
+			\header('Status: ' . $status, true);
+		}
+		
+		throw new TaskException('__USER_END_THE_TASK__');
+	}
+
+	/**
+	 * 设置解析HTML用到的模板引擎
+	 *
+	 * @param $engine
+	 */
+	public static function setTplEngine($engine){
+		static::$tplEngine = $engine;
 	}
 }

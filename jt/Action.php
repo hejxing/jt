@@ -160,6 +160,7 @@ abstract class Action
                 false) ? Model::getQueryTimes() : 0;// + \dal\Dal::selectQueryTimes();
             $includeFiles                  = get_included_files();
             $headerStore['loadFilesCount'] = count($includeFiles);
+            $headerStore['spendTime'] = intval((microtime(true) - Bootstrap::$startTime) * 1000);
             //$headerStore['loadFiles'] = $includeFiles;
         }
 
@@ -541,10 +542,11 @@ abstract class Action
      */
     public function status($status, $param = [], $error = true)
     {
-        \header('Status: ' . $status);
         if ($status >= 400 && $error) {
             self::$taskSuccess = false;
             Error::fatal($status, '', $param);
+        }else{
+            \header('Status: ' . $status);
         }
     }
 
