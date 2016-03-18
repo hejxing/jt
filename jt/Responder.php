@@ -70,8 +70,19 @@ class Responder{
 			'right_delimiter' => \Config::TPL_RIGHT_DELIMITER,
 			'baseData'        => \Config::$webDefaultData
 		]);
-
-		return $tpl->render(Controller::current()->getTemplate(), Action::getDataStore());
+		
+		$content = $tpl->render(Controller::current()->getTemplate(), Action::getDataStore());
+		if(RUN_MODE !== 'production'){
+			//Debug::output($content);
+			$hData = Error::prepareHeader();
+			foreach(['fatal', 'notice', 'info'] as $type){
+				if(isset($hData[$type])){
+					echo '<b>' . $type . '</b><br>';
+					var_export($hData[$type]);
+				}
+			}
+		}
+		return $content;
 	}
 
 
@@ -116,16 +127,6 @@ class Responder{
 	 */
 	public static function write(){
 		$content = static::render();
-		if(RUN_MODE !== 'production'){
-			//Debug::output($content);
-			$hData = Error::prepareHeader();
-			foreach(['fatal', 'notice', 'info'] as $type){
-				if(isset($hData[$type])){
-					echo '<b>' . $type . '</b><br>';
-					var_export($hData[$type]);
-				}
-			}
-		}
 		//拦截
 		echo $content;
 	}
