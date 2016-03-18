@@ -88,10 +88,12 @@ class Bootstrap{
 		self::$now       = intval(self::$startTime);
 
 		//入口模块
-		$module      = '';
+		//$option['nsRoot'] = 'app';
+		$module      = 'app';
 		$projectRoot = $option['docRoot'];
-		if(\strpos($option['docRoot'], DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR) > 0){
-			list($projectRoot, $module) = \explode(DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR, $option['docRoot']);
+		if($option['nsRoot']){
+			$module = \str_replace('\\', '_', $option['nsRoot']);
+			$projectRoot = \substr($projectRoot, 0, -1 - \strlen($option['nsRoot']));
 		}
 
 		//定义基本常量
@@ -101,7 +103,7 @@ class Bootstrap{
 		define('PROJECT_ROOT', $projectRoot);
 		define('DOCUMENT_ROOT', $option['docRoot']);
 		define('MODULE', $module);
-		define('MODULE_NAMESPACE_ROOT', MODULE ? 'app\\' . $module : '');
+		define('MODULE_NAMESPACE_ROOT', $option['nsRoot']);
 
 		//定义自动加载文件方法
 		\spl_autoload_register('static::loadClass');
@@ -110,9 +112,8 @@ class Bootstrap{
 		\ini_set("display_errors", "1");
 		\set_error_handler('\jt\Error::errorHandler');
 		\set_exception_handler('\jt\Error::exceptionHandler');
-
-		$config = (MODULE?'app\\' . MODULE:'').'\\config\\'.RUN_MODE.'\Config';
-		\class_alias($config, '\Config');
+		
+		\class_alias(MODULE_NAMESPACE_ROOT.'\\config\\'.RUN_MODE.'\Config', '\Config');
 
 		\date_default_timezone_set(\Config::TIME_ZONE);
 	}
@@ -122,10 +123,11 @@ class Bootstrap{
 	 *
 	 * @param string $runMode
 	 */
-	public static function boot($runMode = 'production'){
+	public static function boot($runMode = 'production', $nsRoot = ''){
 		static::init([
 			'runMode' => $runMode,
-			'docRoot' => \getcwd()
+			'docRoot' => \getcwd(),
+			'nsRoot' => $nsRoot
 		]);
 		//定义扫尾方法
 		\register_shutdown_function('\jt\Bootstrap::exeComplete');
@@ -138,10 +140,11 @@ class Bootstrap{
 	 *
 	 * @param string $root 项目根目录
 	 */
-	public static function test($root){
+	public static function test($root, $nsRoot = ''){
 		static::init([
 			'runMode' => 'develop',
-			'docRoot' => $root
+			'docRoot' => $root,
+			'nsRoot' => $nsRoot
 		]);
 	}
 }

@@ -38,6 +38,9 @@ class Docs extends Action{
 		}
 	}
 
+	/**
+	 * 读取所有分类信息
+	 */
 	private function prepareClassList(){
 		
 	}
