@@ -17,6 +17,9 @@ class Docs extends Action{
 			'left_delimiter' => '{{',
 			'right_delimiter' => '}}'
 		]));
+
+		$this->prepareClassList();
+
 		switch(true){
 		case $url === 'index':
 			$this->projectIndex();
@@ -33,6 +36,10 @@ class Docs extends Action{
 		default:
 			$this->status(404);
 		}
+	}
+
+	private function prepareClassList(){
+		
 	}
 
 	/**

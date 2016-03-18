@@ -8,7 +8,6 @@
 
 namespace jt;
 
-
 class Validate
 {
     const REGEX_EMAIL           = '/^[\w+\.]+@([\w-]+\.)+[\w]+$/';
@@ -77,6 +76,14 @@ class Validate
         return true;
     }
 
+    public static function number($value){
+        return \preg_match('/^\d+$/') > 0;
+    }
+
+    public static function zh_cn($value){
+        return \preg_match("/^[\x{4e00}-\x{9fa5}A-Za-z0-9_]+$/u",$value) > 0;
+    }
+
     /**
      * 验证是否属于指定类型
      *
@@ -86,6 +93,12 @@ class Validate
      */
     public static function check($value, $type)
     {
-        return self::$type($value);
+        if(method_exists(self, $type)){
+            return self::$type($value);
+        }elseif(\preg_match('/\/.*\/\w*/', $type)){//正则表达式
+            return \preg_math($type, $value);
+        }else{//错误的类型
+            return null;
+        }
     }
 }

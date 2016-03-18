@@ -29,7 +29,7 @@ class Requester
     protected $method = '';
 
     const CONVERT_TYPE      = ['int', 'float', 'double', 'bool', 'array'];
-    const VALIDATE_TYPE     = ['email', 'mobile', 'phone', 'idcard'];
+    const VALIDATE_TYPE     = ['email', 'mobile', 'phone', 'idcard', 'number', 'zn_ch'];
     const VALUE_RANGE_TYPE  = ['int', 'float', 'numeric', 'double'];
     const LENGTH_RANGE_TYPE = ['string'];
     const FALSE_VALUE       = ['n', 'f', 'no', 'false'];
@@ -107,9 +107,13 @@ class Requester
         }
         if (in_array($option['type'], self::CONVERT_TYPE)) { //转换类型
             $value = self::convert($value, $option['type']);
-        }elseif (isset($option['validate']) && in_array($option['validate'], self::VALIDATE_TYPE)) {
-            if (!Validate::check($value, $option['validate'])) {
-                return self::error('value_validate_invalid', '值需要一个有效的 [' . $option['validate'] . ']', $name, $option,
+        }elseif (isset($option['validate'])) {
+            $result = Validate::check($value, $option['validate']);
+            if ($result === false) {
+                self::error('value_validate_invalid', '值需要一个有效的 [' . $option['validate'] . ']', $name, $option,
+                    $strict);
+            }elseif($result === null){
+                self::error('value_validate_type_invalid', '验证规则无效 [' . $option['validate'] . '],需要有效的规则或正则表达式', $name, $option,
                     $strict);
             }
         }else {
