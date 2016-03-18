@@ -442,16 +442,17 @@ class Requester
 
     /**
      * 获取所有的值(忽略null,当值为null或不符合验证规则时会自动忽略)
+     * @param bool $strict 是否严格模式
      *
      * @return array
      */
-    public function fetchAll()
+    public function fetchAll($strict = true)
     {
         $data = [];
         $this->collectAsMap();
         
         $originStrict = $this->strict;
-        $this->strict = false;
+        $this->strict = $strict;
         foreach ($this->originData as $input => $value) {
             $name  = isset($this->useNameMap[$input]) ? $this->useNameMap[$input] : $input;
             $value = $this->__get($name);
@@ -462,7 +463,7 @@ class Requester
         //检查是否含有必填项
         foreach($this->validate as $name => $validate){
             if(isset($validate['require']) && !isset($data[$name])){
-                self::error('value_empty', '该项值必填', $name, [], true);
+                self::error('value_empty', '该项值必填', $name, $validate, $strict);
             }
         }
         $this->strict = $originStrict;
@@ -600,7 +601,7 @@ class Requester
         if ($strict) {
             Error::msg('inputIll', $msg, ['field' => $name, 'code' => $code]);
         }elseif (RUN_MODE !== 'production') {
-            Error::notice('inputIll', $msg);
+            Error::notice($code, $msg);
         }
 
         return null;
