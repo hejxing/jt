@@ -272,7 +272,9 @@ class Controller{
 		}
 		$pos = strrpos($last, '.');
 		if($pos !== false && ($suffix = substr($last, $pos + 1))){
-			$this->setMime($suffix);
+			if($this->setMime($suffix) === false){
+				Error::fatal('404', 'Mime: [' . $suffix . '] not exists');
+			}
 			$last = substr($last, 0, $pos);
 		}
 		$this->paths[] = $last;
