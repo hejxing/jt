@@ -42,7 +42,7 @@
             </li>{{/foreach}}
         </ul>
     {{/function}}
-    <div class="content-box">
+    <div class="content-box item-list-box">
         <ul class="wrap">
             <li>
                 <div class="title">
@@ -74,7 +74,7 @@
     </div>
     <script>
         $('.content-box').find('.list-item').each(function(i){
-            if(i % 2){
+            if(i % 2 === 0){
                 $(this).addClass('gray-background');
             }
         });
