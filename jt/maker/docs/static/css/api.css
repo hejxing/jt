@@ -10,6 +10,17 @@ body{
     font-family:Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
+blockquote{
+    font-size:14px;
+    color:#e5cccc;
+    padding:0 8px;
+    margin:-8px 0 20px -12px;
+}
+.h4, h4 {
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 20px;
+}
 .panel > .table{
     border-top:5px solid #143553;
 }
