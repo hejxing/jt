@@ -23,13 +23,13 @@
                 <small>Beta</small>
             </a>
         </div>
-        <form class="form-inline pull-right" id="form" action="" method="GET">
+        <!-- <form class="form-inline pull-right" id="form" action="" method="GET">
             <div class="form-group">
                 <label for="search"></label>
                 <input type="text" class="form-control" placeholder="api名称" ng-model="search">
             </div>
             <a class="btn btn-default" ng-click="find()">搜索api</a>
-        </form>
+        </form> -->
     </div>
     <div class="row">
         <!-- 导航 -->
