@@ -158,6 +158,7 @@ a.hightLight{
 
 .content-box{
     padding:10px 0;
+    margin-bottom:10px;
 }
 .content-box.highlight{
     background:#438ac7;
@@ -165,6 +166,9 @@ a.hightLight{
 }
 .content-box p{
     margin:0;
+}
+.content-box .wrap{
+    margin:5px 0;
 }
 .content-box p a{
     color:#6ad;
@@ -192,11 +196,18 @@ a.hightLight{
     border-radius:4px;
 }
 .content-box .sub-box{
-    margin:2px 1em 10px 1em;
-    border:1px solid #438ac7;
+    margin:0;
     border-top:none;
-    border-radius:0 0 5px 5px;
     overflow:hidden;
+}
+.content-box ul{
+    padding:0;
+    margin:8px 0 -8px 0;
+}
+.content-box li{
+    list-style:none;
+    padding:0;
+    margin:0;
 }
 .content-box .sub-box .sub-title{
     padding:0.5em 1em;
@@ -207,10 +218,15 @@ a.hightLight{
     background:#539ad7;
 }
 .content-box .list-item{
-    padding:8px 2em;
+    padding:8px 0;
     clear:both;
     line-height:1.5em;
     border-top:1px solid #aaa;
+    position:relative;
+    background:#fff;
+}
+.content-box .list-item.gray-background{
+    background:#ddd;
 }
 .content-box .list-item span{
     display:table-cell;
@@ -220,9 +236,6 @@ a.hightLight{
     font-weight:bold;
     font-size:1.2em;
 }
-.content-box .list-item:nth-child(odd){
-    background:#ccc;
-}
 .panel-heading{
     font-weight:bold;
 }
@@ -230,3 +243,24 @@ a.hightLight{
     color:#666;
     background:#fff;
 }
+.expand{
+    width:22px;
+    height:16px;
+    border:1px solid #ddd;
+    border-radius:4px;
+    display:inline-block;
+    font-size:12px;
+    font-family:serif;
+    color:#ddd;
+    cursor:default;
+    padding:6px;
+    line-height:4px;
+    margin:0 0 0 12px;
+}
+.content-box .list-item .expand{
+    position:absolute;
+    top:11px;
+    border:1px solid #999;
+    color:#999;
+}
+

@@ -104,7 +104,6 @@ class Docs extends Action{
 						'mime'        => implode(', ', $mime),
 					]);
 					$this->tidyParam($method['param'], $method['uri']);
-					$this->tidyReturn($method['return']);
 					$this->setTpl('api');
 
 					return;
@@ -126,23 +125,6 @@ class Docs extends Action{
 			}
 		}
 	}
-
-	private function expandNodes($params, &$list = [], $level = 0){
-		foreach($params as $param){
-			$param['level'] = $level;
-			$list[]        = $param;
-			if($param['nodes']){
-				$this->expandNodes($param['nodes'], $list, $level + 1);
-			}
-		}
-	}
-
-	private function tidyReturn(array $return){
-		$lists = [];
-		$this->expandNodes($return['nodes'], $lists);
-		$this->out('return', $lists);
-	}
-
 	private function tidyParam(array $method, $uri){
 		$pathParam = [];
 		$uriParts  = explode('/', $uri);
@@ -169,16 +151,8 @@ class Docs extends Action{
 		if(isset($method['cookie']) && $method['cookie']['nodes']){
 			$params['Cookie'] = $method['cookie'];
 		}
-		//展开参数中的子级
-		$lists = [];
-		foreach($params as $type => $param){
-			$list = [];
-			$this->expandNodes($param['nodes'], $list);
-			$lists[$type]['nodes'] = $list;
-		}
 
-
-		$this->out('params', $lists);
+		$this->out('params', $params);
 	}
 
 	private function readREADME($file){

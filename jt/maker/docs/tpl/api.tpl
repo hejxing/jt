@@ -30,21 +30,60 @@
             <p><span class="content-label">修改时间:</span>{{$lastModifyTime}}</p>
         </div>
     </div>
+    {{function drawLine level=0}}
+        <ul>
+            {{foreach $param.nodes as $node}}<li class="list-item">
+                <span class="name" style="padding-left:{{$level * 32 + 58}}px;">{{$node.name}}:</span>
+                <span class="desc">[{{$node.ruler.raw}}] {{$node.desc}}</span>
+                {{if $node.nodes}}
+                    <span class="expand" title="收起" style="margin-left:{{$node.level * 32 + 30}}px;">-</span>
+                    {{drawLine param=$node level=$level+1}}
+                {{/if}}
+            </li>{{/foreach}}
+        </ul>
+    {{/function}}
     <div class="content-box">
-        <div class="title">请求参数:</div>
-        {{foreach $params as $name => $param}}
-            <dl class="sub-box">
-                <dt class="sub-title">{{$name}}:</dt>
-                {{foreach $param.nodes as $node}}
-                    <dd class="list-item"><span class="name" data-level="{{$node.level}}" style="padding-left:{{$node.level * 32}}px;">{{$node.name}}:</span><span class="desc">[{{$node.ruler.raw}}] {{$node.desc}}</span></dd>
-                {{/foreach}}
-            </dl>
-        {{/foreach}}
+        <ul class="wrap">
+            <li>
+                <div class="title">
+                    <span class="expand" title="收起">-</span>
+                    <span class="param-type-label">请求参数:</span>
+                </div>
+                {{foreach $params as $name => $param}}
+                <ul class="sub-box">
+                    <li>
+                        <div class="sub-title">
+                            <span class="expand" title="收起">-</span>
+                            <span class="param-type-label">{{$name}}:</span>
+                        </div>
+                        {{drawLine param=$param}}
+                    </li>
+                </ul>
+            {{/foreach}}
+            </li>
+        </ul>
+        <ul class="wrap">
+            <li>
+                <div class="title">
+                    <span class="expand" title="收起">-</span>
+                    <span class="param-type-label">响应内容:</span>
+                </div>
+                {{drawLine param=$api.return}}
+            </li>
+        </ul>
     </div>
-    <dl class="content-box">
-        <dt class="title">响应内容:</dt>
-        {{foreach $return as $node}}
-            <dd class="list-item"><span class="name" data-level="{{$node.level}}" style="padding-left:{{$node.level * 32}}px;">{{$node.name}}:</span><span class="desc">[{{$node.ruler.raw}}] {{$node.desc}}</span></dd>
-        {{/foreach}}
-    </dl>
+    <script>
+        $('.content-box').find('.list-item').each(function(i){
+            if(i % 2){
+                $(this).addClass('gray-background');
+            }
+        });
+        $('.expand').click(function(){
+            var trigger = $(this);
+            trigger.toggleClass('disabled');
+            trigger.text(trigger.is('.disabled')?'+':'-');
+            trigger.attr('title', trigger.is('.disabled')?'展开':'收起');
+            trigger.closest('li').children('ul')[trigger.is('.disabled')?'hide':'show'](100);
+        });
+    </script>
 {{/block}}
