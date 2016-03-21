@@ -59,27 +59,28 @@ class Responder{
 	 */
 	protected static function html(){
 		\header('Content-type: text/html; charset=' . \Config::CHARSET);
-		$tpl = self::$tplEngine ?: new Template([
-			'pathRoot'        => \Config::TPL_PATH_ROOT,
-			'plugins'         => \Config::TPL_PLUGINS,
-			'caching'         => \Config::TPL_CACHING,
-			'debugging'       => \Config::TPL_DEBUGGING,
-			'force_compile'   => \Config::TPL_FORCE_COMPILE,
-			'cache_lifetime'  => \Config::TPL_CACHE_LIFETIME,
-			'left_delimiter'  => \Config::TPL_LEFT_DELIMITER,
-			'right_delimiter' => \Config::TPL_RIGHT_DELIMITER,
-			'baseData'        => \Config::$webDefaultData
-		]);
-		
-		$content = $tpl->render(Controller::current()->getTemplate(), Action::getDataStore());
+		$data = Action::getDataStore();
+		if(self::$tplEngine){
+			$tpl = self::$tplEngine;
+		}elseif(class_exists('TPLConfig', false)){
+			$tpl = new Template(\TPLConfig::getValues());
+		}else{
+			return var_export($data, true);
+		}
+
+		$content = $tpl->render(Controller::current()->getTemplate(), $data);
 		if(RUN_MODE !== 'production'){
 			//Debug::output($content);
 			$hData = Error::prepareHeader();
+			$errorMsg = '';
 			foreach(['fatal', 'notice', 'info'] as $type){
 				if(isset($hData[$type])){
-					echo '<b>' . $type . '</b><br>';
-					var_export($hData[$type]);
+					$errorMsg .= '<div class="error-type">' . $type . '</div>';
+					$errorMsg .= '<div class="error-desc">'.var_export($hData[$type], true). '</div>';
 				}
+			}
+			if($errorMsg){
+				str_replace('</body>', '<div class="error-msg-box">'.$errorMsg.'</div></body>', $content);
 			}
 		}
 		return $content;

@@ -14,7 +14,7 @@ class Template extends \Smarty{
 	 *
 	 * @type string
 	 */
-	protected $pathRoot = '';
+	protected $pathRoot = '/template';
 	/**
 	 * 模板后缀
 	 *
@@ -80,7 +80,6 @@ class Template extends \Smarty{
 	 */
 	public function render($template, array $data, $compile_id = null){
 		$templateFile = $this->seekTemplateFile($template);
-
 		return $this->fetch($templateFile, array_merge($this->baseData, $data), $compile_id);
 	}
 

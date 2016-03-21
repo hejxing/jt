@@ -73,7 +73,7 @@ abstract class Loader{
 				$modules = ['sys' => [PROJECT_ROOT . '/sys', 'sys']];
 			}
 			while(($file = readdir($hd))){
-				if(in_array($file, self::$ignoreFiles)){
+				if(in_array(strtolower($file), self::$ignoreFiles)){
 					continue;
 				}
 				if(is_dir($appRoot . '/' . $file)){
@@ -101,7 +101,7 @@ abstract class Loader{
 		if(is_dir($cacheRoot)){
 			$hd = opendir($cacheRoot);
 			while(($file = readdir($hd))){
-				if(in_array($file, self::$ignoreFiles)){
+				if(in_array($file, ['.', '..'])){
 					continue;
 				}
 				$cacheFiles[$file] = 1;
@@ -196,7 +196,7 @@ abstract class Loader{
 		}
 		$hd = opendir(static::$root . $path);
 		while(($file = readdir($hd))){
-			if(in_array($file, self::$ignoreFiles)){
+			if(in_array(strtolower($file), self::$ignoreFiles)){
 				continue;
 			}
 			if(is_dir(static::$root . $path . $file)){
@@ -457,5 +457,16 @@ abstract class Loader{
 		}
 
 		return '';
+	}
+
+	/**
+	 * 初始工作
+	 */
+	public static function __init($cn){
+		if($cn === __CLASS__){
+			foreach(self::$ignoreFiles as &$v){
+				$v = strtolower($v);
+			}
+		}
 	}
 }

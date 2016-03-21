@@ -211,7 +211,7 @@ class Requester
      */
     public static function parseValidate($strRuler, $name)
     {
-        $lined = ['type' => 'string'];
+        $lined = ['raw' => $strRuler, 'type' => 'undefined'];
         $parts = preg_split('/ +/', $strRuler);
         foreach ($parts as $a) {
             if ($a) {
@@ -225,6 +225,11 @@ class Requester
             if (!isset($lined['max'])) {
                 $lined['max'] = 0;
             }
+        }
+
+        if($lined['type'] === 'undefined'){
+            $lined['type'] = 'string';
+            $lined['raw'] = trim('string '.$lined['raw']);
         }
 
         return $lined;

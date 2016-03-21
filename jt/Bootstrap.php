@@ -92,7 +92,7 @@ class Bootstrap{
 		$module      = 'app';
 		$projectRoot = $option['docRoot'];
 		if($option['nsRoot']){
-			$module = \str_replace('\\', '_', $option['nsRoot']);
+			$module      = \str_replace('\\', '_', $option['nsRoot']);
 			$projectRoot = \substr($projectRoot, 0, -1 - \strlen($option['nsRoot']));
 		}
 
@@ -104,16 +104,14 @@ class Bootstrap{
 		define('DOCUMENT_ROOT', $option['docRoot']);
 		define('MODULE', $module);
 		define('MODULE_NAMESPACE_ROOT', $option['nsRoot']);
-
 		//定义自动加载文件方法
 		\spl_autoload_register('static::loadClass');
+		require PROJECT_ROOT . DIRECTORY_SEPARATOR . \str_replace('\\', DIRECTORY_SEPARATOR, MODULE_NAMESPACE_ROOT) . 'config/' . RUN_MODE . '/Config.php';
 
 		//注册错误、异常入口
 		\ini_set("display_errors", "1");
 		\set_error_handler('\jt\Error::errorHandler');
 		\set_exception_handler('\jt\Error::exceptionHandler');
-		
-		\class_alias(MODULE_NAMESPACE_ROOT.'\\config\\'.RUN_MODE.'\Config', '\Config');
 
 		\date_default_timezone_set(\Config::TIME_ZONE);
 	}
@@ -127,7 +125,7 @@ class Bootstrap{
 		static::init([
 			'runMode' => $runMode,
 			'docRoot' => \getcwd(),
-			'nsRoot' => $nsRoot
+			'nsRoot'  => $nsRoot
 		]);
 		//定义扫尾方法
 		\register_shutdown_function('\jt\Bootstrap::exeComplete');
@@ -144,7 +142,7 @@ class Bootstrap{
 		static::init([
 			'runMode' => 'develop',
 			'docRoot' => $root,
-			'nsRoot' => $nsRoot
+			'nsRoot'  => $nsRoot
 		]);
 	}
 }

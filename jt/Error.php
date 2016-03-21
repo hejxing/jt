@@ -125,6 +125,7 @@ class Error extends Action{
 		try{
 			Responder::write();
 		}catch(\Exception $e){
+			echo $e->getMessage(),"<br>\n";
 			echo $code . '::' . $msg;
 		}
 

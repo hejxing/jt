@@ -69,7 +69,7 @@ class Connector
 
     public function __construct($module, $conn)
     {
-        $this->connSeed = $module . '/' . $conn;
+        $this->connSeed = $module . $conn;
         $this->config   = self::loadConfig($module, $conn);
         if (!isset(self::$quotesList[$this->config['type']])) {
             throw new \ErrorException('DatabaseTypeIll:数据库类型 [' . $this->config['type'] . '] 错误，不存在此种数据库或未实现对此种数据库的支持');
@@ -134,9 +134,6 @@ class Connector
      */
     protected static function loadConfig($module, $conn)
     {
-        if($module){
-            $module .= '/';
-        }
         $connSeed = $module . $conn;
         if (isset(static::$configPool[$connSeed])) {
             return static::$configPool[$connSeed];
