@@ -66,6 +66,9 @@
             return false;
         }
     });
+    $('a[href^="http"]').each(function() {
+        $(this).attr('target', '_blank');
+    });
 </script>
 </body>
 </html>
