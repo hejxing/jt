@@ -112,8 +112,7 @@ class SoapDiscovery
         $portTypeWSDL .= "</portType>\n";
         $bindingWSDL .= "</binding>\n";
 
-        return sprintf('%s%s%s%s%s%s', $headerWSDL, $portTypeWSDL, $bindingWSDL, $serviceWSDL, $messageWSDL,
-            '</definitions>');
+        return sprintf('%s%s%s%s%s%s', $headerWSDL, $portTypeWSDL, $bindingWSDL, $serviceWSDL, $messageWSDL, '</definitions>');
     }
 
     /**

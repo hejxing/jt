@@ -80,8 +80,7 @@ class Smarty_Internal_Compile_Include_Php extends Smarty_Internal_CompileBase
             }
         }
         if ($_filepath == false) {
-            $compiler->trigger_template_error("{include_php} file '{$_file}' is not readable",
-                $compiler->lex->taglineno);
+            $compiler->trigger_template_error("{include_php} file '{$_file}' is not readable", $compiler->lex->taglineno);
         }
 
         if (isset($compiler->smarty->security_policy)) {

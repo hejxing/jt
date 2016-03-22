@@ -820,8 +820,7 @@ class Smarty extends Smarty_Internal_TemplateBase
             $parent = $this;
         }
         // get template object
-        $_template = is_object($template) ? $template : $this->createTemplate($template, $cache_id, $compile_id,
-            $parent, false);
+        $_template = is_object($template) ? $template : $this->createTemplate($template, $cache_id, $compile_id, $parent, false);
         // set caching in template object
         $_template->caching = $this->caching;
 
@@ -1478,8 +1477,7 @@ class Smarty extends Smarty_Internal_TemplateBase
         $time_limit = 0,
         $max_errors = null
     ){
-        return Smarty_Internal_Utility::compileAllTemplates($extension, $force_compile, $time_limit, $max_errors,
-            $this);
+        return Smarty_Internal_Utility::compileAllTemplates($extension, $force_compile, $time_limit, $max_errors, $this);
     }
 
     /**
@@ -1788,8 +1786,7 @@ class Smarty extends Smarty_Internal_TemplateBase
         // or the error was within smarty but masked to be ignored
         if (!$_is_muted_directory || ($errno && $errno & error_reporting())) {
             if (Smarty::$_previous_error_handler) {
-                return call_user_func(Smarty::$_previous_error_handler, $errno, $errstr, $errfile, $errline,
-                    $errcontext);
+                return call_user_func(Smarty::$_previous_error_handler, $errno, $errstr, $errfile, $errline, $errcontext);
             }else {
                 return false;
             }

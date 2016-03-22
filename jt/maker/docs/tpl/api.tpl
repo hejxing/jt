@@ -33,14 +33,15 @@
     </div>
     {{function drawLine level=0}}
         <ul>
-            {{foreach $param.nodes as $node}}<li class="list-item">
+            {{foreach $param.nodes as $node}}
+                <li class="list-item">
                 <span class="name" style="padding-left:{{$level * 32 + 58}}px;">{{$node.name}}:</span>
                 <span class="desc">[{{$node.ruler.raw}}] {{$node.desc}}</span>
                 {{if $node.nodes}}
                     <span class="expand" title="收起" style="margin-left:{{$node.level * 32 + 30}}px;">-</span>
                     {{drawLine param=$node level=$level+1}}
                 {{/if}}
-            </li>{{/foreach}}
+                </li>{{/foreach}}
         </ul>
     {{/function}}
     <div class="content-box item-list-box">
@@ -51,16 +52,16 @@
                     <span class="param-type-label">请求参数:</span>
                 </div>
                 {{foreach $params as $name => $param}}
-                <ul class="sub-box">
-                    <li>
-                        <div class="sub-title">
-                            <span class="expand" title="收起">-</span>
-                            <span class="param-type-label">{{$name}}:[{{$param.ruler.type}}] {{$param.desc}}</span>
-                        </div>
-                        {{drawLine param=$param}}
-                    </li>
-                </ul>
-            {{/foreach}}
+                    <ul class="sub-box">
+                        <li>
+                            <div class="sub-title">
+                                <span class="expand" title="收起">-</span>
+                                <span class="param-type-label">{{$name}}:[{{$param.ruler.type}}] {{$param.desc}}</span>
+                            </div>
+                            {{drawLine param=$param}}
+                        </li>
+                    </ul>
+                {{/foreach}}
             </li>
         </ul>
         <ul class="wrap">
@@ -82,9 +83,9 @@
         $('.expand').click(function(){
             var trigger = $(this);
             trigger.toggleClass('disabled');
-            trigger.text(trigger.is('.disabled')?'+':'-');
-            trigger.attr('title', trigger.is('.disabled')?'展开':'收起');
-            trigger.closest('li').children('ul')[trigger.is('.disabled')?'hide':'show'](100);
+            trigger.text(trigger.is('.disabled')? '+': '-');
+            trigger.attr('title', trigger.is('.disabled')? '展开': '收起');
+            trigger.closest('li').children('ul')[trigger.is('.disabled')? 'hide': 'show'](100);
         });
     </script>
 {{/block}}

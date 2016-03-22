@@ -68,8 +68,8 @@ abstract class Smarty_CacheResource_KeyValueStore extends Smarty_CacheResource
      */
     public function populateTimestamp(Smarty_Template_Cached $cached)
     {
-        if (!$this->fetch($cached->filepath, $cached->source->name, $cached->cache_id, $cached->compile_id, $content,
-            $timestamp, $cached->source->uid)
+        if (!$this->fetch($cached->filepath, $cached->source->name, $cached->cache_id, $cached->compile_id, $content, $timestamp,
+            $cached->source->uid)
         ) {
             return;
         }
@@ -94,8 +94,8 @@ abstract class Smarty_CacheResource_KeyValueStore extends Smarty_CacheResource
         $content   = $cached->content ? $cached->content : null;
         $timestamp = $cached->timestamp ? $cached->timestamp : null;
         if ($content === null || !$timestamp) {
-            if (!$this->fetch($_template->cached->filepath, $_template->source->name, $_template->cache_id,
-                $_template->compile_id, $content, $timestamp, $_template->source->uid)
+            if (!$this->fetch($_template->cached->filepath, $_template->source->name, $_template->cache_id, $_template->compile_id, $content,
+                $timestamp, $_template->source->uid)
             ) {
                 return false;
             }
@@ -140,8 +140,8 @@ abstract class Smarty_CacheResource_KeyValueStore extends Smarty_CacheResource
         $content   = $_template->cached->content ? $_template->cached->content : null;
         $timestamp = null;
         if ($content === null) {
-            if (!$this->fetch($_template->cached->filepath, $_template->source->name, $_template->cache_id,
-                $_template->compile_id, $content, $timestamp, $_template->source->uid)
+            if (!$this->fetch($_template->cached->filepath, $_template->source->name, $_template->cache_id, $_template->compile_id, $content,
+                $timestamp, $_template->source->uid)
             ) {
                 return false;
             }
@@ -277,8 +277,7 @@ abstract class Smarty_CacheResource_KeyValueStore extends Smarty_CacheResource
         $timestamp = null;
 
         if ($content && ($timestamp = $this->getMetaTimestamp($content))) {
-            $invalidated = $this->getLatestInvalidationTimestamp($cid, $resource_name, $cache_id, $compile_id,
-                $resource_uid);
+            $invalidated = $this->getLatestInvalidationTimestamp($cid, $resource_name, $cache_id, $compile_id, $resource_uid);
             if ($invalidated > $timestamp) {
                 $timestamp = null;
                 $content   = null;

@@ -64,8 +64,7 @@ class Smarty_Internal_Extension_Config
             if ($_template->smarty->config_overwrite || !isset($scope_ptr->config_vars[$variable])) {
                 $scope_ptr->config_vars[$variable] = $value;
             }else {
-                $scope_ptr->config_vars[$variable] = array_merge((array)$scope_ptr->config_vars[$variable],
-                    (array)$value);
+                $scope_ptr->config_vars[$variable] = array_merge((array)$scope_ptr->config_vars[$variable], (array)$value);
             }
         }
         // scan sections
@@ -77,8 +76,7 @@ class Smarty_Internal_Extension_Config
                         if ($_template->smarty->config_overwrite || !isset($scope_ptr->config_vars[$variable])) {
                             $scope_ptr->config_vars[$variable] = $value;
                         }else {
-                            $scope_ptr->config_vars[$variable] = array_merge((array)$scope_ptr->config_vars[$variable],
-                                (array)$value);
+                            $scope_ptr->config_vars[$variable] = array_merge((array)$scope_ptr->config_vars[$variable], (array)$value);
                         }
                     }
                 }

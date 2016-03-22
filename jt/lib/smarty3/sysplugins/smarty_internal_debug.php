@@ -85,8 +85,7 @@ class Smarty_Internal_Debug extends Smarty_Internal_Data
             $key = $template->compiler->trace_uid;
             if (!isset(self::$template_data[self::$index][$key])) {
                 if (isset($_is_stringy[$template->source->type])) {
-                    self::$template_data[self::$index][$key]['name'] = '\'' . substr($template->source->name, 0,
-                            25) . '...\'';
+                    self::$template_data[self::$index][$key]['name'] = '\'' . substr($template->source->name, 0, 25) . '...\'';
                 }else {
                     self::$template_data[self::$index][$key]['name'] = $template->source->filepath;
                 }
@@ -364,8 +363,7 @@ class Smarty_Internal_Debug extends Smarty_Internal_Data
             return $key;
         }else {
             if (isset($_is_stringy[$template->source->type])) {
-                self::$template_data[self::$index][$key]['name'] = '\'' . substr($template->source->name, 0,
-                        25) . '...\'';
+                self::$template_data[self::$index][$key]['name'] = '\'' . substr($template->source->name, 0, 25) . '...\'';
             }else {
                 self::$template_data[self::$index][$key]['name'] = $template->source->filepath;
             }

@@ -433,8 +433,8 @@ class Smarty_Internal_Templatelexer
     {
 
         $to = strlen($this->data);
-        preg_match("~($this->ldel)|([<]script\s+language\s*=\s*[\"\']?\s*php\s*[\"\']?\s*[>])|([<][?])|([<][%])|([?][>])|([%][>])~i",
-            $this->data, $match, PREG_OFFSET_CAPTURE, $this->counter);
+        preg_match("~($this->ldel)|([<]script\s+language\s*=\s*[\"\']?\s*php\s*[\"\']?\s*[>])|([<][?])|([<][%])|([?][>])|([%][>])~i", $this->data,
+            $match, PREG_OFFSET_CAPTURE, $this->counter);
         if (isset($match[0][1])) {
             $to = $match[0][1];
         }
@@ -802,9 +802,7 @@ class Smarty_Internal_Templatelexer
     {
 
         // resolve conflicts with shorttag and right_delimiter starting with '='
-        if (substr($this->data, $this->counter + strlen($this->value) - 1,
-                $this->rdel_length) == $this->smarty->right_delimiter
-        ) {
+        if (substr($this->data, $this->counter + strlen($this->value) - 1, $this->rdel_length) == $this->smarty->right_delimiter) {
             preg_match("~\s+~", $this->value, $match);
             $this->value = $match[0];
             $this->token = Smarty_Internal_Templateparser::TP_SPACE;
@@ -988,8 +986,7 @@ class Smarty_Internal_Templatelexer
     {
 
         $to = strlen($this->data);
-        preg_match("~{$this->ldel}[/]?literal{$this->rdel}~i", $this->data, $match, PREG_OFFSET_CAPTURE,
-            $this->counter);
+        preg_match("~{$this->ldel}[/]?literal{$this->rdel}~i", $this->data, $match, PREG_OFFSET_CAPTURE, $this->counter);
         if (isset($match[0][1])) {
             $to = $match[0][1];
         }else {
@@ -1243,8 +1240,7 @@ class Smarty_Internal_Templatelexer
     {
 
         $to = strlen($this->data);
-        preg_match("~" . $this->ldel . "\s*(([/])?strip\s*" . $this->rdel . "|block\s+)~i", $this->data, $match,
-            PREG_OFFSET_CAPTURE, $this->counter);
+        preg_match("~" . $this->ldel . "\s*(([/])?strip\s*" . $this->rdel . "|block\s+)~i", $this->data, $match, PREG_OFFSET_CAPTURE, $this->counter);
         if (isset($match[0][1])) {
             $to = $match[0][1];
         }
@@ -1457,8 +1453,7 @@ class Smarty_Internal_Templatelexer
     {
 
         $to = strlen($this->data);
-        preg_match("~{$this->ldel}[/]?literal\s*{$this->rdel}~i", $this->data, $match, PREG_OFFSET_CAPTURE,
-            $this->counter);
+        preg_match("~{$this->ldel}[/]?literal\s*{$this->rdel}~i", $this->data, $match, PREG_OFFSET_CAPTURE, $this->counter);
         if (isset($match[0][1])) {
             $to = $match[0][1];
         }else {

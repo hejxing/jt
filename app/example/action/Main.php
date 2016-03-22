@@ -70,7 +70,7 @@ class Main extends Action
     /**
      * 演示通配路径 比如可以访问 /test/414
      *
-     * @param string $path 获取到的路径
+     * @param string        $path 获取到的路径
      * @param \jt\Requester $query
      *
      * @return array

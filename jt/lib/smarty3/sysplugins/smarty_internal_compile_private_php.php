@@ -59,8 +59,7 @@ class Smarty_Internal_Compile_Private_Php extends Smarty_Internal_CompileBase
                         $this,
                         'quote'
                     ], $_attr['code']);
-                $compiler->parser->current_buffer->append_subtree(new Smarty_Internal_ParseTree_Text($compiler->parser,
-                    $output));
+                $compiler->parser->current_buffer->append_subtree(new Smarty_Internal_ParseTree_Text($compiler->parser, $output));
 
                 return '';
             }elseif ($compiler->php_handling == Smarty::PHP_PASSTHRU || $_attr['type'] == 'unmatched') {
@@ -86,8 +85,7 @@ class Smarty_Internal_Compile_Private_Php extends Smarty_Internal_CompileBase
         }else {
             $compiler->has_code = true;
             if (!($compiler->smarty instanceof SmartyBC)) {
-                $compiler->trigger_template_error('{php}[/php} tags not allowed. Use SmartyBC to enable them',
-                    $compiler->lex->taglineno);
+                $compiler->trigger_template_error('{php}[/php} tags not allowed. Use SmartyBC to enable them', $compiler->lex->taglineno);
             }
             $ldel = preg_quote($compiler->smarty->left_delimiter, '#');
             $rdel = preg_quote($compiler->smarty->right_delimiter, '#');
@@ -96,8 +94,7 @@ class Smarty_Internal_Compile_Private_Php extends Smarty_Internal_CompileBase
                 if ('nocache' == trim($match[2])) {
                     $compiler->tag_nocache = true;
                 }else {
-                    $compiler->trigger_template_error("illegal value of option flag \"{$match[2]}\"",
-                        $compiler->lex->taglineno);
+                    $compiler->trigger_template_error("illegal value of option flag \"{$match[2]}\"", $compiler->lex->taglineno);
                 }
             }
 
@@ -170,8 +167,8 @@ class Smarty_Internal_Compile_Private_Php extends Smarty_Internal_CompileBase
             $lex->compiler->trigger_template_error("missing closing tag '{$closeTag}'");
         }
         while ($body) {
-            if (preg_match('~([/][*])|([/][/][^\n]*)|(\'[^\'\\\\]*(?:\\.[^\'\\\\]*)*\')|("[^"\\\\]*(?:\\.[^"\\\\]*)*")~',
-                $lex->data, $match, PREG_OFFSET_CAPTURE, $start)) {
+            if (preg_match('~([/][*])|([/][/][^\n]*)|(\'[^\'\\\\]*(?:\\.[^\'\\\\]*)*\')|("[^"\\\\]*(?:\\.[^"\\\\]*)*")~', $lex->data, $match,
+                PREG_OFFSET_CAPTURE, $start)) {
                 $value = $match[0][0];
                 $from  = $pos = $match[0][1];
                 if ($pos > $close) {
@@ -187,8 +184,7 @@ class Smarty_Internal_Compile_Private_Php extends Smarty_Internal_CompileBase
                         }
                     }
                     while ($close > $pos && $close < $start) {
-                        if (preg_match('~' . preg_quote($closeTag, '~') . '~i', $lex->data, $match, PREG_OFFSET_CAPTURE,
-                            $from)) {
+                        if (preg_match('~' . preg_quote($closeTag, '~') . '~i', $lex->data, $match, PREG_OFFSET_CAPTURE, $from)) {
                             $close = $match[0][1];
                             $from  = $close + strlen($match[0][0]);
                         }else {

@@ -102,24 +102,20 @@ class Requester
         }
 
         if (isset($option['enum']) && !in_array($value, $option['enum'])) {
-            return self::error('value_over', '只能从 [' . implode(', ', $option['enum']) . '] 中取值', $name, $option,
-                $strict);
+            return self::error('value_over', '只能从 [' . implode(', ', $option['enum']) . '] 中取值', $name, $option, $strict);
         }
         if (in_array($option['type'], self::CONVERT_TYPE)) { //转换类型
             $value = self::convert($value, $option['type']);
         }elseif (isset($option['validate'])) {
             $result = Validate::check($value, $option['validate']);
             if ($result === false) {
-                self::error('value_validate_invalid', '值需要一个有效的 [' . $option['validate'] . ']', $name, $option,
-                    $strict);
-            }elseif($result === null){
-                self::error('value_validate_type_invalid', '验证规则无效 [' . $option['validate'] . '],需要有效的规则或正则表达式', $name, $option,
-                    $strict);
+                self::error('value_validate_invalid', '值需要一个有效的 [' . $option['validate'] . ']', $name, $option, $strict);
+            }elseif ($result === null) {
+                self::error('value_validate_type_invalid', '验证规则无效 [' . $option['validate'] . '],需要有效的规则或正则表达式', $name, $option, $strict);
             }
         }else {
             if (!self::typeCheck($value, $option['type'])) {
-                return self::error('value_type_invalid', '需要一个类型为 [' . $option['type'] . '] 的值', $name, $option,
-                    $strict);
+                return self::error('value_type_invalid', '需要一个类型为 [' . $option['type'] . '] 的值', $name, $option, $strict);
             }
         }
         if (in_array($option['type'], static::VALUE_RANGE_TYPE)) {
@@ -166,8 +162,7 @@ class Requester
                 return doubleval($value);
                 break;
             case 'bool':
-                return in_array(strtolower($value),
-                    self::FALSE_VALUE) ? false : boolval(is_numeric($value) ? floatval($value) : $value);
+                return in_array(strtolower($value), self::FALSE_VALUE) ? false : boolval(is_numeric($value) ? floatval($value) : $value);
                 break;
             case 'array':
                 return $value ? preg_split('/ *, */', $value) : [];
@@ -227,9 +222,9 @@ class Requester
             }
         }
 
-        if($lined['type'] === 'undefined'){
+        if ($lined['type'] === 'undefined') {
             $lined['type'] = 'string';
-            $lined['raw'] = trim('string '.$lined['raw']);
+            $lined['raw']  = trim('string ' . $lined['raw']);
         }
 
         return $lined;
@@ -451,6 +446,7 @@ class Requester
 
     /**
      * 获取所有的值(忽略null,当值为null或不符合验证规则时会自动忽略)
+     *
      * @param bool $strict 是否严格模式
      *
      * @return array
@@ -459,7 +455,7 @@ class Requester
     {
         $data = [];
         $this->collectAsMap();
-        
+
         $originStrict = $this->strict;
         $this->strict = $strict;
         foreach ($this->originData as $input => $value) {
@@ -470,8 +466,8 @@ class Requester
             }
         }
         //检查是否含有必填项
-        foreach($this->validate as $name => $validate){
-            if(isset($validate['require']) && !isset($data[$name])){
+        foreach ($this->validate as $name => $validate) {
+            if (isset($validate['require']) && !isset($data[$name])) {
                 self::error('value_empty', '该项值必填', $name, $validate, $strict);
             }
         }
@@ -603,9 +599,9 @@ class Requester
     {
         $field = isset($option['_desc']) ? $name . ':' . $option['_desc'] : $name;
         $msg   = '[' . $field . '] ' . $msg;
-        if(RUN_MODE !== 'production'){
-            $line  = isset($option['_line']) ? ' At line: ' . $option['_line'] : '';
-            $msg .= '.'.$line;
+        if (RUN_MODE !== 'production') {
+            $line = isset($option['_line']) ? ' At line: ' . $option['_line'] : '';
+            $msg .= '.' . $line;
         }
         if ($strict) {
             Error::msg('inputIll', $msg, ['field' => $name, 'code' => $code]);

@@ -36,6 +36,7 @@ abstract class Auth
 
     /**
      * 执行权限检查
+     *
      * @return int 200,401,402
      */
     abstract public function auth();
@@ -73,23 +74,26 @@ abstract class Auth
 
     /**
      * 检查是否有权访问当前资源
+     *
      * @return bool
      */
-    public function check(){
+    public function check()
+    {
         $code = $this->auth();
-        switch($code){
-        case 200:
-            return true;
-        break;
-        case 401:
-            $this->notLogin();
-            break;
-        case 402:
-            $this->exceed();
-            break;
-        default:
-            $this->action->status($code, [], false);
+        switch ($code) {
+            case 200:
+                return true;
+                break;
+            case 401:
+                $this->notLogin();
+                break;
+            case 402:
+                $this->exceed();
+                break;
+            default:
+                $this->action->status($code, [], false);
         }
+
         return false;
     }
 }

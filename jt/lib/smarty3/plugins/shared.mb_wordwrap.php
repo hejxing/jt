@@ -24,8 +24,7 @@ if (!function_exists('smarty_mb_wordwrap')) {
     function smarty_mb_wordwrap($str, $width = 75, $break = "\n", $cut = false)
     {
         // break words into tokens using white space as a delimiter
-        $tokens    = preg_split('!(\s)!S' . Smarty::$_UTF8_MODIFIER, $str, -1,
-            PREG_SPLIT_NO_EMPTY + PREG_SPLIT_DELIM_CAPTURE);
+        $tokens    = preg_split('!(\s)!S' . Smarty::$_UTF8_MODIFIER, $str, -1, PREG_SPLIT_NO_EMPTY + PREG_SPLIT_DELIM_CAPTURE);
         $length    = 0;
         $t         = '';
         $_previous = false;

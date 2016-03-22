@@ -103,9 +103,8 @@ class Smarty_Internal_Compile_Include extends Smarty_Internal_CompileBase
 
         if ($merge_compiled_includes && $_attr['inline'] !== true) {
             // variable template name ?
-            if ($compiler->has_variable_string || !((substr_count($include_file,
-                        '"') == 2 || substr_count($include_file, "'") == 2)) || substr_count($include_file,
-                    '(') != 0 || substr_count($include_file, '$_smarty_tpl->') != 0
+            if ($compiler->has_variable_string || !((substr_count($include_file, '"') == 2 || substr_count($include_file,
+                        "'") == 2)) || substr_count($include_file, '(') != 0 || substr_count($include_file, '$_smarty_tpl->') != 0
             ) {
                 $merge_compiled_includes = false;
                 if ($compiler->template->caching) {
@@ -191,8 +190,8 @@ class Smarty_Internal_Compile_Include extends Smarty_Internal_CompileBase
             eval("\$tpl_name = $include_file;");
             if (!isset($compiler->parent_compiler->mergedSubTemplatesData[$tpl_name][$uid])) {
                 $compiler->smarty->allow_ambiguous_resources = true;
-                $tpl                                         = new $compiler->smarty->template_class ($tpl_name,
-                    $compiler->smarty, $compiler->template, $compiler->template->cache_id, $c_id, $_caching);
+                $tpl                                         = new $compiler->smarty->template_class ($tpl_name, $compiler->smarty,
+                    $compiler->template, $compiler->template->cache_id, $c_id, $_caching);
                 // save unique function name
                 $compiler->parent_compiler->mergedSubTemplatesData[$tpl_name][$uid]['func'] = $tpl->properties['unifunc'] = 'content_' . str_replace([
                         '.',
@@ -259,8 +258,7 @@ class Smarty_Internal_Compile_Include extends Smarty_Internal_CompileBase
                 }
                 $_vars = 'array(' . join(',', $_pairs) . ')';
             }else {
-                $compiler->trigger_template_error('variable passing not allowed in parent/global scope',
-                    $compiler->lex->taglineno);
+                $compiler->trigger_template_error('variable passing not allowed in parent/global scope', $compiler->lex->taglineno);
             }
         }else {
             $_vars = 'array()';

@@ -43,8 +43,7 @@ class Smarty_Internal_Extension_CodeFrame
         if ($_template->smarty->direct_access_security) {
             $output .= "if(!defined('SMARTY_DIR')) exit('no direct access allowed');\n";
         }
-        $output .= "\$_valid = \$_smarty_tpl->decodeProperties(" . var_export($properties,
-                true) . ',' . ($cache ? 'true' : 'false') . ");\n";
+        $output .= "\$_valid = \$_smarty_tpl->decodeProperties(" . var_export($properties, true) . ',' . ($cache ? 'true' : 'false') . ");\n";
         $output .= "/*/%%SmartyHeaderCode%%*/\n";
         $output .= "if (\$_valid && !is_callable('{$_template->properties['unifunc']}')) {\n";
         $output .= "function {$_template->properties['unifunc']} (\$_smarty_tpl) {\n";

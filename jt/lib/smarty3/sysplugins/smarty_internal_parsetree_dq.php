@@ -48,8 +48,7 @@ class Smarty_Internal_ParseTree_Dq extends Smarty_Internal_ParseTree
                 $this->subtrees[$last_subtree]->data = $this->parser->compiler->appendCode($this->subtrees[$last_subtree]->data,
                     '<?php echo "' . $subtree->data . '";?>');
             }else {
-                $this->subtrees[$last_subtree]->data = $this->parser->compiler->appendCode($this->subtrees[$last_subtree]->data,
-                    $subtree->data);
+                $this->subtrees[$last_subtree]->data = $this->parser->compiler->appendCode($this->subtrees[$last_subtree]->data, $subtree->data);
             }
         }else {
             $this->subtrees[] = $subtree;

@@ -156,11 +156,10 @@ abstract class Action
     {
         $headerStore = self::$headerStore;
         if (RUN_MODE !== 'production') {
-            $headerStore['queryCount']     = class_exists('\jt\Model',
-                false) ? Model::getQueryTimes() : 0;// + \dal\Dal::selectQueryTimes();
+            $headerStore['queryCount']     = class_exists('\jt\Model', false) ? Model::getQueryTimes() : 0;// + \dal\Dal::selectQueryTimes();
             $includeFiles                  = get_included_files();
             $headerStore['loadFilesCount'] = count($includeFiles);
-            $headerStore['spendTime'] = intval((microtime(true) - Bootstrap::$startTime) * 1000);
+            $headerStore['spendTime']      = intval((microtime(true) - Bootstrap::$startTime) * 1000);
             //$headerStore['loadFiles'] = $includeFiles;
         }
 
@@ -545,7 +544,7 @@ abstract class Action
         if ($status >= 400 && $error) {
             self::$taskSuccess = false;
             Error::fatal($status, '', $param);
-        }else{
+        }else {
             \header('Status: ' . $status);
         }
     }
@@ -563,6 +562,7 @@ abstract class Action
 
     /**
      * 初始化Action
+     *
      * @return bool
      */
     public function init()

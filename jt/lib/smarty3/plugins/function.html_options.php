@@ -169,8 +169,7 @@ function smarty_function_html_options_optoutput($key, $value, $selected, $id, $c
             if (method_exists($value, "__toString")) {
                 $value = smarty_function_escape_special_chars((string)$value->__toString());
             }else {
-                trigger_error("html_options: value is an object of class '" . get_class($value) . "' without __toString() method",
-                    E_USER_NOTICE);
+                trigger_error("html_options: value is an object of class '" . get_class($value) . "' without __toString() method", E_USER_NOTICE);
 
                 return '';
             }
@@ -181,8 +180,7 @@ function smarty_function_html_options_optoutput($key, $value, $selected, $id, $c
         $idx++;
     }else {
         $_idx         = 0;
-        $_html_result = smarty_function_html_options_optgroup($key, $value, $selected,
-            !empty($id) ? ($id . '-' . $idx) : null, $class, $_idx);
+        $_html_result = smarty_function_html_options_optgroup($key, $value, $selected, !empty($id) ? ($id . '-' . $idx) : null, $class, $_idx);
         $idx++;
     }
 

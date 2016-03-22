@@ -55,8 +55,7 @@ class Smarty_Internal_Compile_Foreach extends Smarty_Internal_CompileBase
         $from = $_attr['from'];
         $item = $_attr['item'];
         if (!strncmp("\$_smarty_tpl->tpl_vars[$item]", $from, strlen($item) + 24)) {
-            $compiler->trigger_template_error("item variable {$item} may not be the same variable as at 'from'",
-                $compiler->lex->taglineno);
+            $compiler->trigger_template_error("item variable {$item} may not be the same variable as at 'from'", $compiler->lex->taglineno);
         }
 
         if (isset($_attr['key'])) {
@@ -81,14 +80,11 @@ class Smarty_Internal_Compile_Foreach extends Smarty_Internal_CompileBase
 
         if ($has_name) {
             $useSmartyForeach = $usesSmartyFirst = strpos($compiler->lex->data, $SmartyVarName . 'first') !== false;
-            $useSmartyForeach = ($usesSmartyLast = strpos($compiler->lex->data,
-                        $SmartyVarName . 'last') !== false) || $useSmartyForeach;
-            $useSmartyForeach = ($usesSmartyIndex = strpos($compiler->lex->data,
-                        $SmartyVarName . 'index') !== false) || $useSmartyForeach;
+            $useSmartyForeach = ($usesSmartyLast = strpos($compiler->lex->data, $SmartyVarName . 'last') !== false) || $useSmartyForeach;
+            $useSmartyForeach = ($usesSmartyIndex = strpos($compiler->lex->data, $SmartyVarName . 'index') !== false) || $useSmartyForeach;
             $useSmartyForeach = ($usesSmartyIteration = (!$usesSmartyIndex && ($usesSmartyFirst || $usesSmartyLast)) || strpos($compiler->lex->data,
                         $SmartyVarName . 'iteration') !== false) || $useSmartyForeach;
-            $useSmartyForeach = ($usesSmartyShow = strpos($compiler->lex->data,
-                        $SmartyVarName . 'show') !== false) || $useSmartyForeach;
+            $useSmartyForeach = ($usesSmartyShow = strpos($compiler->lex->data, $SmartyVarName . 'show') !== false) || $useSmartyForeach;
             $useSmartyForeach = ($usesSmartyTotal = $usesSmartyLast || strpos($compiler->lex->data,
                         $SmartyVarName . 'total') !== false) || $useSmartyForeach;
         }else {
@@ -283,8 +279,7 @@ class Smarty_Internal_Compile_Foreachclose extends Smarty_Internal_CompileBase
             $compiler->tag_nocache = true;
         }
 
-        list($openTag, $compiler->nocache, $item, $key, $restore) = $this->closeTag($compiler,
-            ['foreach', 'foreachelse']);
+        list($openTag, $compiler->nocache, $item, $key, $restore) = $this->closeTag($compiler, ['foreach', 'foreachelse']);
         $itemName = trim($item, "'\"");
         $output   = "<?php\n";
         if ($restore) {

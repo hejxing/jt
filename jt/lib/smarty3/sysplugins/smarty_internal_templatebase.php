@@ -530,8 +530,7 @@ abstract class Smarty_Internal_TemplateBase extends Smarty_Internal_Data
                 // lcfirst() not available < PHP 5.3.0, so improvise
                 $property_name = strtolower(substr($name, 3, 1)) . substr($name, 4);
                 // convert camel case to underscored name
-                $property_name                  = preg_replace_callback('/([A-Z])/', [$this, 'replaceCamelcase'],
-                    $property_name);
+                $property_name                  = preg_replace_callback('/([A-Z])/', [$this, 'replaceCamelcase'], $property_name);
                 $_resolved_property_name[$name] = $property_name;
             }
             if (isset($_resolved_property_source[$property_name])) {

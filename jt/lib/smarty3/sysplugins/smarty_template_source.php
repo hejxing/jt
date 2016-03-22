@@ -203,8 +203,7 @@ class Smarty_Template_Source
             $is_relative = false;
             if (!isset($unique_resource)) {
                 $is_relative     = isset($name[1]) && $name[0] == '.' && ($name[1] == '.' || $name[1] == '/') && ($type == 'file' || (isset($_template->parent->source) && $_template->parent->source->type == 'extends'));
-                $unique_resource = $resource->buildUniqueResourceName($smarty,
-                    $is_relative ? $source->filepath . $name : $name);
+                $unique_resource = $resource->buildUniqueResourceName($smarty, $is_relative ? $source->filepath . $name : $name);
             }
             $source->unique_resource = $unique_resource;
             // save in runtime cache if not relative

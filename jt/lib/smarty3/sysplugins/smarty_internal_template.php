@@ -292,8 +292,8 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
             }else {
                 if (!empty($this->properties['nocache_hash']) && !empty($this->parent->properties['nocache_hash'])) {
                     // replace nocache_hash
-                    $content                        = str_replace("{$this->properties['nocache_hash']}",
-                        $this->parent->properties['nocache_hash'], $content);
+                    $content                        = str_replace("{$this->properties['nocache_hash']}", $this->parent->properties['nocache_hash'],
+                        $content);
                     $this->parent->has_nocache_code = $this->parent->has_nocache_code || $this->has_nocache_code;
                 }
             }
@@ -348,8 +348,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
                 }
             }
             if ($parentIsTpl) {
-                $this->parent->properties['tpl_function'] = array_merge($this->parent->properties['tpl_function'],
-                    $this->properties['tpl_function']);
+                $this->parent->properties['tpl_function'] = array_merge($this->parent->properties['tpl_function'], $this->properties['tpl_function']);
                 foreach ($this->required_plugins as $code => $tmp1) {
                     foreach ($tmp1 as $name => $tmp) {
                         foreach ($tmp as $type => $data) {
@@ -395,6 +394,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
             if (isset($this->smarty->security_policy)) {
                 $this->smarty->security_policy->exitTemplate($this);
             }
+
             return ob_get_clean();
         }catch (Exception $e){
             while (ob_get_level() > $level) {
@@ -465,8 +465,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
      */
     public function getSubTemplate($template, $cache_id, $compile_id, $caching, $cache_lifetime, $data, $parent_scope)
     {
-        $tpl = $this->setupSubTemplate($template, $cache_id, $compile_id, $caching, $cache_lifetime, $data,
-            $parent_scope);
+        $tpl = $this->setupSubTemplate($template, $cache_id, $compile_id, $caching, $cache_lifetime, $data, $parent_scope);
 
         return $tpl->render();
     }
@@ -498,8 +497,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
             $tpl->caching        = $caching;
             $tpl->cache_lifetime = $cache_lifetime;
         }else {
-            $tpl             = new $this->smarty->template_class($template, $this->smarty, $this, $cache_id,
-                $compile_id, $caching, $cache_lifetime);
+            $tpl             = new $this->smarty->template_class($template, $this->smarty, $this, $cache_id, $compile_id, $caching, $cache_lifetime);
             $tpl->templateId = $_templateId;
         }
         // get variables from calling scope
@@ -553,8 +551,8 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
         $hash,
         $content_func
     ){
-        $tpl                             = $this->setupSubTemplate($template, $cache_id, $compile_id, $caching,
-            $cache_lifetime, $data, $parent_scope);
+        $tpl                             = $this->setupSubTemplate($template, $cache_id, $compile_id, $caching, $cache_lifetime, $data,
+            $parent_scope);
         $tpl->properties['nocache_hash'] = $hash;
         if (!isset($this->smarty->template_objects[$tpl->templateId])) {
             $this->smarty->template_objects[$tpl->templateId] = $tpl;
@@ -570,8 +568,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
             Smarty_Internal_Debug::end_render($tpl);
         }
         if (!empty($tpl->properties['file_dependency'])) {
-            $this->properties['file_dependency'] = array_merge($this->properties['file_dependency'],
-                $tpl->properties['file_dependency']);
+            $this->properties['file_dependency'] = array_merge($this->properties['file_dependency'], $tpl->properties['file_dependency']);
         }
         $this->properties['tpl_function'] = $tpl->properties['tpl_function'];
 
@@ -671,12 +668,10 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
                 $this->properties['cache_lifetime'] = $properties['cache_lifetime'];
             }
             if (isset($properties['file_dependency'])) {
-                $this->properties['file_dependency'] = array_merge($this->properties['file_dependency'],
-                    $properties['file_dependency']);
+                $this->properties['file_dependency'] = array_merge($this->properties['file_dependency'], $properties['file_dependency']);
             }
             if (isset($properties['tpl_function'])) {
-                $this->properties['tpl_function'] = array_merge($this->properties['tpl_function'],
-                    $properties['tpl_function']);
+                $this->properties['tpl_function'] = array_merge($this->properties['tpl_function'], $properties['tpl_function']);
             }
             $this->properties['version'] = $properties['version'];
             $this->properties['unifunc'] = $properties['unifunc'];
@@ -808,8 +803,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
     {
         Smarty_CacheResource::invalidLoadedCache($this->smarty);
 
-        return $this->cached->handler->clear($this->smarty, $this->template_resource, $this->cache_id,
-            $this->compile_id, $exp_time);
+        return $this->cached->handler->clear($this->smarty, $this->template_resource, $this->cache_id, $this->compile_id, $exp_time);
     }
 
     /**
@@ -861,8 +855,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
     public function loadCompiler()
     {
         $this->smarty->loadPlugin($this->source->compiler_class);
-        $this->compiler = new $this->source->compiler_class($this->source->template_lexer_class,
-            $this->source->template_parser_class, $this->smarty);
+        $this->compiler = new $this->source->compiler_class($this->source->template_lexer_class, $this->source->template_parser_class, $this->smarty);
     }
 
     /**

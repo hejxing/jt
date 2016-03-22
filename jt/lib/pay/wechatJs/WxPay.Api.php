@@ -524,8 +524,7 @@ class WxPayApi
         }
         //如果仅失败上报
         if (WxPayConfig::REPORT_LEVENL == 1 && array_key_exists("return_code",
-                $data) && $data["return_code"] == "SUCCESS" && array_key_exists("result_code",
-                $data) && $data["result_code"] == "SUCCESS"
+                $data) && $data["return_code"] == "SUCCESS" && array_key_exists("result_code", $data) && $data["result_code"] == "SUCCESS"
         ) {
             return;
         }

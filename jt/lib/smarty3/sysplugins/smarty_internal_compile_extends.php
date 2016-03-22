@@ -72,8 +72,7 @@ class Smarty_Internal_Compile_Extends extends Smarty_Internal_CompileBase
                 array_unshift($compiler->sources, $source);
                 $uid = $source->uid;
                 if (isset($compiler->extends_uid[$uid])) {
-                    $compiler->trigger_template_error("illegal recursive call of \"{$source->filepath}\"",
-                        $compiler->lex->line - 1);
+                    $compiler->trigger_template_error("illegal recursive call of \"{$source->filepath}\"", $compiler->lex->line - 1);
                 }
                 $compiler->extends_uid[$uid] = true;
             }

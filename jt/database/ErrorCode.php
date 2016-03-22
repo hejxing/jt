@@ -13,16 +13,19 @@ class ErrorCode
     private static $pgsql = [
         '23505' => 'duplicate'
     ];
-    public static function getName($type, $code){
-        switch($type){
+
+    public static function getName($type, $code)
+    {
+        switch ($type) {
             case 'pgsql':
-                if(isset(self::$pgsql[$code])){
+                if (isset(self::$pgsql[$code])) {
                     return self::$pgsql[$code];
                 }
                 break;
             case 'mysql':
                 break;
         }
+
         return null;
     }
 }

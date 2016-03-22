@@ -16,11 +16,13 @@ blockquote{
     padding:0 8px;
     margin:-8px 0 20px -12px;
 }
-.h4, h4 {
-    font-size: 14px;
-    font-weight: bold;
-    margin-top: 20px;
+
+.h4, h4{
+    font-size:14px;
+    font-weight:bold;
+    margin-top:20px;
 }
+
 .panel > .table{
     border-top:5px solid #143553;
 }
@@ -159,19 +161,24 @@ a.hightLight{
 .content-box{
     padding:10px 0;
 }
+
 .content-box.highlight{
     background:#438ac7;
-    color:#fff;
+    color:#ffffff;
 }
+
 .content-box p{
     margin:0;
 }
+
 .content-box .wrap{
     margin:5px 0;
 }
+
 .content-box p a{
-    color:#6ad;
+    color:#66aadd;
 }
+
 .content-box .content-label{
     display:inline-block;
     width:100px;
@@ -184,90 +191,106 @@ a.hightLight{
     padding:0.7em 1em;
     font-weight:bold;
     background:#438ac7;
-    color:#fff;
+    color:#ffffff;
 }
 
 .content-box .host{
     font-size:12px;
 }
+
 .content-box .list-box{
-    border:1px solid #ddd;
+    border:1px solid #dddddd;
     border-radius:4px;
 }
+
 .content-box .sub-box{
     margin:0;
     border-top:none;
     overflow:hidden;
 }
+
 .content-box ul{
     padding:0;
     margin:0;
 }
+
 .content-box li{
     list-style:none;
     padding:0;
     margin:0;
 }
+
 .content-box .sub-box .sub-title{
     padding:0.5em 1em;
     border:1px solid #63aae7;
     border-bottom:none;
     border-top:none;
-    color:#fff;
+    color:#ffffff;
     background:#539ad7;
 }
+
 .content-box .list-item{
     padding:8px 0;
     clear:both;
     line-height:1.5em;
-    border-top:1px solid #aaa;
+    border-top:1px solid #aaaaaa;
     position:relative;
-    background:#fff;
+    background:#ffffff;
 }
+
 .content-box .list-item ul{
     margin:8px 0 -8px 0;
 }
+
 .content-box .list-item.gray-background{
-    background:#ddd;
+    background:#dddddd;
 }
+
 .content-box .list-item span{
     display:table-cell;
 }
+
 .content-box .list-item span.name{
     padding-right:0.5em;
     font-weight:bold;
     font-size:1.2em;
 }
+
 .content-box .list-item span.desc{
     padding-right:40px;
 }
+
 .panel-heading{
     font-weight:bold;
 }
+
 .less-important .title{
-    color:#666;
-    background:#fff;
+    color:#666666;
+    background:#ffffff;
 }
+
 .expand{
     width:22px;
     height:16px;
-    border:1px solid #ddd;
+    border:1px solid #dddddd;
     border-radius:4px;
     display:inline-block;
     font-size:12px;
     font-family:serif;
-    color:#ddd;
+    color:#dddddd;
     cursor:default;
     padding:6px;
     line-height:4px;
     margin:0 0 0 12px;
 }
+
 .content-box .list-item .expand{
     position:absolute;
     top:11px;
-    border:1px solid #999;
-    color:#999;
+    border:1px solid #999999;
+    color:#999999;
 }
+
 .item-list-box{
     padding-bottom:20px;
 }

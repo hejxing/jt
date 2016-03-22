@@ -52,8 +52,7 @@ class Smarty_Internal_Compile_Break extends Smarty_Internal_CompileBase
 
         if (isset($_attr['levels'])) {
             if (!is_numeric($_attr['levels'])) {
-                $compiler->trigger_template_error('level attribute must be a numeric constant',
-                    $compiler->lex->taglineno);
+                $compiler->trigger_template_error('level attribute must be a numeric constant', $compiler->lex->taglineno);
             }
             $_levels = $_attr['levels'];
         }else {

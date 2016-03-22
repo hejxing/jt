@@ -100,8 +100,7 @@ class Smarty_Internal_Compile_Insert extends Smarty_Internal_CompileBase
                 }
             }
             if ($_filepath == false) {
-                $compiler->trigger_template_error("{insert} missing script file '{$_script}'",
-                    $compiler->lex->taglineno);
+                $compiler->trigger_template_error("{insert} missing script file '{$_script}'", $compiler->lex->taglineno);
             }
             // code for script file loading
             $_output .= "require_once '{$_filepath}' ;";
@@ -117,8 +116,7 @@ class Smarty_Internal_Compile_Insert extends Smarty_Internal_CompileBase
             if (!is_callable($_function)) {
                 // try plugin
                 if (!$_function = $compiler->getPlugin($_name, 'insert')) {
-                    $compiler->trigger_template_error("{insert} no function or plugin found for '{$_name}'",
-                        $compiler->lex->taglineno);
+                    $compiler->trigger_template_error("{insert} no function or plugin found for '{$_name}'", $compiler->lex->taglineno);
                 }
             }
         }

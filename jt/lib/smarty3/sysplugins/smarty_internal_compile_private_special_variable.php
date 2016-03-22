@@ -30,9 +30,7 @@ class Smarty_Internal_Compile_Private_Special_Variable extends Smarty_Internal_C
         $_index       = preg_split("/\]\[/", substr($parameter, 1, strlen($parameter) - 2));
         $compiled_ref = ' ';
         $variable     = trim($_index[0], "'");
-        if (!isset($compiler->smarty->security_policy) || $compiler->smarty->security_policy->isTrustedSpecialSmartyVar($variable,
-                $compiler)
-        ) {
+        if (!isset($compiler->smarty->security_policy) || $compiler->smarty->security_policy->isTrustedSpecialSmartyVar($variable, $compiler)) {
             switch ($variable) {
                 case 'foreach':
                     $name       = trim($_index[1], "'");

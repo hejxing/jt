@@ -152,8 +152,7 @@ function smarty_modifier_escape($string, $esc_type = 'html', $char_set = null, $
 
         case 'javascript':
             // escape quotes and backslashes, newlines, etc.
-            return strtr($string,
-                ['\\' => '\\\\', "'" => "\\'", '"' => '\\"', "\r" => '\\r', "\n" => '\\n', '</' => '<\/']);
+            return strtr($string, ['\\' => '\\\\', "'" => "\\'", '"' => '\\"', "\r" => '\\r', "\n" => '\\n', '</' => '<\/']);
 
         case 'mail':
             if (Smarty::$_MBSTRING) {

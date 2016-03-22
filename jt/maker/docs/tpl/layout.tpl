@@ -66,7 +66,7 @@
             return false;
         }
     });
-    $('a[href^="http"]').each(function() {
+    $('a[href^="http"]').each(function(){
         $(this).attr('target', '_blank');
     });
 </script>

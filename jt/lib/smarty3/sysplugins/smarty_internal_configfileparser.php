@@ -727,8 +727,7 @@ class Smarty_Internal_Configfileparser
                     }
                     $yyruleno = $yyact - self::YYNSTATE;
                     $this->yyidx -= self::$yyRuleInfo[$yyruleno][1];
-                    $nextstate = $this->yy_find_reduce_action($this->yystack[$this->yyidx]->stateno,
-                        self::$yyRuleInfo[$yyruleno][0]);
+                    $nextstate = $this->yy_find_reduce_action($this->yystack[$this->yyidx]->stateno, self::$yyRuleInfo[$yyruleno][0]);
                     if (isset(self::$yyExpectedTokens[$nextstate])) {
                         $expected = array_merge($expected, self::$yyExpectedTokens[$nextstate]);
                         if (isset($res4[$nextstate][$token])) {
@@ -739,9 +738,7 @@ class Smarty_Internal_Configfileparser
                                 return array_unique($expected);
                             }
                         }else {
-                            if ($res4[$nextstate][$token] = in_array($token, self::$yyExpectedTokens[$nextstate],
-                                true)
-                            ) {
+                            if ($res4[$nextstate][$token] = in_array($token, self::$yyExpectedTokens[$nextstate], true)) {
                                 $this->yyidx   = $yyidx;
                                 $this->yystack = $stack;
 
@@ -817,8 +814,7 @@ class Smarty_Internal_Configfileparser
                     }
                     $yyruleno = $yyact - self::YYNSTATE;
                     $this->yyidx -= self::$yyRuleInfo[$yyruleno][1];
-                    $nextstate = $this->yy_find_reduce_action($this->yystack[$this->yyidx]->stateno,
-                        self::$yyRuleInfo[$yyruleno][0]);
+                    $nextstate = $this->yy_find_reduce_action($this->yystack[$this->yyidx]->stateno, self::$yyRuleInfo[$yyruleno][0]);
                     if (isset($res2[$nextstate][$token])) {
                         if ($res2[$nextstate][$token]) {
                             $this->yyidx   = $yyidx;
@@ -1050,8 +1046,7 @@ class Smarty_Internal_Configfileparser
     #line 297 "../smarty/lexer/smarty_internal_configfileparser.y"
     function yy_r7()
     {
-        $this->_retvalue = array_merge($this->yystack[$this->yyidx + -1]->minor,
-            [$this->yystack[$this->yyidx + 0]->minor]);
+        $this->_retvalue = array_merge($this->yystack[$this->yyidx + -1]->minor, [$this->yystack[$this->yyidx + 0]->minor]);
     }
 
     #line 301 "../smarty/lexer/smarty_internal_configfileparser.y"
@@ -1122,8 +1117,7 @@ class Smarty_Internal_Configfileparser
     public function yy_reduce($yyruleno)
     {
         if ($this->yyTraceFILE && $yyruleno >= 0 && $yyruleno < count(self::$yyRuleName)) {
-            fprintf($this->yyTraceFILE, "%sReduce (%d) [%s].\n", $this->yyTracePrompt, $yyruleno,
-                self::$yyRuleName[$yyruleno]);
+            fprintf($this->yyTraceFILE, "%sReduce (%d) [%s].\n", $this->yyTracePrompt, $yyruleno, self::$yyRuleName[$yyruleno]);
         }
 
         $this->_retvalue = $yy_lefthand_side = null;
@@ -1237,8 +1231,7 @@ class Smarty_Internal_Configfileparser
                     $yymx = $this->yystack[$this->yyidx]->major;
                     if ($yymx == self::YYERRORSYMBOL || $yyerrorhit) {
                         if ($this->yyTraceFILE) {
-                            fprintf($this->yyTraceFILE, "%sDiscard input token %s\n", $this->yyTracePrompt,
-                                $this->yyTokenName[$yymajor]);
+                            fprintf($this->yyTraceFILE, "%sDiscard input token %s\n", $this->yyTracePrompt, $this->yyTokenName[$yymajor]);
                         }
                         $this->yy_destructor($yymajor, $yytokenvalue);
                         $yymajor = self::YYNOCODE;

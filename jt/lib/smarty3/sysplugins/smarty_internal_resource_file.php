@@ -29,8 +29,7 @@ class Smarty_Internal_Resource_File extends Smarty_Resource
     protected function buildFilepath(Smarty_Template_Source $source, Smarty_Internal_Template $_template = null)
     {
         $file = $source->name;
-        preg_match('#^(?P<absolute>[\\\/]|[a-zA-Z]:[\\\/])|(\[(?P<index>[^\]]+)\])|(?P<rel>\.[\\\/])#', $file,
-            $fileMatch);
+        preg_match('#^(?P<absolute>[\\\/]|[a-zA-Z]:[\\\/])|(\[(?P<index>[^\]]+)\])|(?P<rel>\.[\\\/])#', $file, $fileMatch);
         // save basename
         if (!empty($fileMatch['absolute'])) {
             $file = $this->normalizePath($file);
@@ -130,8 +129,7 @@ class Smarty_Internal_Resource_File extends Smarty_Resource
         }
         $path = preg_replace('#[\\\/]+([.][\\\/]+)*#', DS, $path);
         while (strrpos($path, '.' . DS) !== false) {
-            $path = preg_replace('#([\\\/]([^\\\/]+[\\\/]){2}([.][.][\\\/]){2})|([\\\/][^\\\/]+[\\\/][.][.][\\\/])#',
-                DS, $path);
+            $path = preg_replace('#([\\\/]([^\\\/]+[\\\/]){2}([.][.][\\\/]){2})|([\\\/][^\\\/]+[\\\/][.][.][\\\/])#', DS, $path);
         }
 
         return $path;

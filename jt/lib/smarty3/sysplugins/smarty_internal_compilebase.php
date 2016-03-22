@@ -90,8 +90,7 @@ abstract class Smarty_Internal_CompileBase
                             $_indexed_attr[$kv['key']] = false;
                         }
                     }else {
-                        $compiler->trigger_template_error("illegal value of option flag \"{$kv['key']}\"",
-                            $compiler->lex->taglineno);
+                        $compiler->trigger_template_error("illegal value of option flag \"{$kv['key']}\"", $compiler->lex->taglineno);
                     }
                     // must be named attribute
                 }else {
@@ -111,8 +110,7 @@ abstract class Smarty_Internal_CompileBase
             $tmp_array = array_merge($this->required_attributes, $this->optional_attributes, $this->option_flags);
             foreach ($_indexed_attr as $key => $dummy) {
                 if (!in_array($key, $tmp_array) && $key !== 0) {
-                    $compiler->trigger_template_error("unexpected \"" . $key . "\" attribute",
-                        $compiler->lex->taglineno);
+                    $compiler->trigger_template_error("unexpected \"" . $key . "\" attribute", $compiler->lex->taglineno);
                 }
             }
         }

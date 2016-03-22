@@ -151,8 +151,7 @@ class Smarty_Internal_Compile_Block extends Smarty_Internal_CompileBase
             }
         }
         if ($_name == null) {
-            $compiler->trigger_template_error(' tag {$smarty.block.child} used outside {block} tags ',
-                $compiler->lex->taglineno);
+            $compiler->trigger_template_error(' tag {$smarty.block.child} used outside {block} tags ', $compiler->lex->taglineno);
         }
         // undefined child?
         if (!isset($compiler->template->block_data[$_name]['source'])) {
@@ -163,8 +162,8 @@ class Smarty_Internal_Compile_Block extends Smarty_Internal_CompileBase
         // flag that child is already compile by {$smarty.block.child} inclusion
         $compiler->template->block_data[$_name]['compiled'] = true;
         $_tpl                                               = new Smarty_Internal_template('string:' . $compiler->template->block_data[$_name]['source'],
-            $compiler->smarty, $compiler->template, $compiler->template->cache_id, $compiler->template->compile_id,
-            $compiler->template->caching, $compiler->template->cache_lifetime);
+            $compiler->smarty, $compiler->template, $compiler->template->cache_id, $compiler->template->compile_id, $compiler->template->caching,
+            $compiler->template->cache_lifetime);
         if ($compiler->smarty->debugging) {
             Smarty_Internal_Debug::ignore($_tpl);
         }
@@ -184,8 +183,8 @@ class Smarty_Internal_Compile_Block extends Smarty_Internal_CompileBase
             $_output = $_tpl->compiler->compileTemplate($_tpl, $nocache,
                     $compiler->parent_compiler) . $compiler->parser->current_buffer->to_smarty_php();
         }elseif ($compiler->template->block_data[$_name]['mode'] == 'append') {
-            $_output = $compiler->parser->current_buffer->to_smarty_php() . $_tpl->compiler->compileTemplate($_tpl,
-                    $nocache, $compiler->parent_compiler);
+            $_output = $compiler->parser->current_buffer->to_smarty_php() . $_tpl->compiler->compileTemplate($_tpl, $nocache,
+                    $compiler->parent_compiler);
         }elseif (!empty($compiler->template->block_data[$_name])) {
             $_output = $_tpl->compiler->compileTemplate($_tpl, $nocache, $compiler->parent_compiler);
         }
@@ -236,12 +235,10 @@ class Smarty_Internal_Compile_Block extends Smarty_Internal_CompileBase
             }
         }
         if ($_name == null) {
-            $compiler->trigger_template_error(' tag {$smarty.block.parent} used outside {block} tags ',
-                $compiler->lex->taglineno);
+            $compiler->trigger_template_error(' tag {$smarty.block.parent} used outside {block} tags ', $compiler->lex->taglineno);
         }
         if (empty(Smarty_Internal_Compile_Block::$nested_block_names)) {
-            $compiler->trigger_template_error(' illegal {$smarty.block.parent} in parent template ',
-                $compiler->lex->taglineno);
+            $compiler->trigger_template_error(' illegal {$smarty.block.parent} in parent template ', $compiler->lex->taglineno);
         }
         Smarty_Internal_Compile_Block::$block_data[Smarty_Internal_Compile_Block::$nested_block_names[0]]['source'] .= Smarty_Internal_Compile_Block::parent;
         $compiler->lex->yypushstate(Smarty_Internal_Templatelexer::CHILDBLOCK);
@@ -312,12 +309,9 @@ class Smarty_Internal_Compile_Blockclose extends Smarty_Internal_CompileBase
             }else {
                 if (isset($compiler->template->block_data[$name1]) || !$saved_data[0]['hide']) {
                     if (isset($compiler->template->block_data[$name1]) && !isset(Smarty_Internal_Compile_Block::$block_data[$name1]['child'])) {
-                        if (strpos($compiler->template->block_data[$name1]['source'],
-                                Smarty_Internal_Compile_Block::parent) !== false
-                        ) {
+                        if (strpos($compiler->template->block_data[$name1]['source'], Smarty_Internal_Compile_Block::parent) !== false) {
                             $compiler->template->block_data[$name1]['source'] = str_replace(Smarty_Internal_Compile_Block::parent,
-                                Smarty_Internal_Compile_Block::$block_data[$name1]['source'],
-                                $compiler->template->block_data[$name1]['source']);
+                                Smarty_Internal_Compile_Block::$block_data[$name1]['source'], $compiler->template->block_data[$name1]['source']);
                         }elseif ($compiler->template->block_data[$name1]['mode'] == 'prepend') {
                             $compiler->template->block_data[$name1]['source'] .= Smarty_Internal_Compile_Block::$block_data[$name1]['source'];
                         }elseif ($compiler->template->block_data[$name1]['mode'] == 'append') {
@@ -413,8 +407,7 @@ class Smarty_Internal_Compile_Private_Child_Block extends Smarty_Internal_Compil
         $save = [$_attr, $compiler->nocache];
 
         // set trace back to child block
-        $compiler->pushTrace(trim($_attr['file'], "\"'"), trim($_attr['uid'], "\"'"),
-            $_attr['line'] - $compiler->lex->line);
+        $compiler->pushTrace(trim($_attr['file'], "\"'"), trim($_attr['uid'], "\"'"), $_attr['line'] - $compiler->lex->line);
 
         $this->openTag($compiler, 'private_child_block', $save);
 
