@@ -176,7 +176,7 @@ abstract class Action extends Loader{
 			$match[1] = 'require';
 			$match[2] = preg_split('/ *, */', $match[2]);
 		}else{
-			$ruler = trim($match[2] . ' ' . $type);
+			$ruler = trim($type.' '.$match[2]);
 			try{
 				$match[2] = Requester::parseValidate($ruler, 'paramNode:' . $ruler);
 			}catch(\Exception $e){
@@ -272,12 +272,14 @@ abstract class Action extends Loader{
 	 */
 	private function parseParamRuler($ruler, $type){
 		if(in_array($type, Requester::VALUE_TYPE['single']) || in_array($type, Requester::VALUE_TYPE['composite'])){
-			$ruler = trim($ruler . ' ' . $type);
-		}elseif($type){
-			$ruler = trim($ruler . ' type:' . $type);
+			$ruler = $type.' '.$ruler;
+		}elseif($type === static::$requesterClass){
+			$ruler = 'type:object '.$ruler;
+		}else{
+			$ruler = 'type:' . $type.' '.$ruler;
 		}
 
-		return $ruler;
+		return trim($ruler);
 	}
 
 	/**
@@ -344,20 +346,25 @@ abstract class Action extends Loader{
 		}
 		preg_match('/([^ ]*) *(?:\[(.*)\])? *(.*)/', $return, $match);
 		array_shift($match);
+
 		$ruler = $match[1];
+		$nodes = [];
 		if(in_array($match[0], Requester::VALUE_TYPE['single']) || in_array($match[0], Requester::VALUE_TYPE['composite'])){
-			$ruler = $ruler . ' ' . $match[0];
+			$ruler = $match[0] . ' ' . $ruler;
+			$lines = $this->getValueList(['string']);
+			$nodes = $this->parseParam($lines);
 		}
 		$parsed = [
 			'name'  => '',
-			'type'  => $match[0],
 			'ruler' => Requester::parseValidate($ruler, 'return:' . $ruler),
 			'desc'  => $match[2],
 			'line'  => $this->line
 		];
-		if($match[0] === 'array'){
-			$lines           = $this->getValueList(['string']);
-			$parsed['nodes'] = $this->parseParam($lines);
+		if($parsed['ruler']['type'] === 'array'){
+			$parsed['ruler']['type'] = 'object';
+		}
+		if($nodes){
+			$parsed['nodes'] = $nodes;
 		}
 		$this->parsed['return'] = $parsed;
 	}

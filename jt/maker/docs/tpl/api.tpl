@@ -55,7 +55,7 @@
                     <li>
                         <div class="sub-title">
                             <span class="expand" title="收起">-</span>
-                            <span class="param-type-label">{{$name}}:</span>
+                            <span class="param-type-label">{{$name}}:[{{$param.ruler.type}}] {{$param.desc}}</span>
                         </div>
                         {{drawLine param=$param}}
                     </li>
@@ -67,7 +67,7 @@
             <li>
                 <div class="title">
                     <span class="expand" title="收起">-</span>
-                    <span class="param-type-label">响应内容:</span>
+                    <span class="param-type-label">响应内容:[{{$api.return.ruler.type}}] {{$api.return.desc}}</span>
                 </div>
                 {{drawLine param=$api.return}}
             </li>
