@@ -177,6 +177,33 @@ abstract class Action extends Loader
     {
         preg_match('/(\+?\w*)\:?([\w\\\\]*)(?: +\[([^\]]*)\])? *(.*)/', $line, $match);
         array_shift($match);
+        if(strpos($match[2], 'validate:') !== false){
+            $posList = [];
+            $pos = -1;
+            while($pos !== false){
+                $posList[$pos] = 1;
+                $pos = strpos($match[3], '[', $pos+1);
+            }
+            $pos = -1;
+            while($pos !== false){
+                $posList[$pos] = -1;
+                $pos = strpos($match[3], ']', $pos+1);
+            }
+            unset($posList[-1]);
+            $count = 1;
+            foreach($posList as $pos => $d){
+                $count += $d;
+                if($count <= 0){
+                    $match[2] .= ']'.substr($match[3], 0, $pos);
+                    $match[3] = trim(substr($match[3], $pos + 1));
+                    break;
+                }
+            }
+            if($count > 0){
+                $match[3] = $match[2].$match[3];
+                $match[2] = '';
+            }
+        }
         $type = $match[1];
         if (strpos($match[0], '+') === 0) {
             $match[1] = 'require';

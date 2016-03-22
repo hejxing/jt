@@ -30,8 +30,10 @@ class Requester
 
     const CONVERT_TYPE      = ['int', 'float', 'double', 'bool', 'array'];
     const VALIDATE_TYPE     = ['email', 'mobile', 'phone', 'idcard', 'number', 'zn_ch'];
+
     const VALUE_RANGE_TYPE  = ['int', 'float', 'numeric', 'double'];
     const LENGTH_RANGE_TYPE = ['string'];
+
     const FALSE_VALUE       = ['n', 'f', 'no', 'false'];
 
     const TRUE_ITEM    = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert'];
@@ -260,10 +262,17 @@ class Requester
                 }
                 break;
             case 'type' === $key:
-                $result['type'] = $value;
+                if(in_array($value, self::VALUE_TYPE['single']) || in_array($value, self::VALUE_TYPE['composite'])){
+                    $result['type'] = $value;
+                }else{
+                    throw new TaskException("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 的属性 [{$value}] 有误，请检查");
+                }
                 break;
             case in_array($key, self::VALUE_RULE):
                 $result[$key] = $value;
+                break;
+            case in_array($key, self::VALIDATE_TYPE):
+                $result['validate'] = $key;
                 break;
             case in_array($key, self::INJECT_VALUE):
                 if ($key === 'param') {
