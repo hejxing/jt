@@ -165,7 +165,8 @@ class Controller
         if ($this->action === null) {
             return;
         }
-        if ($this->getMime() === 'none') {
+
+        if (strpos($this->ruler[7], 'output_quiet') !== false) {
             $this->action->quiet();
         }
 
@@ -302,7 +303,7 @@ class Controller
      */
     public function setMime($mime)
     {
-        if (in_array($mime, \Config::ACCEPT_MIME) || $mime === 'none') {
+        if (in_array($mime, \Config::ACCEPT_MIME)) {
             $this->mime = $mime;
 
             return true;

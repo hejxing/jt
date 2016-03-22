@@ -8,7 +8,7 @@ namespace jt\maker;
 
 class Router extends Action
 {
-    protected static $rulerOrderMap = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return'];
+    protected static $rulerOrderMap = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'affix'];
 
     /**
      * 清理参数子结点数据
