@@ -34,6 +34,10 @@ abstract class Auth
      */
     protected $loginUrl = '/login';
 
+    /**
+     * 执行权限检查
+     * @return int 200,401,402
+     */
     abstract public function auth();
 
     abstract public function filter();
@@ -52,18 +56,40 @@ abstract class Auth
     /**
      * 处理未登录事件
      */
-    public function notLogin()
+    protected function notLogin()
     {
         $this->action->out('loginUrl', $this->loginUrl);
         $this->action->out('ref', $_SERVER['REQUEST_URI']);
-        $this->action->status(401);
+        $this->action->status(401, [], false);
     }
 
     /**
      * 处理越权事件
      */
-    public function exceed()
+    protected function exceed()
     {
-        $this->action->status(402);
+        $this->action->status(402, [], false);
+    }
+
+    /**
+     * 检查是否有权访问当前资源
+     * @return bool
+     */
+    public function check(){
+        $code = $this->auth();
+        switch($code){
+        case 200:
+            return true;
+        break;
+        case 401:
+            $this->notLogin();
+            break;
+        case 402:
+            $this->exceed();
+            break;
+        default:
+            $this->action->status($code, [], false);
+        }
+        return false;
     }
 }

@@ -136,7 +136,7 @@ class Controller{
 
 		$this->permission = new $className();
 
-		return $this->permission->auth();
+		return $this->permission->check();
 	}
 
 	/**

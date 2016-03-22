@@ -26,6 +26,7 @@
         <div class="title">服务端信息:</div>
         <div class="content">
             <p><span class="content-label">控制器:</span>{{$classAssets}}::{{$api.method}}</p>
+            <p><span class="content-label">权限控制:</span>{{$api.auth}}</p>
             <p><span class="content-label">源代码:</span>{{$scriptFile}} at Line {{$api.line}}</p>
             <p><span class="content-label">修改时间:</span>{{$lastModifyTime}}</p>
         </div>
