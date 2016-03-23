@@ -177,7 +177,7 @@ abstract class Action extends Loader
     {
         preg_match('/(\+?\w*)\:?([\w\\\\]*)(?: +\[([^\]]*)\])? *(.*)/', $line, $match);
         array_shift($match);
-        if(strpos($match[2], 'validate:') !== false){
+        if(strpos($match[2], '[') !== false){
             $posList = [];
             $pos = -1;
             while($pos !== false){
