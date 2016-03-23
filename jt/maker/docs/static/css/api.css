@@ -176,7 +176,8 @@ a.hightLight{
 }
 
 .content-box p a{
-    color:#66aadd;
+    color:#fff;
+    text-decoration:underline;
 }
 
 .content-box .content-label{
@@ -196,6 +197,7 @@ a.hightLight{
 
 .content-box .host{
     font-size:12px;
+    color:#66aadd;
 }
 
 .content-box .list-box{

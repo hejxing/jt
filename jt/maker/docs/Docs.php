@@ -31,6 +31,8 @@ class Docs extends Action
         $this->out('baseHref', str_replace($url, '', $_SERVER['SCRIPT_NAME']));
         $this->setMime('html');
         $this->out('projectName', $this->projectName);
+
+        $this->out('host', $_SERVER['HTTP_HOST']);
         Responder::setTplEngine(new Template([
             'pathRoot'        => __DIR__ . '/tpl',
             'left_delimiter'  => '{{',

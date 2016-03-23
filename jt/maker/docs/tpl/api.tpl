@@ -18,7 +18,7 @@
     {{/if}}
     <div class="content-box highlight">
         <p><span class="content-label">请求方法:</span>{{$action}}</p>
-        <p><span class="content-label">请求路径:</span>{{$api.uri}} <a href="./" class="host">[host]</a></p>
+        <p><span class="content-label">请求路径:</span><a class="uri" href="//{{$host}}{{$api.uri}}" target="_blank">{{$api.uri}}</a> <a href="./" class="host">[host]</a></p>
         <p><span class="content-label">响应类型:</span>{{$mime}}</p>
         <p><span class="content-label">支持版本:</span>1.0</p>
     </div>

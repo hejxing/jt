@@ -100,7 +100,7 @@ class Bootstrap
                 MODULE_NAMESPACE_ROOT) . 'config/' . RUN_MODE . '/Config.php';
 
         //注册错误、异常入口
-        \ini_set("display_errors", "1");
+       
         \set_error_handler('\jt\Error::errorHandler');
         \set_exception_handler('\jt\Error::exceptionHandler');
 

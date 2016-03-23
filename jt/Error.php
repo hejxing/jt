@@ -38,7 +38,7 @@ class Error extends Action
             E_COMPILE_ERROR,
             E_USER_ERROR
         ])) {
-            self::fatalError('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' on line ' . $errLine);
+            self::fatal('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' on line ' . $errLine);
         }elseif (RUN_MODE === 'develop') {
             self::notice($errNo, $errStr . ' in ' . $errFile . ' on line ' . $errLine, AL);
             //Controller::current()->getAction()->header('notice', $errStr . ' in ' . $errFile . ' on line ' . $errLine, AL);
