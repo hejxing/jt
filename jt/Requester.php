@@ -615,7 +615,7 @@ class Requester
             $msg .= '.' . $line;
         }
         if ($strict) {
-            Error::msg('inputIll', $msg, ['field' => $name, 'code' => $code]);
+            Error::fatal('inputIll', $msg, ['field' => $name, 'code' => $code]);
         }elseif (RUN_MODE !== 'production') {
             Error::notice($code, $msg);
         }

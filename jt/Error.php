@@ -67,14 +67,14 @@ class Error extends Action
         }
     }
 
-    private static function fatalError($code, $msg = '', $param = []){
+    private static function fatalError($code, $msg = '', $param = [], $strict = true){
         self::$collected['fatal'] = [
             'code' => $code,
             'msg'  => $msg
         ];
         //$handler = new ErrorHandler();
         \header('Status: 500', true);
-        self::error($code, $msg, true, $param);
+        self::error($code, $msg, $strict, $param);
     }
 
     /**
@@ -86,22 +86,21 @@ class Error extends Action
      */
     public static function fatal($code, $msg = '', $param = [])
     {
-        self::fatalError($code, $msg, $param);
+        $p = [];
+        $d = [];
+        foreach($param as $k => $v){
+            if(is_string($k)){
+                $d[$k] = $v;
+            }else{
+                $d[] = $v;
+            }
+        }
+        if($d){
+            $method = '_error';
+            self::getAction($method)->outMass($d);
+        }
+        self::fatalError($code, $msg, $p, false);
         Responder::end(null);
-    }
-
-    /**
-     * 产生错误消息
-     *
-     * @param string $code
-     * @param string $msg
-     * @param array  $data
-     */
-    public static function msg($code, $msg = '', array $data = [])
-    {
-        $method = '_notice';
-        self::getAction($method)->outMass($data);
-        self::error($code, $msg, false);
     }
 
     /**
