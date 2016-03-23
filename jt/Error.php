@@ -113,12 +113,7 @@ class Error extends Action
      */
     protected static function error($code, $msg, $fatal, $param = [])
     {
-        if ($fatal) {
-            $method = '_' . $code;
-        }else {
-            $method = 'client_error';
-        }
-
+        $method = '_' . $code;
         $action = self::getAction($method);
         $action->header('code', $code);
         $action->header('msg', $msg);

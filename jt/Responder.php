@@ -71,7 +71,7 @@ class Responder
         }else {
             return var_export($data, true);
         }
-
+        
         $content = $tpl->render(Controller::current()->getTemplate(), $data);
         if (RUN_MODE !== 'production') {
             //Debug::output($content);
