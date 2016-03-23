@@ -61,7 +61,7 @@ abstract class Auth
     {
         $this->action->out('loginUrl', $this->loginUrl);
         $this->action->out('ref', $_SERVER['REQUEST_URI']);
-        $this->action->status(401, [], false);
+        $this->action->status(401.1, [], false);
     }
 
     /**
@@ -69,7 +69,7 @@ abstract class Auth
      */
     protected function exceed()
     {
-        $this->action->status(402, [], false);
+        $this->action->status(401.4, [], false);
     }
 
     /**
@@ -84,10 +84,10 @@ abstract class Auth
             case 200:
                 return true;
                 break;
-            case 401:
+            case 401.1:
                 $this->notLogin();
                 break;
-            case 402:
+            case 401.4:
                 $this->exceed();
                 break;
             default:

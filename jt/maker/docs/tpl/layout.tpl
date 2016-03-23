@@ -6,14 +6,14 @@
     <base href="{{$baseHref}}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- 新 Bootstrap 核心 CSS 文件 -->
-    <link rel="stylesheet" href="//api_docs.test.csmall.com/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//api-silverbag.csmall.com/static/css/bootstrap.min.css">
 
     <!-- 可选的Bootstrap主题文件（一般不用引入） -->
-    <link rel="stylesheet" href="//api_docs.test.csmall.com/static/css/bootstrap-theme.min.css">
-    <link rel="stylesheet" href="//api_docs.test.csmall.com/static/css/api.css">
+    <link rel="stylesheet" href="//api-silverbag.csmall.com/static/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="//api-silverbag.csmall.com/static/css/api.css">
     <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
-    <script src="//api_docs.test.csmall.com/static/js/jquery.js"></script>
-    <script src="//api_docs.test.csmall.com/static/js/gototop.js"></script>
+    <script src="//api-silverbag.csmall.com/static/js/jquery.js"></script>
+    <script src="//api-silverbag.csmall.com/static/js/gototop.js"></script>
 </head>
 <body>
 <div class="container-fluid">
