@@ -29,7 +29,7 @@ class Requester
     protected $method = '';
 
     const CONVERT_TYPE  = ['int', 'float', 'double', 'bool', 'array'];
-    const VALIDATE_TYPE = ['email', 'mobile', 'phone', 'idcard', 'number', 'zn_ch'];
+    const VALIDATE_TYPE = ['email', 'mobile', 'phone', 'identityCard', 'number', 'zn_ch'];
 
     const VALUE_RANGE_TYPE  = ['int', 'float', 'numeric', 'double'];
     const LENGTH_RANGE_TYPE = ['string'];

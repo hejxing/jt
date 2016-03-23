@@ -350,13 +350,14 @@ abstract class Action extends Loader
             }
             $mp   = &$this->parsed['param'][$name];
             $type = $type ?: $mp['type'];
+
             if ($type && !$mp['type']) {
                 $mp['type'] = $type;
                 $mp['line'] = $this->line; //标明此处的类型定义来自注解
             }elseif ($type !== $mp['type']) {
                 $this->error('paramTypeDiscord', '参数类型不一致。[' . $type . ']的参数类型[' . $name . '] 与方法声明中的类型[' . $mp[0] . '] 不一致');
             }
-            $ruler = $this->parseParamRuler($match[2], $match[0]);
+            $ruler = $this->parseParamRuler($match[2], $type);
             $desc  = $match[3];
             $nodes = [];
 

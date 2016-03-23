@@ -13,6 +13,8 @@ class Validate
     const REGEX_EMAIL           = '/^[\w+\.]+@([\w-]+\.)+[\w]+$/';
     const REGEX_PHONE           = '/^\+?\d*(\([\d]+\))?([ -]{0,1}[\d]+)+$/';
     const REGEX_UNIVERSE_MOBILE = '/^\+?(\d+[ -]?)(\d+[-]?\d+)+$/';
+    const REGEX_ID_CARD         = '/^(?:[\d -]{17}|[\d -]{14})[\dxX]{1}$/';
+    const REGEX_ZH_CN           = '/^[\x{4e00}-\x{9fa5}A-Za-z0-9_]+$/u';
 
     /**
      * 检查是否是Email
@@ -71,9 +73,26 @@ class Validate
      * @param $value
      * @return bool
      */
-    public static function idcard($value)
+    public static function identityCard($value)
     {
-        return true;
+        $value = str_replace(' ', '', $value);
+        if (!preg_match(self::REGEX_ID_CARD, $value)) {
+            return false;
+        }
+        if (strlen($value) === 15) {
+            return true;
+        }
+
+        $power = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+        $ecc   = ['1', '0', 'x', '9', '8', '7', '6', '5', '4', '3', '2'];
+        $sum   = 0;
+        $chars = str_split(substr($value, 0, 17));
+        foreach ($chars as $index => $v) {
+            $sum += $power[$index] * $v;
+        }
+        $last = $ecc[$sum % 11];
+
+        return $last === strtolower(substr($value, -1));
     }
 
     public static function number($value)
@@ -83,7 +102,7 @@ class Validate
 
     public static function zh_cn($value)
     {
-        return \preg_match("/^[\x{4e00}-\x{9fa5}A-Za-z0-9_]+$/u", $value) > 0;
+        return \preg_match(self::REGEX_ZH_CN, $value) > 0;
     }
 
     /**
