@@ -28,13 +28,13 @@ class Requester
 
     protected $method = '';
 
-    const CONVERT_TYPE      = ['int', 'float', 'double', 'bool', 'array'];
-    const VALIDATE_TYPE     = ['email', 'mobile', 'phone', 'idcard', 'number', 'zn_ch'];
+    const CONVERT_TYPE  = ['int', 'float', 'double', 'bool', 'array'];
+    const VALIDATE_TYPE = ['email', 'mobile', 'phone', 'idcard', 'number', 'zn_ch'];
 
     const VALUE_RANGE_TYPE  = ['int', 'float', 'numeric', 'double'];
     const LENGTH_RANGE_TYPE = ['string'];
 
-    const FALSE_VALUE       = ['n', 'f', 'no', 'false'];
+    const FALSE_VALUE = ['n', 'f', 'no', 'false'];
 
     const TRUE_ITEM    = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert'];
     const INPUT_TYPE   = ['any', 'get', 'post', 'path'];
@@ -128,6 +128,7 @@ class Requester
                 return self::error('value_too_large', '值不能大于 ' . $option['max'], $name, $option, $strict);
             }
         }
+
         if (in_array($option['type'], static::LENGTH_RANGE_TYPE)) {//比较长度
             if ($option['min'] && \mb_strlen($value) < $option['min']) {
                 return self::error('value_too_less', '值不能少于 ' . $option['min'] . ' 位字符', $name, $option, $strict);
@@ -215,6 +216,12 @@ class Requester
                 $lined = \array_merge($lined, self::attr($a, $name));
             }
         }
+
+        if ($lined['type'] === 'undefined') {
+            $lined['type'] = 'string';
+            $lined['raw']  = trim('string ' . $lined['raw']);
+        }
+
         if (in_array($lined['type'], self::VALUE_RANGE_TYPE) || in_array($lined['type'], self::LENGTH_RANGE_TYPE)) {
             if (!isset($lined['min'])) {
                 $lined['min'] = 0;
@@ -222,11 +229,6 @@ class Requester
             if (!isset($lined['max'])) {
                 $lined['max'] = 0;
             }
-        }
-
-        if ($lined['type'] === 'undefined') {
-            $lined['type'] = 'string';
-            $lined['raw']  = trim('string ' . $lined['raw']);
         }
 
         return $lined;
@@ -262,9 +264,9 @@ class Requester
                 }
                 break;
             case 'type' === $key:
-                if(in_array($value, self::VALUE_TYPE['single']) || in_array($value, self::VALUE_TYPE['composite'])){
+                if (in_array($value, self::VALUE_TYPE['single']) || in_array($value, self::VALUE_TYPE['composite'])) {
                     $result['type'] = $value;
-                }else{
+                }else {
                     throw new TaskException("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 的属性 [{$value}] 有误，请检查");
                 }
                 break;

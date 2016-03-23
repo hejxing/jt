@@ -38,7 +38,7 @@ class Error extends Action
             E_COMPILE_ERROR,
             E_USER_ERROR
         ])) {
-            self::fatal('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' on line ' . $errLine);
+            self::fatalError('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' on line ' . $errLine);
         }elseif (RUN_MODE === 'develop') {
             self::notice($errNo, $errStr . ' in ' . $errFile . ' on line ' . $errLine, AL);
             //Controller::current()->getAction()->header('notice', $errStr . ' in ' . $errFile . ' on line ' . $errLine, AL);
@@ -63,8 +63,18 @@ class Error extends Action
         if ($e instanceof TaskException) {
             self::error($code, $msg, false, []);
         }else {
-            self::fatal($code, $msg);
+            self::fatalError($code, $msg);
         }
+    }
+
+    private static function fatalError($code, $msg = '', $param = []){
+        self::$collected['fatal'] = [
+            'code' => $code,
+            'msg'  => $msg
+        ];
+        //$handler = new ErrorHandler();
+        \header('Status: 500', true);
+        self::error($code, $msg, true, $param);
     }
 
     /**
@@ -76,13 +86,8 @@ class Error extends Action
      */
     public static function fatal($code, $msg = '', $param = [])
     {
-        self::$collected['fatal'] = [
-            'code' => $code,
-            'msg'  => $msg
-        ];
-        //$handler = new ErrorHandler();
-        \header('Status: 500', true);
-        self::error($code, $msg, true, $param);
+        self::fatalError($code, $msg, $param);
+        Responder::end(null);
     }
 
     /**
@@ -134,8 +139,6 @@ class Error extends Action
             echo $e->getMessage(), "<br>\n";
             echo $code . '::' . $msg;
         }
-
-        Responder::end(null);
     }
 
     /**

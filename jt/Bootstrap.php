@@ -41,22 +41,8 @@ class Bootstrap
                 $className::__init($className);
             }
         }else {
-            //if($isConfig){
-            //	Error::fatal('404', '配置文件：' . $classFile . ' 不存在');
-            //}else{
             return false;
-            //}
         }
-        //等到了PHP7再使用以下方法
-        //		try{
-        //			include $classFile;
-        //		}catch (\Exception $e){
-        //			if($isConfig){
-        //				Error::fatal('404', '配置文件：' . $classFile . ' 不存在');
-        //			}else{
-        //				return false;
-        //			}
-        //		}
     }
 
     /**
