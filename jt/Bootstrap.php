@@ -138,4 +138,14 @@ class Bootstrap
             'nsRoot'  => $nsRoot
         ]);
     }
+
+    /**
+     * 启动会话
+     */
+    public static function sessionStart(){
+        $handlerName = \Config::SESSION_HANDLER;
+        \session_set_save_handler(new $handlerName());
+        \session_register_shutdown();
+        \session_start();
+    }
 }
