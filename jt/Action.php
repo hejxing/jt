@@ -159,9 +159,8 @@ abstract class Action
             $headerStore['queryCount']     = class_exists('\jt\Model', false) ? Model::getQueryTimes() : 0;// + \dal\Dal::selectQueryTimes();
             $includeFiles                  = get_included_files();
             $headerStore['loadFilesCount'] = count($includeFiles);
-            $headerStore['spendTime']      = intval((microtime(true) - Bootstrap::$startTime) * 1000);
-            //$headerStore['loadFiles'] = $includeFiles;
         }
+        $headerStore['spendTime']      = intval((microtime(true) - Bootstrap::$startTime) * 1000);
 
         return $headerStore;
     }
@@ -264,9 +263,6 @@ abstract class Action
      */
     public function after($method, $param)
     {
-        //$this->header('runTime', Debug::runtime(), false);
-        //$this->header('loadFileCount', count(Bootstrap::$loadFileLog), false);
-        //$this->header('queryTimes', Model::getQueryTimes(), false);
         return true;
     }
 
