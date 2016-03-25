@@ -379,11 +379,11 @@ class Controller
         $routerMapFile = \Config::RUNTIME_PATH_ROOT . '/router/' . MODULE . '.php';
         //加载不成功则生成
         if (RUN_MODE === 'develop') { //生成路由
-            $result = maker\Router::general($routerMapFile);
+            $result = maker\router\Router::general($routerMapFile);
         }else { //加载路由
             $result = include($routerMapFile);
             if ($result === false) { //生成并保存
-                $result = maker\Router::general($routerMapFile);
+                $result = maker\router\Router::general($routerMapFile);
             }
         }
         if (!is_array($result)) {

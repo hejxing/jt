@@ -6,7 +6,7 @@
  * Time: 9:36
  */
 
-namespace jt\maker;
+namespace jt\maker\router;
 
 
 class Model extends Loader

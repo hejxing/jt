@@ -4,7 +4,7 @@
  * Create: 2015/10/20 16:47
  */
 
-namespace jt\maker;
+namespace jt\maker\router;
 
 use jt\Error;
 

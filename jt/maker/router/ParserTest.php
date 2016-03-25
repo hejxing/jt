@@ -4,7 +4,7 @@
  * @Create 2015/10/23 13:25
  */
 
-namespace jt\maker;
+namespace jt\maker\router;
 
 
 class ParserTest extends \PHPUnit_Framework_TestCase

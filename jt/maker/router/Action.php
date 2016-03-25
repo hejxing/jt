@@ -6,7 +6,7 @@
  * Time: 14:04
  */
 
-namespace jt\maker;
+namespace jt\maker\router;
 
 use jt\Requester;
 
