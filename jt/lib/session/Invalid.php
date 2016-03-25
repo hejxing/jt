@@ -2,7 +2,7 @@
 /**
  * @Copyright jentian.com
  * Auth: hejxi
- * Create: 2016/3/25 14:07
+ * Create: 2016/3/25 18:06
  */
 
 namespace jt\lib\session;
@@ -10,17 +10,8 @@ namespace jt\lib\session;
 
 use jt\Session;
 
-class Redis extends Session
+class Invalid extends Session
 {
-    /**
-     * @type \Redis
-     */
-    protected $saver = null;
-    public function __construct()
-    {
-        $this->saver = new \Redis();
-        $this->saver->pconnect(\RedisConfig::HOST, \RedisConfig::PORT, \RedisConfig::TIME_OUT);
-    }
 
     /**
      * Close the session
@@ -86,7 +77,7 @@ class Redis extends Session
      */
     public function read($session_id)
     {
-        return $this->saver->get($session_id);
+        return '';
     }
 
     /**
@@ -109,6 +100,6 @@ class Redis extends Session
      */
     public function write($session_id, $session_data)
     {
-        return $this->saver->set($session_id, $session_data);
+        return true;
     }
 }

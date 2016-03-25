@@ -138,17 +138,4 @@ class Bootstrap
             'nsRoot'  => $nsRoot
         ]);
     }
-
-    /**
-     * 启动会话
-     * @param string $sessionId 会话ID
-     */
-    public static function sessionStart($sessionId){
-        $handlerName = \Config::SESSION_HANDLER;
-        \session_set_save_handler(new $handlerName());
-        \session_register_shutdown();
-        \session_name('jt');
-        \session_id($sessionId);
-        \session_start();
-    }
 }
