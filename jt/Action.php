@@ -155,7 +155,7 @@ abstract class Action
     public static function getHeaderStore()
     {
         $headerStore = self::$headerStore;
-        if (RUN_MODE !== 'production') {
+        if (RUN_MODE === 'develop') {
             $headerStore['queryCount']     = class_exists('\jt\Model', false) ? Model::getQueryTimes() : 0;// + \dal\Dal::selectQueryTimes();
             $includeFiles                  = get_included_files();
             $headerStore['loadFilesCount'] = count($includeFiles);
