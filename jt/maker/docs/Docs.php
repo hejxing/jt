@@ -178,4 +178,9 @@ class Docs extends Action
 
         return require($parseFile);
     }
+    
+    protected function showOpcache(){
+        $this->setMime('html');
+        require __DIR__.'/tpl/opcache.tpl';
+    }
 }
