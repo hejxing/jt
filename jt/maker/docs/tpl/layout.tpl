@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>api文档</title>
+    <title>{{$projectName}}</title>
     <base href="{{$baseHref}}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- 新 Bootstrap 核心 CSS 文件 -->
@@ -19,9 +19,7 @@
 <div class="container-fluid">
     <div class="container-fluid">
         <div class="navbar-header">
-            <a class="navbar-brand" href="./">API接口文档
-                <small>Beta</small>
-            </a>
+            <a class="navbar-brand" href="./">{{$projectName}}<small>Beta</small></a>
         </div>
         <!-- <form class="form-inline pull-right" id="form" action="" method="GET">
             <div class="form-group">
@@ -34,9 +32,6 @@
     <div class="row">
         <!-- 导航 -->
         <div class="col-md-2 classList">
-            <div class="list-group">
-                <a href="./" class="list-group-item">{{$projectName}}</a>
-            </div>
             <div class="list-group api-list">
                 {{foreach $pathList as $path => $ms}}
                     {{foreach $ms as $method => $info}}

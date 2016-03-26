@@ -160,7 +160,12 @@ abstract class Action
             $includeFiles                  = get_included_files();
             $headerStore['loadFilesCount'] = count($includeFiles);
         }
-        $headerStore['spendTime']      = intval((microtime(true) - Bootstrap::$startTime) * 1000);
+        $unit = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+        $size = memory_get_usage(true) / 8;
+        $i    = floor(log($size, 1024));
+
+        $headerStore['useMemory'] = round($size / pow(1024, $i), 2).' '.$unit[$i];
+        $headerStore['spendTime'] = intval((microtime(true) - Bootstrap::$startTime) * 1000);
 
         return $headerStore;
     }
