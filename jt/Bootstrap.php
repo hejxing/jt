@@ -129,6 +129,7 @@ class Bootstrap
      * 测试入口
      *
      * @param string $root 项目根目录
+     * @param string $nsRoot 项目根命名空间
      */
     public static function test($root, $nsRoot = '')
     {

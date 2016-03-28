@@ -9,19 +9,10 @@
  */
 class BootstrapTest extends \PHPUnit_Framework_TestCase
 {
-    public function setUp()
-    {
-        $wd = substr(__DIR__, 0, strrpos(__DIR__, DIRECTORY_SEPARATOR));
-        \jt\Bootstrap::init([
-            'runMode' => 'develop',
-            'docRoot' => $wd
-        ]);
-    }
-
     public function testEnvironment()
     {
         $this->assertEquals('develop', RUN_MODE);
-        $this->assertEquals('', MODULE);
+        $this->assertEquals('app', MODULE);
         $this->assertTrue(class_exists('\Config'));
         $this->assertTrue(class_exists('\jt\Action'));
     }
