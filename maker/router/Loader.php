@@ -138,7 +138,7 @@ abstract class Loader
             unlink($cacheRoot . '/' . $file);
         }
         if (static::$parseNewFile) {
-            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(\Config::RUNTIME_PATH_ROOT), RecursiveIteratorIterator::SELF_FIRST);
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(\Config::RUNTIME_PATH_ROOT), \RecursiveIteratorIterator::SELF_FIRST);
             foreach($iterator as $item) {
                 chmod($item, 0777);
             }
