@@ -11,7 +11,7 @@ Just for ruler
 	1. 事件管理
 		1. Hook
 		1. Event
-	1. 文档生成
+	1. 文档生成(已完成)
 		1. Api接口说明
 		1. URI与方法的关系表(便于定位Action)
 	1. 在Action中为Model指定URI，将基础操作自动完成
