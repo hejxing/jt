@@ -151,6 +151,7 @@ abstract class Loader
         }
         if (!is_dir(dirname(static::$cacheFile))) {
             mkdir(dirname(static::$cacheFile), 0777, true);
+            chmod(dirname(static::$cacheFile), 0777);
         }
         //TODO: 自定义实现序列化
         file_put_contents(static::$cacheFile, "<?php\nreturn " . @var_export(static::$cacheStore, true) . ';');

@@ -159,6 +159,7 @@ class Router extends Action
         $routerMap = $router->link();
         if (!is_dir(dirname($saveAs))) {
             mkdir(dirname($saveAs), 0777, true);
+            chmod(dirname($saveAs), 0777);
         }
         //file_put_contents($saveAs, "<?php\nreturn [" . static::serialize($routerMap) . '];');
         file_put_contents($saveAs, "<?php\nreturn " . var_export($routerMap, true) . ';');
