@@ -150,7 +150,7 @@ abstract class Loader
             return;
         }
         if (!is_dir(dirname(static::$cacheFile))) {
-            mkdir(dirname(static::$cacheFile), 0700, true);
+            mkdir(dirname(static::$cacheFile), 0777, true);
         }
         //TODO: 自定义实现序列化
         file_put_contents(static::$cacheFile, "<?php\nreturn " . @var_export(static::$cacheStore, true) . ';');
