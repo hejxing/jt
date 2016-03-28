@@ -154,6 +154,7 @@ abstract class Loader
         }
         //TODO: 自定义实现序列化
         file_put_contents(static::$cacheFile, "<?php\nreturn " . @var_export(static::$cacheStore, true) . ';');
+        chmod(static::$cacheFile, 0777);
     }
 
     private static function loadCache()
