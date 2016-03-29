@@ -84,6 +84,7 @@ class Template extends \Smarty
     public function render($template, array $data, $compile_id = null)
     {
         $templateFile = $this->seekTemplateFile($template);
+
         return $this->fetch($templateFile, array_merge($this->baseData, $data), $compile_id);
     }
 

@@ -105,10 +105,9 @@ abstract class Loader
         if (is_dir($cacheRoot)) {
             $hd = opendir($cacheRoot);
             while (($file = readdir($hd))) {
-                if (in_array($file, ['.', '..'])) {
-                    continue;
+                if (!in_array($file, ['.', '..'])) {
+                    $cacheFiles[$file] = 1;
                 }
-                $cacheFiles[$file] = 1;
             }
         }
 
@@ -137,10 +136,14 @@ abstract class Loader
         foreach ($cacheFiles as $file => $v) {
             unlink($cacheRoot . '/' . $file);
         }
-        if (static::$parseNewFile) {
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(\Config::RUNTIME_PATH_ROOT), \RecursiveIteratorIterator::SELF_FIRST);
+
+        if (static::$parseNewFile && RUN_MODE === 'develop') {
+            $dir = new \RecursiveDirectoryIterator(\Config::RUNTIME_PATH_ROOT);
+            $iterator = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::SELF_FIRST);
             foreach($iterator as $item) {
-                chmod($item, 0777);
+                if(substr($item,-1) !== '.'){
+                    chmod($item, 0777);
+                }
             }
         }
     }
@@ -156,11 +159,10 @@ abstract class Loader
             return;
         }
         if (!is_dir(dirname(static::$cacheFile))) {
-            mkdir(dirname(static::$cacheFile), 0777, true);
+            mkdir(dirname(static::$cacheFile), 0700, true);
         }
         //TODO: 自定义实现序列化
         file_put_contents(static::$cacheFile, "<?php\nreturn " . @var_export(static::$cacheStore, true) . ';');
-        chmod(static::$cacheFile, 0666);
     }
 
     private static function loadCache()

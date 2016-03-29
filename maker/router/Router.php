@@ -158,12 +158,10 @@ class Router extends Action
         $router    = new self('', '');
         $routerMap = $router->link();
         if (!is_dir(dirname($saveAs))) {
-            mkdir(dirname($saveAs), 0777, true);
-            chmod(dirname($saveAs), 0777);
+            mkdir(dirname($saveAs), 0700, true);
         }
         //file_put_contents($saveAs, "<?php\nreturn [" . static::serialize($routerMap) . '];');
         file_put_contents($saveAs, "<?php\nreturn " . var_export($routerMap, true) . ';');
-        chmod($saveAs, 0666);
 
         return $routerMap;
     }
