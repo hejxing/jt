@@ -18,6 +18,8 @@ class Config
 
     const RUNTIME_PATH_ROOT = PROJECT_ROOT . '/runtime';
 
+    const NAMESPACE_PATH_MAP = [];
+
     const MEMCACHED = [
         'persistentId' => 'pool',
         'serverList'   => [

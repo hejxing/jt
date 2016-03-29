@@ -32,7 +32,13 @@ class Bootstrap
      */
     public static function loadClass($className)
     {
-        $root      = \strpos($className, 'jt') === 0 ? CORE_ROOT : PROJECT_ROOT;
+        $prefix = substr($className, 0, strpos($className, '\\'));
+        if($prefix === 'jt'){
+            $root = CORE_ROOT;
+        }else{
+            $root = \Config::NAMESPACE_PATH_MAP[$prefix]??PROJECT_ROOT;
+        }
+
         $classFile = $root . DIRECTORY_SEPARATOR . \str_replace('\\', DIRECTORY_SEPARATOR, $className) . '.php';
 
         if (\file_exists($classFile)) {
@@ -60,10 +66,20 @@ class Bootstrap
             }
             $lastError = \error_get_last();
             if ($lastError) {
-                Error::errorHandler($lastError['type'], $lastError['message'], $lastError['file'], $lastError['line'], []);
+                Error::errorHandler($lastError['type'], $lastError['message'], $lastError['file'], $lastError['line']);
                 //短信、邮件通知负责人
             }
         }
+    }
+
+    /**
+     * 加载配置文件
+     */
+    private static function loadConfig()
+    {
+        $configRoot = PROJECT_ROOT . DIRECTORY_SEPARATOR . \str_replace('\\', DIRECTORY_SEPARATOR, MODULE_NAMESPACE_ROOT) . 'config/';
+        require $configRoot . 'Config.php';
+        require $configRoot . RUN_MODE . '/Config.php';
     }
 
     /**
@@ -94,13 +110,14 @@ class Bootstrap
         define('DOCUMENT_ROOT', $option['docRoot']);
         define('MODULE', $module);
         define('MODULE_NAMESPACE_ROOT', $option['nsRoot']);
+
+        self::loadConfig();
+
         //定义自动加载文件方法
         \spl_autoload_register('static::loadClass');
-        require PROJECT_ROOT . DIRECTORY_SEPARATOR . \str_replace('\\', DIRECTORY_SEPARATOR,
-                MODULE_NAMESPACE_ROOT) . 'config/' . RUN_MODE . '/Config.php';
 
         //注册错误、异常入口
-       
+
         \set_error_handler('\jt\Error::errorHandler');
         \set_exception_handler('\jt\Error::exceptionHandler');
 
@@ -111,6 +128,7 @@ class Bootstrap
      * 访问入口
      *
      * @param string $runMode
+     * @param string $nsRoot
      */
     public static function boot($runMode = 'production', $nsRoot = '')
     {
