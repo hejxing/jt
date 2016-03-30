@@ -36,12 +36,12 @@ class Config
 
 class EnumList
 {
-    const map = [];
+    const MAP = [];
 
     public static function getValues()
     {
         $values = [];
-        foreach (static::map as $key => $name) {
+        foreach (static::MAP as $key => $name) {
             if (defined("static::{$key}")) {
                 $values[$name] = constant("static::{$key}");
             }
@@ -54,7 +54,7 @@ class EnumList
 
 class Template extends EnumList
 {
-    const map           = [
+    const MAP           = [
         'PATH_ROOT'       => 'pathRoot',
         'AUTO_LOAD'       => 'autoLoad',
         'BASE_DATA'       => 'baseData',

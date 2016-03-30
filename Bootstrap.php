@@ -117,7 +117,6 @@ class Bootstrap
         \spl_autoload_register('static::loadClass');
 
         //注册错误、异常入口
-
         \set_error_handler('\jt\Error::errorHandler');
         \set_exception_handler('\jt\Error::exceptionHandler');
 

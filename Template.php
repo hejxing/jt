@@ -5,7 +5,6 @@
 namespace jt;
 
 require CORE_ROOT . '/jt/lib/smarty3/Smarty.class.php';
-
 use Config;
 
 class Template extends \Smarty
@@ -16,6 +15,8 @@ class Template extends \Smarty
      * @type string
      */
     protected $pathRoot = '/template';
+    public $left_delimiter = '{{';
+    public $right_delimiter = '}}';
     /**
      * 模板后缀
      *
@@ -95,12 +96,13 @@ class Template extends \Smarty
      */
     private function setConfigs($config)
     {
-        $this->setCompileDir(\Config::RUNTIME_PATH_ROOT . '/smarty/compile');
-        $this->setCacheDir(\Config::RUNTIME_PATH_ROOT . '/smarty/cache');
+        $this->setCompileDir(Config::RUNTIME_PATH_ROOT . '/smarty/compile');
+        $this->setCacheDir(Config::RUNTIME_PATH_ROOT . '/smarty/cache');
 
         foreach ($config as $name => $value) {
             $this->$name = $value;
         }
+        
     }
 
     /**
