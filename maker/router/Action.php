@@ -8,6 +8,7 @@
 
 namespace jt\maker\router;
 
+use jt\exception\TaskException;
 use jt\Requester;
 
 abstract class Action extends Loader
@@ -212,8 +213,8 @@ abstract class Action extends Loader
             $ruler = trim($type . ' ' . $match[2]);
             try{
                 $match[2] = Requester::parseValidate($ruler, 'paramNode:' . $ruler);
-            }catch (\Exception $e){
-                $this->error(...explode(':', $e->getMessage(), 2));
+            }catch (TaskException $e){
+                $this->throwError($e);
             }
         }
         if (!$type && isset($match[2]['type'])) {
@@ -397,10 +398,14 @@ abstract class Action extends Loader
         }
         $parsed = [
             'name'  => '',
-            'ruler' => Requester::parseValidate($ruler, 'return:' . $ruler),
             'desc'  => $match[2],
             'line'  => $this->line
         ];
+        try{
+            $parsed['ruler'] = Requester::parseValidate($ruler, 'return:' . $ruler);
+        }catch (TaskException $e){
+            $this->throwError($e);
+        }
         if ($parsed['ruler']['type'] === 'array') {
             $parsed['ruler']['type'] = 'object';
         }
@@ -732,7 +737,12 @@ abstract class Action extends Loader
                 $this->error('routerMapNameError', $action . ' 对应的参数名 [' . $name . '] 不一致，请检查');
             }
             if (isset($item['ruler']) && $item['ruler']) {
-                $item['ruler'] = Requester::parseValidate($item['ruler'], 'param[' . $name . ']:' . $item['ruler']);
+                try{
+                    $item['ruler'] = Requester::parseValidate($item['ruler'], 'param[' . $name . ']:' . $item['ruler']);
+                }catch (TaskException $e){
+                    $this->throwError($e);
+                }
+
             }else {
                 $item['ruler'] = [];
             }

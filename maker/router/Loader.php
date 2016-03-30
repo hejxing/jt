@@ -7,6 +7,7 @@
 namespace jt\maker\router;
 
 use jt\Error;
+use jt\exception\TaskException;
 
 /**
  * Class Loader
@@ -138,10 +139,10 @@ abstract class Loader
         }
 
         if (static::$parseNewFile && RUN_MODE === 'develop') {
-            $dir = new \RecursiveDirectoryIterator(\Config::RUNTIME_PATH_ROOT);
+            $dir      = new \RecursiveDirectoryIterator(\Config::RUNTIME_PATH_ROOT);
             $iterator = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::SELF_FIRST);
-            foreach($iterator as $item) {
-                if(substr($item,-1) !== '.'){
+            foreach ($iterator as $item) {
+                if (substr($item, -1) !== '.') {
                     chmod($item, 0777);
                 }
             }
@@ -402,7 +403,18 @@ abstract class Loader
      */
     protected function error($code, $msg)
     {
-        Error::fatal($code, $msg . ' [in file: ' . $this->file . ' on line: ' . $this->line . '].');
+        $this->throwError(new TaskException($code . ':' . $msg));
+    }
+
+    /**
+     * 输出解析中的错误
+     *
+     * @param \jt\exception\TaskException $e
+     * @throws \jt\exception\TaskException
+     */
+    protected function throwError(TaskException $e)
+    {
+        throw new TaskException($e->getMessage() . ' in ' . $this->file . ' line ' . $this->line);
     }
 
     /**
@@ -487,6 +499,23 @@ abstract class Loader
         }
 
         return '';
+    }
+
+    /**
+     * 寻找指方法所在的行
+     * @param $class
+     * @param $method
+     * @return int
+     */
+    protected function getLineByMethod($class, $method)
+    {
+        $methods = static::$cacheStore['action'][$class]['methods'];
+        foreach($methods as $m){
+            if($m['method'] === $method){
+                return $m['line'];
+            }
+        }
+        return -1;
     }
 
     /**

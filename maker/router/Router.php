@@ -114,9 +114,13 @@ class Router extends Action
                 }
                 foreach ($ruler['methods'] as $method) {
                     if (isset($map['__method'][$method])) {
+                        $conflictRuler = $map['__method'][$method];
                         $this->setErrorPos($this->getFileByClass($class), $ruler['line']);
+                        $ef = $this->getFileByClass($conflictRuler[0]);
+                        $el = $this->getLineByMethod($conflictRuler[0], $conflictRuler[1]);
+
                         $this->error('routerMapDuplicate',
-                            '[' . $ruler['class'] . '::' . $ruler['method'] . "] 对应的路由规则与 [{$map['__method'][$method][0]}::{$map['__method'][$method][1]}] 冲突，请检查");
+                            "[{$conflictRuler[0]}::{$conflictRuler[1]}] 对应的路由规则与 [ {$ruler['class']} :: {$ruler['method']} ] 冲突，请检查! in {$ef} line {$el} &");
                     }else {
                         $action = [];
                         foreach (self::$rulerOrderMap as $name) {

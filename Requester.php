@@ -264,6 +264,7 @@ class Requester
                 }
                 break;
             case 'type' === $key:
+                $value = $value?:'string';
                 if (in_array($value, self::VALUE_TYPE['single']) || in_array($value, self::VALUE_TYPE['composite'])) {
                     $result['type'] = $value;
                 }else {
