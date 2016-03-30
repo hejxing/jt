@@ -85,7 +85,7 @@ abstract class Loader
                 }
             }
         }else {
-            $modules = ['app' => [PROJECT_ROOT, '']];
+            $modules = [MODULE => [PROJECT_ROOT, '']];
         }
 
         return $modules;

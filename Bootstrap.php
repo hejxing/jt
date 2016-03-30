@@ -95,11 +95,12 @@ class Bootstrap
 
         //入口模块
         //$option['nsRoot'] = 'app';
-        $module      = 'app';
         $projectRoot = $option['docRoot'];
         if ($option['nsRoot']) {
             $module      = \str_replace('\\', '_', $option['nsRoot']);
-            $projectRoot = \substr($projectRoot, 0, -1 - \strlen($option['nsRoot']));
+            $projectRoot = \substr($projectRoot, -1 - \strlen($option['nsRoot']));
+        }else{
+            $module      = substr($projectRoot, strrpos($projectRoot, DIRECTORY_SEPARATOR));
         }
 
         //定义基本常量
