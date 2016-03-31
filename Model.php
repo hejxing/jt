@@ -137,18 +137,6 @@ class Model
      */
     private $errMsgList = [];
     /**
-     * 遇到错误已经重试的次数
-     *
-     * @type int
-     */
-    private $retryTimes = 0;
-    /**
-     * 最近一次引用的Model所属的模块
-     *
-     * @type string
-     */
-    protected static $module = null;
-    /**
      * 查询完成后是否不清空上次的数据
      *
      * @type bool
@@ -177,9 +165,6 @@ class Model
      */
     public static function __init($className)
     {
-        if (static::$module === null) {
-            static::$module = str_replace('\\', DIRECTORY_SEPARATOR, MODULE_NAMESPACE_ROOT);
-        }
         //解析表结构和属性
         self::parseColumns();
     }
@@ -191,7 +176,7 @@ class Model
      */
     public function __construct()
     {
-        $this->connector = new database\Connector(static::$module, $this->conn);
+        $this->connector = new database\Connector(PROJECT_ROOT, $this->conn);
         static::$quotes  = $this->connector->getQuotes();
         $this->table     = $this->connector->getTablePrefix() . $this->table;
     }
@@ -349,38 +334,30 @@ class Model
      * 修正错误
      *
      * @param \PDOException $e
-     * @param string $sql
-     * @throws \Exception
+     * @param string        $sql
+     * @throws TaskException
      *
      * @return bool 是否处理了错误
      */
 
     private function processError(\PDOException $e, $sql)
     {
-        $errName = database\ErrorCode::getName($this->connector->getDatabaseType(), $e->getCode());
-        if (isset($this->errMsgList[$errName])) {
-            throw new TaskException($this->errMsgList[$errName]);
-        }
-        if ($this->retryTimes >= 3) {
-            throw $e;
-        }
         switch ($e->getCode()) {
             case '7': //数据库不存在
-                $creator = new database\Schema(static::$module, $this->conn);
+                $creator = new database\Schema(PROJECT_ROOT, $this->conn);
                 $creator->createDataBase();
             case '42P01':
-                $creator = new database\Schema(static::$module, $this->conn);
+                $creator = new database\Schema(PROJECT_ROOT, $this->conn);
                 $creator->createTable($this->genTableName(), static::$columns);
-                break;
-            default:
-                if (RUN_MODE !== 'production') {
-                    $trace = debug_backtrace()[3];
-                    $e     = new \PDOException('dbOperError:' . $e->getMessage() . "\r\n  SQL: " . $sql . "\r\n  IN: " . $trace['file'] . ' line ' . $trace['line']);
-                }
-                throw $e;
-                break;
+
+                return;
         }
-        $this->retryTimes++;
+
+        $errName = database\ErrorCode::getName($this->connector->getDatabaseType(), $e->getCode());
+        $msg     = $this->errMsgList[$errName]??$e->getMessage();
+        $te      = new TaskException('DbOperateError:' . $msg . ' SQL[' . $sql . ']');
+        $te->setIgnoreTraceLine(2);
+        throw $te;
     }
 
     /**
@@ -550,6 +527,19 @@ class Model
         return new static();
     }
 
+    private function mergeSerial($type)
+    {
+        if (!isset($this->sqlCollect[$type])) {
+            return [];
+        }
+        $list = [];
+        foreach ($this->sqlCollect[$type] as $serial) {
+            $list = \array_merge($list, \preg_split('/ *, */', $serial));
+        }
+
+        return \array_unique($list);
+    }
+
     /**
      * 解析要使用的字段
      */
@@ -558,17 +548,25 @@ class Model
         if (!isset($this->sqlCollect['names'])) {
             return [];
         }
-        if (!isset($this->sqlCollect['hidden'])) {
-            $this->sqlCollect['hidden'] = 'hidden';
-        }
         $collectedNames = [];
 
-        foreach ($this->sqlCollect['names'] as $nameStr) {
-            $ns = \preg_split('/ *, */', $nameStr);
-            foreach ($ns as &$n) {
+        $showHiddenList = $this->mergeSerial('showHidden');
+        $fieldNameList  = $this->mergeSerial('names');
+        $excludeFields  = $this->collectExclude();
+
+        if (\in_array('**', $fieldNameList)) {//强制要求列出所有,包含隐藏字段
+            foreach (static::$columns as $name => $v) {
+                $collectedNames[] = $name;
+            }
+        }else {
+            foreach ($fieldNameList as $n) {
                 if ($n === '*') { //如果需要映射到字段，需要在sql中使用as,则不能直接使用"*"
+                    if (\in_array('*', $showHiddenList)) {
+                        $collectedNames[] = $name;
+                        continue;
+                    }
                     foreach (static::$columns as $name => $v) {
-                        if (isset($v['hidden']) && $this->sqlCollect['hidden'] !== 'show') {
+                        if (isset($v['hidden']) && !\in_array($name, $showHiddenList)) {
                             continue;
                         }
                         $collectedNames[] = $name;
@@ -580,8 +578,6 @@ class Model
         }
 
         $collectedNames = array_unique($collectedNames);
-
-        $excludeFields = $this->collectExclude();
         foreach ($excludeFields as $name) {
             $index = array_search($name, $collectedNames);
             unset($collectedNames[$index]);
@@ -1681,7 +1677,7 @@ class Model
      */
     public function search($condition, $data)
     {
-        //转换成where语句
+        //TODO:转换成where语句
         //$this->sqlCollect['page'] = [$length, $page];
         return $this;
     }
@@ -1696,7 +1692,7 @@ class Model
      */
     public function orSearch($condition, $data)
     {
-        //转换成where语句
+        //TODO:转换成where语句
         //$this->sqlCollect['page'] = [$length, $page];
         return $this;
     }
@@ -1712,7 +1708,7 @@ class Model
      */
     public function affixSearch($condition, $data, $link = 'and')
     {
-        //转换成where语句
+        //TODO:转换成where语句
         //$this->sqlCollect['page'] = [$length, $page];
         return $this;
     }
@@ -1822,9 +1818,9 @@ class Model
      *
      * @return $this
      */
-    public function withHidden()
+    public function withHidden($field = '*')
     {
-        $this->sqlCollect['hidden'] = 'show';
+        $this->sqlCollect['showHidden'][] = $field;
 
         return $this;
     }

@@ -32,6 +32,31 @@ class Bootstrap
      */
     public static function loadClass($className)
     {
+        $classFile = self::getClassFile($className);
+        self::loadFile($classFile, $className);
+    }
+    
+    public static function tryLoad($className){
+        $classFile = self::getClassFile($className);
+        if(\file_exists($classFile)){
+            self::loadFile($classFile, $className);
+        }else{
+            return false;
+        }
+    }
+
+    private static function loadFile($classFile, $className){
+        $res = @include($classFile);
+        if($res === false){
+            return false;
+        }
+
+        if (\method_exists($className, '__init')) {
+            $className::__init($className);
+        }
+    }
+    
+    public static function getClassFile($className){
         $prefix = substr($className, 0, strpos($className, '\\'));
         if($prefix === 'jt'){
             $root = CORE_ROOT;
@@ -39,16 +64,7 @@ class Bootstrap
             $root = \Config::NAMESPACE_PATH_MAP[$prefix]??PROJECT_ROOT;
         }
 
-        $classFile = $root . DIRECTORY_SEPARATOR . \str_replace('\\', DIRECTORY_SEPARATOR, $className) . '.php';
-
-        if (\file_exists($classFile)) {
-            require $classFile;
-            if (\method_exists($className, '__init')) {
-                $className::__init($className);
-            }
-        }else {
-            return false;
-        }
+        return $root . DIRECTORY_SEPARATOR . \str_replace('\\', DIRECTORY_SEPARATOR, $className) . '.php';
     }
 
     /**
@@ -118,6 +134,7 @@ class Bootstrap
         \spl_autoload_register('static::loadClass');
 
         //注册错误、异常入口
+        \ini_set('display_errors', true);
         \set_error_handler('\jt\Error::errorHandler');
         \set_exception_handler('\jt\Error::exceptionHandler');
 
@@ -132,13 +149,13 @@ class Bootstrap
      */
     public static function boot($runMode = 'production', $nsRoot = '')
     {
+        //定义扫尾方法
+        \register_shutdown_function('\jt\Bootstrap::exeComplete');
         static::init([
             'runMode' => $runMode,
             'docRoot' => \getcwd(),
             'nsRoot'  => $nsRoot
         ]);
-        //定义扫尾方法
-        \register_shutdown_function('\jt\Bootstrap::exeComplete');
         //run_before
         Controller::run($_SERVER['SCRIPT_NAME']);
     }

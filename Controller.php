@@ -9,6 +9,8 @@
 
 namespace jt;
 
+use jt\exception\TaskException;
+
 /**
  * 任务调度、管控中心，框架核心部件
  * 负责应用路由规则，触发任务执行前、执行后的相关事件，将执行结果进一步加工
@@ -232,6 +234,9 @@ class Controller
      */
     public function getAction()
     {
+        if($this->action === null){
+            return new Action();
+        }
         return $this->action;
     }
 
@@ -328,28 +333,21 @@ class Controller
      *
      * @param string $class Action Class
      * @param string $method
-     * @param bool   $strict 严格模式
      * @return bool
+     *
+     * @throws \jt\exception\TaskException
      */
-    public function loadAction($class, $method, $strict = false)
+    public function loadAction($class, $method)
     {
         if (class_exists($class)) {
             /** @type Action $action */
             $action = new $class();
         }else {
-            if ($strict) {
-                Error::fatal('404', 'Action ' . $class . ' not found');
-            }
-
-            return false;
+            throw new TaskException('Action ' . $class . ' not found', 404);
         }
 
         if ($action->init() === false) {
-            if ($strict) {
-                Error::fatal('500', 'Action ' . $class . ' init fail');
-            }
-
-            return false;
+            throw new TaskException('Action ' . $class . ' init fail', 500);
         }
 
         if (method_exists($action, $method)) {
@@ -358,11 +356,7 @@ class Controller
 
             return true;
         }else {
-            if ($strict) {
-                Error::fatal('404', 'Method not found ' . $class . '::' . $method);
-            }
-
-            return false;
+            throw new TaskException('Method not found ' . $class . '::' . $method, 404);
         }
     }
 
@@ -464,7 +458,7 @@ class Controller
             }
         }
         $this->requestMethod = $method;
-        $this->loadAction($this->ruler[0], $this->ruler[1], true);
+        $this->loadAction($this->ruler[0], $this->ruler[1]);
         $this->combParam($param, $this->ruler[2]);
     }
 

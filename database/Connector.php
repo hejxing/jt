@@ -159,7 +159,7 @@ class Connector
     public static function readConfig($root)
     {
         $file   = $root . '/database.php';
-        $result = include($file);
+        $result = @include($file);
 
         if ($result === false) {
             throw new TaskException('databaseConfigNotFound: 数据库配置文件 [' . $file . '] 不存在');

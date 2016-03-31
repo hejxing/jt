@@ -49,7 +49,8 @@ class Redis extends Session
      */
     public function destroy($session_id)
     {
-        // TODO: Implement destroy() method.
+        $this->saver->delete('session_'.$session_id);
+        return true;
     }
 
     /**

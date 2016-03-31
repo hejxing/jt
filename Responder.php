@@ -158,13 +158,13 @@ class Responder
      * @param int $status
      * @throws \jt\exception\TaskException
      */
-    public static function end($status = 200)
+    public static function end($status = null)
     {
         if ($status) {
             \header('Status: ' . $status, true);
         }
 
-        $e = new TaskException('__USER_END_THE_TASK__');
+        $e = new TaskException('User end task');
         $e->setType('taskEnd');
 
         throw $e;

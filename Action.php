@@ -15,7 +15,7 @@ use jt\exception\TaskException;
  *
  * @package jt
  */
-abstract class Action
+class Action
 {
     /**
      * 参数验证规则
@@ -250,8 +250,8 @@ abstract class Action
     /**
      * 在业务执行前执行
      *
-     * @param $method
-     * @param $param
+     * @param string $method
+     * @param array $param
      * @return bool
      */
     public function before($method, $param)
@@ -262,8 +262,8 @@ abstract class Action
     /**
      * 业务执行完毕，在内容输出前执行
      *
-     * @param $method
-     * @param $param
+     * @param string $method
+     * @param array $param
      * @return bool
      */
     public function after($method, $param)
@@ -314,10 +314,12 @@ abstract class Action
      * @param int    $status 错误状态
      * @throws \jt\exception\TaskException
      */
-    public function fail($msg, $code = 'fail', $param = [], $status = 200)
+    public function fail($msg, $code = 'fail', $param = [], $status = null)
     {
         self::$taskSuccess = false;
-        \header('Status: ' . $status, true);
+        if($status){
+            \header('Status: ' . $status, true);
+        }
         $this->header('code', $code);
         $this->header('msg', $msg);
         $e = new TaskException("{$code}:{$msg}");

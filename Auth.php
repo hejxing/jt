@@ -61,7 +61,7 @@ abstract class Auth
     {
         $this->action->out('loginUrl', $this->loginUrl);
         $this->action->out('ref', $_SERVER['REQUEST_URI']);
-        $this->action->status(401.1, [], false);
+        $this->action->fail('未登录或登录失败，请重登录', 'notLogin', [], 401);
     }
 
     /**
@@ -69,7 +69,7 @@ abstract class Auth
      */
     protected function exceed()
     {
-        $this->action->status(401.4, [], false);
+        $this->action->status(401, [], false);
     }
 
     /**
@@ -97,11 +97,15 @@ abstract class Auth
         return false;
     }
 
+    /**
+     * @param $data
+     * @return string
+     */
     protected static function hold($data)
     {
-        Session::start(true);
+        $token = Session::start(true);
         $_SESSION = $data;
 
-        return true;
+        return $token;
     }
 }

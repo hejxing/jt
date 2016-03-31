@@ -38,10 +38,9 @@ class Error extends Action
             E_COMPILE_ERROR,
             E_USER_ERROR
         ])) {
-            self::fatal('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' on line ' . $errLine);
+            self::fatal('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' line ' . $errLine);
         }elseif (RUN_MODE === 'develop') {
-            self::notice($errNo, $errStr . ' in ' . $errFile . ' on line ' . $errLine, AL);
-            //Controller::current()->getAction()->header('notice', $errStr . ' in ' . $errFile . ' on line ' . $errLine, AL);
+            self::notice($errNo, $errStr . ' in ' . $errFile . ' line ' . $errLine);
         }
     }
 
@@ -59,15 +58,16 @@ class Error extends Action
         }
 
         if (RUN_MODE !== 'production') {
-            Controller::current()->getAction()->header('triggerPoint', $e->getFile().' line '.$e->getLine());
+            Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
         }
 
         if ($e instanceof TaskException) {
             if ($e->getType() === 'taskEnd') {
+
                 return;
             }
             self::error($code, $msg, false, $e->getParam(), $e->getData());
-        }else{
+        }else {
             self::fatalError($code, $msg);
         }
     }
@@ -106,7 +106,7 @@ class Error extends Action
             self::getAction($method, true)->outMass($d);
         }
         self::fatalError($code, $msg, $p, false);
-        Responder::end(null);
+        Responder::end();
     }
 
     /**
@@ -159,22 +159,20 @@ class Error extends Action
             return $action;
         }
 
-        if (!$controller->loadAction('\app\\' . MODULE . '\action\ErrorHandler', $method)) {
-            $isExists = $controller->loadAction('\jt\ErrorHandler', $method);
-            if (!$isExists) {
-                if ($fatal && $method !== 'unknown_error') {
-                    $method = 'unknown_error';
-
-                    return self::getAction($method, $fatal);
-                }elseif ($method !== 'unknown_fail') {
-                    $method = 'unknown_fail';
-
-                    return self::getAction($method, $fatal);
-                }
+        $class = MODULE_NAMESPACE_ROOT . '\action\ErrorHandler';
+        if (Bootstrap::tryLoad($class)) {
+            $action = new $class();
+            if (\method_exists($action, $method)) {
+                return $action;
             }
         }
 
-        return $controller->getAction();
+        $action = new ErrorHandler();
+        if (!\method_exists($action, $method)) {
+            $method = $fatal ? 'unknown_error' : 'unknown_fail';
+        }
+
+        return $action;
     }
 
     static public function getTrace()
