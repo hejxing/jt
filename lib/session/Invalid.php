@@ -25,7 +25,7 @@ class Invalid extends Session
      */
     public function close()
     {
-        // TODO: Implement close() method.
+        return true;
     }
 
     /**

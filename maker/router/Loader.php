@@ -16,7 +16,7 @@ use jt\exception\TaskException;
  */
 abstract class Loader
 {
-    protected static $ignoreCache = true;
+    protected static $ignoreCache = false;
 
     protected static $root          = '';
     protected static $cacheFile     = '';
@@ -176,7 +176,10 @@ abstract class Loader
         $seed = filemtime($this->file);
         if (isset(static::$originCache['info'][$this->file]) && static::$originCache['info'][$this->file]['seed'] === $seed) {
             static::$cacheStore['info'][$this->file] = static::$originCache['info'][$this->file];
-            $class                                   = static::$cacheStore['info'][$this->file]['class'];
+            if(!isset(static::$cacheStore['info'][$this->file]['class'])){//忽略解析
+                return true;
+            }
+            $class = static::$cacheStore['info'][$this->file]['class'];
             foreach (static::$originCache as $type => $content) {
                 if (isset($content[$class])) {
                     static::$cacheStore[$type][$class] = $content[$class];

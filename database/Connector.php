@@ -56,12 +56,10 @@ class Connector
      */
     protected static $connPool = [];
     /**
-     * 基础配置,缓存在此处
+     * 生成sql语句时所用的引号
      *
      * @type array
      */
-    protected static $baseConfig = [];
-
     protected static $quotesList = [
         'mysql' => '`',
         'pgsql' => '"'
@@ -99,7 +97,6 @@ class Connector
         $pdo->setAttribute(\PDO::ATTR_PERSISTENT, true); //长连接
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION); //抛出异常
         $pdo->setAttribute(\PDO::ATTR_TIMEOUT, $this->config['timeout']);
-
         //$pdo->setAttribute(\PDO::ATTR_CASE, \PDO::CASE_NATURAL);
         return $pdo;
     }
@@ -114,7 +111,7 @@ class Connector
         if (isset(self::$pdoList[$this->connSeed])) {
             $pdo = self::$pdoList[$this->connSeed];
         }else {
-            $pdo                            = $this->createPDO();
+            $pdo = $this->createPDO();
             self::$pdoList[$this->connSeed] = $pdo;
         }
         if (!$pdo->inTransaction()) {
@@ -138,37 +135,31 @@ class Connector
         if (isset(static::$configPool[$connSeed])) {
             return static::$configPool[$connSeed];
         }
-
-        //获取全局配置
-        if (empty(static::$baseConfig)) {
-            static::$baseConfig = static::readConfig($module . 'config/database.php');
-        }
         //获取模块配置
         if (isset(static::$configModelPool[$module])) {
             $modelConfig = static::$configModelPool[$module];
         }else {
-            $modelConfig                      = static::readConfig($module . 'config/' . RUN_MODE . '/database.php');
-            $modelConfig                      = \array_replace_recursive(static::$baseConfig, $modelConfig);
+            $modelConfig                      = static::readConfig(PROJECT_ROOT . '/config/' . RUN_MODE);
             static::$configModelPool[$module] = $modelConfig;
         }
+        $config = \array_replace_recursive($modelConfig['__base'], $modelConfig[$conn]);
 
-        $config                        = \array_replace_recursive($modelConfig['__base'], $modelConfig[$conn]);
         static::$configPool[$connSeed] = $config;
-
         return $config;
     }
 
     /**
      * 加载配置文件
      *
-     * @param $file
+     * @param string $root 本置文件所在的根目录
      *
      * @return mixed
      * @throws TaskException
      */
-    protected static function readConfig($file)
+    public static function readConfig($root)
     {
-        $result = include(PROJECT_ROOT . '/' . $file);
+        $file   = $root . '/database.php';
+        $result = include($file);
 
         if ($result === false) {
             throw new TaskException('databaseConfigNotFound: 数据库配置文件 [' . $file . '] 不存在');
@@ -187,13 +178,7 @@ class Connector
     {
         $config = $this->config;
 
-        try{
-            return \call_user_func_array([$this, $config['type']], [$config]);
-        }catch (\PDOException $e){
-            Error::fatal($e->getMessage(), $e->getCode());
-        }
-
-        return null;
+        return \call_user_func_array([$this, $config['type']], [$config]);
     }
 
     /**

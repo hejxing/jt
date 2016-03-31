@@ -50,26 +50,30 @@ class Error extends Action
      *
      * @param \Exception $e
      */
-    static public function exceptionHandler($e)
+    public static function exceptionHandler($e)
     {
-        if ($e instanceof TaskException) {
-            if($e->getType() === 'taskEnd'){
-                return;
-            }
-        }
-        $msg = $e->getMessage();
+        $msg  = $e->getMessage();
         $code = $e->getCode();
         if (strpos($msg, ':') !== false) {
             list($code, $msg) = explode(':', $msg, 2);
         }
+
+        if (RUN_MODE !== 'production') {
+            Controller::current()->getAction()->header('triggerPoint', $e->getFile().' line '.$e->getLine());
+        }
+
         if ($e instanceof TaskException) {
+            if ($e->getType() === 'taskEnd') {
+                return;
+            }
             self::error($code, $msg, false, $e->getParam(), $e->getData());
-        }else {
+        }else{
             self::fatalError($code, $msg);
         }
     }
 
-    private static function fatalError($code, $msg = '', $param = [], $strict = true){
+    private static function fatalError($code, $msg = '', $param = [], $strict = true)
+    {
         self::$collected['fatal'] = [
             'code' => $code,
             'msg'  => $msg
@@ -90,14 +94,14 @@ class Error extends Action
     {
         $p = [];
         $d = [];
-        foreach($param as $k => $v){
-            if(is_string($k)){
+        foreach ($param as $k => $v) {
+            if (is_string($k)) {
                 $d[$k] = $v;
-            }else{
+            }else {
                 $d[] = $v;
             }
         }
-        if($d){
+        if ($d) {
             $method = '_error';
             self::getAction($method, true)->outMass($d);
         }
@@ -112,7 +116,7 @@ class Error extends Action
      * @param string $msg
      * @param bool   $fatal 是否致命错误
      * @param array  $param 传递的其它参数
-     * @param array $data 附加的数据
+     * @param array  $data 附加的数据
      */
     protected static function error($code, $msg, $fatal, $param = [], $data = [])
     {
@@ -143,7 +147,7 @@ class Error extends Action
      * 寻找当前的ACTION
      *
      * @param string $method
-     * @param bool $fatal 是否致命错误
+     * @param bool   $fatal 是否致命错误
      *
      * @return \jt\Controller|\jt\ErrorHandler
      */
@@ -157,12 +161,14 @@ class Error extends Action
 
         if (!$controller->loadAction('\app\\' . MODULE . '\action\ErrorHandler', $method)) {
             $isExists = $controller->loadAction('\jt\ErrorHandler', $method);
-            if(!$isExists){
-                if($fatal && $method !== 'unknown_error'){
+            if (!$isExists) {
+                if ($fatal && $method !== 'unknown_error') {
                     $method = 'unknown_error';
+
                     return self::getAction($method, $fatal);
-                }elseif($method !== 'unknown_fail'){
+                }elseif ($method !== 'unknown_fail') {
                     $method = 'unknown_fail';
+
                     return self::getAction($method, $fatal);
                 }
             }

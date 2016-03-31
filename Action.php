@@ -320,8 +320,10 @@ abstract class Action
         \header('Status: ' . $status, true);
         $this->header('code', $code);
         $this->header('msg', $msg);
-        throw new TaskException("{$code}:{$msg}");
-        //Error::fatal('fail', $msg, $param);
+        $e = new TaskException("{$code}:{$msg}");
+        $e->setParam($param);
+        $e->setIgnoreTraceLine(1);
+        throw $e;
     }
 
     /**

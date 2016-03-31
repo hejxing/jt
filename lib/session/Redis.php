@@ -7,7 +7,6 @@
 
 namespace jt\lib\session;
 
-
 use jt\Session;
 
 class Redis extends Session
@@ -34,7 +33,7 @@ class Redis extends Session
      */
     public function close()
     {
-        // TODO: Implement close() method.
+        return true;
     }
 
     /**
@@ -69,7 +68,7 @@ class Redis extends Session
      */
     public function gc($maxlifetime)
     {
-        // TODO: Implement gc() method.
+
     }
 
     /**
@@ -86,7 +85,7 @@ class Redis extends Session
      */
     public function read($session_id)
     {
-        return $this->saver->get($session_id);
+        return $this->saver->get('session_'.$session_id);
     }
 
     /**
@@ -109,6 +108,6 @@ class Redis extends Session
      */
     public function write($session_id, $session_data)
     {
-        return $this->saver->set($session_id, $session_data);
+        return $this->saver->set('session_'.$session_id, $session_data);
     }
 }

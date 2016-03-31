@@ -349,6 +349,7 @@ class Model
      * 修正错误
      *
      * @param \PDOException $e
+     * @param string $sql
      * @throws \Exception
      *
      * @return bool 是否处理了错误
@@ -374,7 +375,7 @@ class Model
             default:
                 if (RUN_MODE !== 'production') {
                     $trace = debug_backtrace()[3];
-                    $e     = new TaskException('dbOperError:' . $e->getMessage() . "\r\n  SQL: " . $sql . "\r\n  IN: " . $trace['file'] . ' line ' . $trace['line']);
+                    $e     = new \PDOException('dbOperError:' . $e->getMessage() . "\r\n  SQL: " . $sql . "\r\n  IN: " . $trace['file'] . ' line ' . $trace['line']);
                 }
                 throw $e;
                 break;
@@ -408,19 +409,15 @@ class Model
      */
     private function query($preSql, array $data)
     {
-        if (RUN_MODE === 'develop') {
-            //$this->logs[] = $preSql;
-        }
         try{
             $this->connectDb();
             $sth = $this->prepare($preSql);
             $sth->execute($data);
         }catch (\PDOException $e){
             $this->processError($e, $this->applyExecutableToPreSql($preSql));
-            $this->pdo->rollBack();
             $sth = $this->query($preSql, $data);
         }
-        //$this->logs[] = $sth->queryString; //写入文件
+        //TODO: $this->logs[] = $sth->queryString; //写入文件
         self::$queryTimes++;
         $this->preSql = '';
 

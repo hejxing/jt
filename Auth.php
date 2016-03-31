@@ -96,4 +96,12 @@ abstract class Auth
 
         return false;
     }
+
+    protected static function hold($data)
+    {
+        Session::start(true);
+        $_SESSION = $data;
+
+        return true;
+    }
 }
