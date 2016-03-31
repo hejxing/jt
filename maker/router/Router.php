@@ -167,6 +167,15 @@ class Router extends Action
         //file_put_contents($saveAs, "<?php\nreturn [" . static::serialize($routerMap) . '];');
         file_put_contents($saveAs, "<?php\nreturn " . var_export($routerMap, true) . ';');
 
+        if (RUN_MODE === 'develop') {
+            $dir      = new \RecursiveDirectoryIterator(\Config::RUNTIME_PATH_ROOT);
+            $iterator = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::SELF_FIRST);
+            foreach ($iterator as $item) {
+                if (substr($item, -1) !== '.') {
+                    chmod($item, 0777);
+                }
+            }
+        }
         return $routerMap;
     }
 

@@ -603,25 +603,21 @@ class Requester
      * @param string $msg 错误消息
      * @param string $name 值名称
      * @param array  $option
-     * @param bool   $strict 是否严格模式
-     *
-     * @return null
+
+     * @throws \jt\exception\TaskException
      */
-    private static function error($code, $msg, $name, array $option, $strict)
+    private static function error($code, $msg, $name, array $option)
     {
         $field = isset($option['_desc']) ? $name . ':' . $option['_desc'] : $name;
         $msg   = '[' . $field . '] ' . $msg;
         if (RUN_MODE !== 'production') {
-            $line = isset($option['_line']) ? ' At line: ' . $option['_line'] : '';
+            $line = isset($option['_line']) ? ' At line ' . $option['_line'] : '';
             $msg .= '.' . $line;
         }
-        if ($strict) {
-            Error::fatal('inputIll', $msg, ['field' => $name, 'code' => $code]);
-        }elseif (RUN_MODE !== 'production') {
-            Error::notice($code, $msg);
-        }
 
-        return null;
+        $e = new TaskException('inputIll:'.$msg);
+        $e->addData(['field' => $name, 'code' => $code]);
+        throw $e;
     }
 
     /**

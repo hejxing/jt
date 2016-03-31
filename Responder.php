@@ -164,7 +164,10 @@ class Responder
             \header('Status: ' . $status, true);
         }
 
-        throw new TaskException('__USER_END_THE_TASK__');
+        $e = new TaskException('__USER_END_THE_TASK__');
+        $e->setType('taskEnd');
+
+        throw $e;
     }
 
     /**

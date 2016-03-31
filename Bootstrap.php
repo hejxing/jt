@@ -100,7 +100,7 @@ class Bootstrap
             $module      = \str_replace('\\', '_', $option['nsRoot']);
             $projectRoot = \substr($projectRoot, -1 - \strlen($option['nsRoot']));
         }else{
-            $module      = substr($projectRoot, strrpos($projectRoot, DIRECTORY_SEPARATOR));
+            $module      = substr($projectRoot, strrpos($projectRoot, DIRECTORY_SEPARATOR) + 1);
         }
 
         //定义基本常量

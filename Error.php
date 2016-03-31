@@ -52,16 +52,18 @@ class Error extends Action
      */
     static public function exceptionHandler($e)
     {
-        $msg = $e->getMessage();
-        if ($msg === '__USER_END_THE_TASK__') {
-            return;
+        if ($e instanceof TaskException) {
+            if($e->getType() === 'taskEnd'){
+                return;
+            }
         }
+        $msg = $e->getMessage();
         $code = $e->getCode();
         if (strpos($msg, ':') !== false) {
             list($code, $msg) = explode(':', $msg, 2);
         }
         if ($e instanceof TaskException) {
-            self::error($code, $msg, false, []);
+            self::error($code, $msg, false, $e->getParam(), $e->getData());
         }else {
             self::fatalError($code, $msg);
         }
@@ -97,7 +99,7 @@ class Error extends Action
         }
         if($d){
             $method = '_error';
-            self::getAction($method)->outMass($d);
+            self::getAction($method, true)->outMass($d);
         }
         self::fatalError($code, $msg, $p, false);
         Responder::end(null);
@@ -110,8 +112,9 @@ class Error extends Action
      * @param string $msg
      * @param bool   $fatal 是否致命错误
      * @param array  $param 传递的其它参数
+     * @param array $data 附加的数据
      */
-    protected static function error($code, $msg, $fatal, $param = [])
+    protected static function error($code, $msg, $fatal, $param = [], $data = [])
     {
         $method = '_' . $code;
         $action = self::getAction($method, $fatal);
@@ -126,6 +129,7 @@ class Error extends Action
         if ($fatal && RUN_MODE === 'develop') {
             $action->out('trace', self::getTrace());
         }
+        $action->outMass($data);
         $action->$method(...$param);
         try{
             Responder::write();

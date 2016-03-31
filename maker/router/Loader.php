@@ -29,7 +29,7 @@ abstract class Loader
     protected $dir             = '';
     protected $path            = '';
     protected $file            = '';
-    protected $classInfo       = [];
+    protected $classInfo       = ['parseIgnore' => false];
     protected $line            = 0;
     protected $tokens          = [];
     protected $namespace       = '';
@@ -137,16 +137,6 @@ abstract class Loader
         foreach ($cacheFiles as $file => $v) {
             unlink($cacheRoot . '/' . $file);
         }
-
-        if (static::$parseNewFile && RUN_MODE === 'develop') {
-            $dir      = new \RecursiveDirectoryIterator(\Config::RUNTIME_PATH_ROOT);
-            $iterator = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::SELF_FIRST);
-            foreach ($iterator as $item) {
-                if (substr($item, -1) !== '.') {
-                    chmod($item, 0777);
-                }
-            }
-        }
     }
 
     public static function processReference()
@@ -242,6 +232,9 @@ abstract class Loader
         $this->tokens         = token_get_all(file_get_contents($this->file));
         $this->parseClass();
         $this->collectGlobalValue();
+        if ($this->classInfo['parseIgnore']) {
+            return;
+        }
         reset($this->tokens);
         foreach ($this->commentBlocks as $index => $comment) {
             list($i) = each($this->tokens);
@@ -503,6 +496,7 @@ abstract class Loader
 
     /**
      * 寻找指方法所在的行
+     *
      * @param $class
      * @param $method
      * @return int
@@ -510,11 +504,12 @@ abstract class Loader
     protected function getLineByMethod($class, $method)
     {
         $methods = static::$cacheStore['action'][$class]['methods'];
-        foreach($methods as $m){
-            if($m['method'] === $method){
+        foreach ($methods as $m) {
+            if ($m['method'] === $method) {
                 return $m['line'];
             }
         }
+
         return -1;
     }
 

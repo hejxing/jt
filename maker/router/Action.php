@@ -13,33 +13,19 @@ use jt\Requester;
 
 abstract class Action extends Loader
 {
-    protected $classType = 'action';//当前类的类型 区别于 model
+    const REQUESTER_CLASS = '\jt\Requester';
+    const MODEL_ACTION    = '\jt\ModelAction';
 
-    protected $basePath     = '/';//URI的路径前缀
-    protected $baseTplPath  = '/';//TPL的路径前缀
-    protected $defaultRuler = [
-        'method' => 'get',
-        'tpl'    => '',
-        'auth'   => null,
-        'mime'   => ''
-    ];//默认的规则
+    const RULER_ORDER          = ['method', 'uri', 'tpl', 'auth', 'mime', 'affix'];
+    const METHODS              = ['get', 'post', 'put', 'delete', 'head', 'option'];//支持的动作
+    const ANY_AS_METHODS       = ['get', 'post', 'put', 'delete'];//any 所代表的动作
+    const REQUEST_PARAM        = ['body', 'query', 'request', 'header', 'cookie', 'session'];
+    const VALUE_PARAM          = ['int', 'string', 'array', 'float', 'bool'];
+    const HAS_CHILD_PARAM_TYPE = ['object', 'objectList', 'list'];
+    const CLASS_INFO_NAMES     = ['Auth', 'Create', 'version', 'title', 'desc', 'notice'];
+    const GLOBAL_BASE_PATH     = ['basePath', 'baseTplPath'];
 
-    protected static $defaultIndex = 'index';//index
-
-    protected static $tabAsSpaceCount = 4;
-    protected static $requesterClass  = '\jt\Requester';
-    protected static $modelAction     = '\jt\ModelAction';
-
-    protected static $rulerOrder        = ['method', 'uri', 'tpl', 'auth', 'mime', 'affix'];
-    protected static $methods           = ['get', 'post', 'put', 'delete', 'head', 'option'];//支持的动作
-    protected static $anyAsMethods      = ['get', 'post', 'put', 'delete'];//any 所代表的动作
-    protected static $requestParam      = ['body', 'query', 'request', 'header', 'cookie', 'session'];
-    protected static $valueParam        = ['int', 'string', 'array', 'float', 'bool'];
-    protected static $hasChildParamType = ['object', 'objectList', 'list'];
-    protected static $classInfoNames    = ['Auth', 'Create', 'version', 'title', 'desc', 'notice'];
-    protected static $globalBasePath    = ['basePath', 'baseTplPath'];
-
-    protected static $methodAttributes = [
+    const METHOD_ATTRIBUTES = [
         'methods',
         'uri',
         'class',
@@ -57,6 +43,18 @@ abstract class Action extends Loader
         'line'
     ];
 
+    protected $classType = 'action';//当前类的类型 区别于 model
+    //默认的规则
+    protected        $basePath        = '/';//URI的路径前缀
+    protected        $baseTplPath     = '/';//TPL的路径前缀
+    protected        $defaultRuler    = [
+        'method' => 'get',
+        'tpl'    => '',
+        'auth'   => null,
+        'mime'   => ''
+    ];
+    protected static $defaultIndex    = 'index';//index
+    protected static $tabAsSpaceCount = 4;
 
     /**
      * 搜集全局设置
@@ -69,7 +67,13 @@ abstract class Action extends Loader
             $this->commentLines = $commentBlock;
             break;
         }
-        foreach (static::$globalBasePath as $name) {
+        $ignore = $this->getValue('parseIgnore');
+        if ($ignore !== null && $ignore !== 'false') {
+            $this->classInfo['parseIgnore'] = true;
+
+            return;
+        }
+        foreach (static::GLOBAL_BASE_PATH as $name) {
             $value = $this->getValue($name);
             if ($value) {
                 if (substr($value, 0, 1) !== '/') {
@@ -87,7 +91,7 @@ abstract class Action extends Loader
                 $ov = $value;
             }
         }
-        foreach (static::$classInfoNames as $name) {
+        foreach (static::CLASS_INFO_NAMES as $name) {
             if ($name === 'desc') {
                 $this->classInfo[$name][] = $this->getValue($name);
                 foreach ($this->getValueList(['string']) as list(, $desc)) {
@@ -178,30 +182,30 @@ abstract class Action extends Loader
     {
         preg_match('/(\+?\w*)\:?([\w\\\\]*)(?: +\[([^\]]*)\])? *(.*)/', $line, $match);
         array_shift($match);
-        if(strpos($match[2], '[') !== false){
+        if (strpos($match[2], '[') !== false) {
             $posList = [];
-            $pos = -1;
-            while($pos !== false){
+            $pos     = -1;
+            while ($pos !== false) {
                 $posList[$pos] = 1;
-                $pos = strpos($match[3], '[', $pos+1);
+                $pos           = strpos($match[3], '[', $pos + 1);
             }
             $pos = -1;
-            while($pos !== false){
+            while ($pos !== false) {
                 $posList[$pos] = -1;
-                $pos = strpos($match[3], ']', $pos+1);
+                $pos           = strpos($match[3], ']', $pos + 1);
             }
             unset($posList[-1]);
             $count = 1;
-            foreach($posList as $pos => $d){
+            foreach ($posList as $pos => $d) {
                 $count += $d;
-                if($count <= 0){
-                    $match[2] .= ']'.substr($match[3], 0, $pos);
+                if ($count <= 0) {
+                    $match[2] .= ']' . substr($match[3], 0, $pos);
                     $match[3] = trim(substr($match[3], $pos + 1));
                     break;
                 }
             }
-            if($count > 0){
-                $match[3] = $match[2].$match[3];
+            if ($count > 0) {
+                $match[3] = $match[2] . $match[3];
                 $match[2] = '';
             }
         }
@@ -246,7 +250,7 @@ abstract class Action extends Loader
             }
             if ($currentIndent > $indent) {//进入下一级
                 //判断是否允许降级,若不允许则报错
-                if (!in_array($parsed['ruler']['type'], static::$hasChildParamType)) {
+                if (!in_array($parsed['ruler']['type'], static::HAS_CHILD_PARAM_TYPE)) {
                     $this->line = $lineNo;
                     $this->error('indentNotAllow', '不允许的缩进，上一参数类型不支持有下级元素');
                 }
@@ -310,7 +314,7 @@ abstract class Action extends Loader
     {
         if (in_array($type, Requester::VALUE_TYPE['single']) || in_array($type, Requester::VALUE_TYPE['composite'])) {
             $ruler = $type . ' ' . $ruler;
-        }elseif ($type === static::$requesterClass) {
+        }elseif ($type === static::REQUESTER_CLASS) {
             $ruler = 'type:object ' . $ruler;
         }else {
             $ruler = 'type:' . $type . ' ' . $ruler;
@@ -361,13 +365,14 @@ abstract class Action extends Loader
             $ruler = $this->parseParamRuler($match[2], $type);
             $desc  = $match[3];
             $nodes = [];
-
-            if (in_array($name, static::$requestParam)) {
-                if ($type && $type !== static::$requesterClass) {
-                    $this->error('commentParamTypeIll', '注释中参数类型错误，期待 [\jt\Requester],此处为 [' . $type . ']');
+            if (in_array($name, self::REQUEST_PARAM)) {
+                if ($type && $type !== self::REQUESTER_CLASS) {
+                    $this->error('commentParamTypeIll', '注释中参数类型错误，期待 [' . self::REQUESTER_CLASS . '],此处为 [' . $type . ']');
                 }
                 $lines = $this->getValueList(['string']);
                 $nodes = $this->parseParam($lines);
+            }elseif ($type === self::REQUESTER_CLASS) {
+                $this->error('commentParamTypeIll', '注释中参数名错误，期待为 [' . implode(', ', self::REQUEST_PARAM) . '] 之一,此处为 [' . $name . ']');
             }
             $mp['ruler'] = $ruler;
             $mp['nodes'] = $nodes;
@@ -397,9 +402,9 @@ abstract class Action extends Loader
             $nodes = $this->parseParam($lines);
         }
         $parsed = [
-            'name'  => '',
-            'desc'  => $match[2],
-            'line'  => $this->line
+            'name' => '',
+            'desc' => $match[2],
+            'line' => $this->line
         ];
         try{
             $parsed['ruler'] = Requester::parseValidate($ruler, 'return:' . $ruler);
@@ -536,7 +541,7 @@ abstract class Action extends Loader
         if (!$name) {
             return '';
         }
-        if (in_array($name, static::$valueParam)) {
+        if (in_array($name, static::VALUE_PARAM)) {
             return $name;
         }
         if (strpos($name, '\\') === 0) {
@@ -592,7 +597,7 @@ abstract class Action extends Loader
         foreach ($as as $index => $a) {
             if (\strpos($a, ':')) {
                 list($type, $name) = \explode(':', $a, 2);
-                if (\in_array($type, self::$rulerOrder)) {
+                if (\in_array($type, self::RULER_ORDER)) {
                     $res[$type] = $name;
                 }elseif ($index === 1) {
                     $res['uri'] = $a;
@@ -600,8 +605,8 @@ abstract class Action extends Loader
                     $this->error('routerRulerNameError', 'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 的规则名 [' . $type . '] 不正确，请检查');
                 }
             }else {
-                if ($a && isset(self::$rulerOrder[$index])) {
-                    $res[self::$rulerOrder[$index]] = $a;
+                if ($a && \count(self::RULER_ORDER) > $index) {
+                    $res[self::RULER_ORDER[$index]] = $a;
                 }else {
                     $this->error('routerRulerOverflow', 'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 数量太多，请检查');
                 }
@@ -622,7 +627,7 @@ abstract class Action extends Loader
      */
     protected function applyDefaultValue(&$parsed)
     {
-        foreach (static::$rulerOrder as $name) {
+        foreach (static::RULER_ORDER as $name) {
             if (!isset($parsed[$name])) {
                 $parsed[$name] = isset($this->defaultRuler[$name]) ? $this->defaultRuler[$name] : '';
             }
@@ -715,12 +720,12 @@ abstract class Action extends Loader
         foreach ($parsed['param'] as $name => $item) {
             $this->line = $item['line'];
             $type       = $item['type'];
-            if (in_array($name, static::$requestParam)) {
-                if ($type && $type !== static::$requesterClass) {
-                    $this->error('paramTypeIll', '参数 [' . $name . '] 的类型此处为 [' . $type . '], 应该为 [' . static::$requesterClass . ']');
+            if (in_array($name, static::REQUEST_PARAM)) {
+                if ($type && $type !== static::REQUESTER_CLASS) {
+                    $this->error('paramTypeIll', '参数 [' . $name . '] 的类型此处为 [' . $type . '], 应该为 [' . static::REQUESTER_CLASS . ']');
                 }
                 $item['behave'] = 'request';
-            }elseif ($type && !in_array($type, static::$valueParam)) {
+            }elseif ($type && !in_array($type, static::VALUE_PARAM)) {
                 $item['behave'] = 'inject';
             }elseif (isset($pathParam[$name])) {
                 if ($type && $pathParam[$name] && $pathParam[$name] !== $type) {
@@ -757,7 +762,7 @@ abstract class Action extends Loader
         $parsed['param'] = $param;
 
         $res = [];
-        foreach (self::$methodAttributes as $name) {
+        foreach (self::METHOD_ATTRIBUTES as $name) {
             $res[$name] = isset($parsed[$name]) ? $parsed[$name] : '';
         }
 
@@ -793,7 +798,7 @@ abstract class Action extends Loader
     private function buildModelParam($type = null)
     {
         return [
-            'type'  => $type ?: static::$requesterClass,
+            'type'  => $type ?: static::REQUESTER_CLASS,
             'model' => $this->parsed['model'],
             'ruler' => '',
             'line'  => $this->line
@@ -811,7 +816,7 @@ abstract class Action extends Loader
     private function buildModelRouter($method, $list)
     {
         $router = array_merge($this->parsed, [
-            'class'   => static::$modelAction,
+            'class'   => static::MODEL_ACTION,
             'scheme'  => 'router',
             'param'   => [
                 'model' => $this->buildModelParam($this->parsed['model'])
