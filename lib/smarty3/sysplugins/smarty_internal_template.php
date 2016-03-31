@@ -238,6 +238,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
             }
             $this->cached->isCached($this);
         }
+
         if (!($isCacheTpl) || !$this->cached->valid) {
             if ($isCacheTpl) {
                 $this->properties['tpl_function'] = [];
@@ -386,6 +387,7 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
             // render compiled or saved template code
             //
             $this->properties['unifunc']($this);
+
             // any unclosed {capture} tags ?
             if (isset($this->_capture_stack[0][0])) {
                 $this->capture_error();
@@ -465,8 +467,8 @@ class Smarty_Internal_Template extends Smarty_Internal_TemplateBase
      */
     public function getSubTemplate($template, $cache_id, $compile_id, $caching, $cache_lifetime, $data, $parent_scope)
     {
+        /** @type Smarty_Internal_Template $tpl */
         $tpl = $this->setupSubTemplate($template, $cache_id, $compile_id, $caching, $cache_lifetime, $data, $parent_scope);
-
         return $tpl->render();
     }
 

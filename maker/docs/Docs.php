@@ -34,7 +34,7 @@ class Docs extends Action
 
         $this->out('host', $_SERVER['HTTP_HOST']);
         Responder::setTplEngine(new Template([
-            'pathRoot'        => __DIR__ . '/tpl',
+            'template_dir'    => __DIR__ . '/tpl',
             'left_delimiter'  => '{{',
             'right_delimiter' => '}}'
         ]));
@@ -178,9 +178,10 @@ class Docs extends Action
 
         return require($parseFile);
     }
-    
-    protected function showOpcache(){
+
+    protected function showOpcache()
+    {
         $this->setMime('html');
-        require __DIR__.'/tpl/opcache.tpl';
+        require __DIR__ . '/tpl/opcache.tpl';
     }
 }

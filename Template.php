@@ -14,7 +14,7 @@ class Template extends \Smarty
      *
      * @type string
      */
-    protected $pathRoot = '/template';
+    public $template_dir = '/template';
     public $left_delimiter = '{{';
     public $right_delimiter = '}}';
     /**
@@ -71,7 +71,7 @@ class Template extends \Smarty
      */
     private function seekTemplateFile($template)
     {
-        return $this->pathRoot . $template . $this->suffix;//Config::TPL_SUFFIX;
+        return $this->template_dir . $template . $this->suffix;//Config::TPL_SUFFIX;
     }
 
     /**
@@ -98,11 +98,12 @@ class Template extends \Smarty
     {
         $this->setCompileDir(Config::RUNTIME_PATH_ROOT . '/smarty/compile');
         $this->setCacheDir(Config::RUNTIME_PATH_ROOT . '/smarty/cache');
-
         foreach ($config as $name => $value) {
             $this->$name = $value;
         }
-        
+        if(isset($config['template_dir'])){
+            $this->setTemplateDir($config['template_dir']);
+        }
     }
 
     /**

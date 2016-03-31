@@ -190,7 +190,6 @@ class Smarty_Template_Compiled
      */
     public function render(Smarty_Internal_Template $_template)
     {
-
         if (!$this->processed) {
             $this->process($_template);
         }

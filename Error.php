@@ -114,7 +114,7 @@ class Error extends Action
     protected static function error($code, $msg, $fatal, $param = [])
     {
         $method = '_' . $code;
-        $action = self::getAction($method);
+        $action = self::getAction($method, $fatal);
         $action->header('code', $code);
         $action->header('msg', $msg);
         if (Controller::current()->getMime() === 'html') {
@@ -139,10 +139,11 @@ class Error extends Action
      * 寻找当前的ACTION
      *
      * @param string $method
+     * @param bool $fatal 是否致命错误
      *
      * @return \jt\Controller|\jt\ErrorHandler
      */
-    final private static function getAction(&$method)
+    final private static function getAction(&$method, $fatal)
     {
         $controller = Controller::current();
         $action     = $controller->getAction();
@@ -151,10 +152,15 @@ class Error extends Action
         }
 
         if (!$controller->loadAction('\app\\' . MODULE . '\action\ErrorHandler', $method)) {
-            if (!$controller->loadAction('\jt\ErrorHandler', $method) && $method !== 'unkown_error') {
-                $method = 'unkown_error';
-
-                return self::getAction($method);
+            $isExists = $controller->loadAction('\jt\ErrorHandler', $method);
+            if(!$isExists){
+                if($fatal && $method !== 'unknown_error'){
+                    $method = 'unknown_error';
+                    return self::getAction($method, $fatal);
+                }elseif($method !== 'unknown_fail'){
+                    $method = 'unknown_fail';
+                    return self::getAction($method, $fatal);
+                }
             }
         }
 

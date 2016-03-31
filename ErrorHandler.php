@@ -58,9 +58,17 @@ class ErrorHandler extends Action
     /**
      * 不明错误
      */
-    public function unkown_error()
+    public function unknown_error()
     {
         header('Status: 500');
+    }
+
+    /**
+     * 不明错误
+     */
+    public function unknown_fail()
+    {
+        //header('Status: 500');
     }
 
     /**
