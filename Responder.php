@@ -23,6 +23,7 @@ class Responder
      * @type null
      */
     protected static $tplEngine = null;
+    protected static $startObClean = false;
 
     /**
      * 生成内容
@@ -62,6 +63,8 @@ class Responder
      */
     protected static function html()
     {
+        ob_end_flush();
+        self::$startObClean = true;
         \header('Content-type: text/html; charset=' . \Config::CHARSET);
         $data = Action::getDataStore();
         if (self::$tplEngine) {
@@ -87,7 +90,7 @@ class Responder
                 str_replace('</body>', '<div class="error-msg-box">' . $errorMsg . '</div></body>', $content);
             }
         }
-
+        self::$startObClean = false;
         return $content;
     }
 
@@ -123,7 +126,7 @@ class Responder
     {
         \header('Content-type: application/xml; charset=' . \Config::CHARSET);
         $header         = Error::prepareHeader();
-        $header         = array_merge($header, Action::getHeaderStore());
+        $header         = \array_replace_recursive($header, Action::getHeaderStore());
         $header['data'] = Action::getDataStore();
         $content        = self::array2xml($header, new \SimpleXMLElement('<root></root>'))->asXML();
 
@@ -135,6 +138,9 @@ class Responder
      */
     public static function write()
     {
+        if(self::$startObClean){
+            \ob_clean();
+        }
         $content = static::render();
         //拦截
         echo $content;

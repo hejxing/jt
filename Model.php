@@ -258,11 +258,14 @@ class Model
     public static function commit()
     {
         foreach (database\Connector::getPdoList() as $pdo) {
-            /* @var $pdo \PDO */
-            if ($pdo->inTransaction()) {
-                $pdo->commit();
-                $pdo->beginTransaction();
-            }
+            self::restartTransaction($pdo);
+        }
+    }
+
+    private static function restartTransaction(\PDO $pdo){
+        if ($pdo->inTransaction()) {
+            $pdo->commit();
+            $pdo->beginTransaction();
         }
     }
 
@@ -392,6 +395,7 @@ class Model
             $sth->execute($data);
         }catch (\PDOException $e){
             $this->processError($e, $this->applyExecutableToPreSql($preSql));
+            self::restartTransaction($this->pdo);
             $sth = $this->query($preSql, $data);
         }
         //TODO: $this->logs[] = $sth->queryString; //写入文件
@@ -561,12 +565,8 @@ class Model
         }else {
             foreach ($fieldNameList as $n) {
                 if ($n === '*') { //如果需要映射到字段，需要在sql中使用as,则不能直接使用"*"
-                    if (\in_array('*', $showHiddenList)) {
-                        $collectedNames[] = $name;
-                        continue;
-                    }
                     foreach (static::$columns as $name => $v) {
-                        if (isset($v['hidden']) && !\in_array($name, $showHiddenList)) {
+                        if (isset($v['hidden']) && (\in_array($name, $showHiddenList) || \in_array('*', $showHiddenList))) {
                             continue;
                         }
                         $collectedNames[] = $name;

@@ -155,11 +155,13 @@ class Action
     public static function getHeaderStore()
     {
         $headerStore = self::$headerStore;
+        //>debug
         if (RUN_MODE === 'develop') {
             $headerStore['queryCount']     = class_exists('\jt\Model', false) ? Model::getQueryTimes() : 0;// + \dal\Dal::selectQueryTimes();
             $includeFiles                  = get_included_files();
             $headerStore['loadFilesCount'] = count($includeFiles);
         }
+        //debug<
         $unit = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
         $size = memory_get_usage(true) / 8;
         $i    = floor(log($size, 1024));

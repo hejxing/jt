@@ -30,22 +30,22 @@ class Bootstrap
      * @param $className
      * @return bool
      */
-    public static function loadClass($className)
+    public static function autoLoad($className)
     {
         $classFile = self::getClassFile($className);
-        self::loadFile($classFile, $className);
+        self::loadClass($classFile, $className);
     }
     
     public static function tryLoad($className){
         $classFile = self::getClassFile($className);
         if(\file_exists($classFile)){
-            self::loadFile($classFile, $className);
+            return self::loadClass($classFile, $className);
         }else{
             return false;
         }
     }
-
-    private static function loadFile($classFile, $className){
+    
+    private static function loadClass($classFile, $className){
         $res = @include($classFile);
         if($res === false){
             return false;
@@ -54,6 +54,7 @@ class Bootstrap
         if (\method_exists($className, '__init')) {
             $className::__init($className);
         }
+        return $res;
     }
     
     public static function getClassFile($className){
@@ -129,9 +130,10 @@ class Bootstrap
         define('MODULE_NAMESPACE_ROOT', $option['nsRoot']);
 
         self::loadConfig();
+        define('ERRORS_VERBOSE', RUN_MODE !== 'production');
 
         //定义自动加载文件方法
-        \spl_autoload_register('static::loadClass');
+        \spl_autoload_register('static::autoLoad');
 
         //注册错误、异常入口
         \ini_set('display_errors', true);

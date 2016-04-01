@@ -69,7 +69,7 @@ abstract class Auth
      */
     protected function exceed()
     {
-        $this->action->status(401, [], false);
+        $this->action->fail('无权使用该功能或访问该资源', 'forbidden', [], 403);
     }
 
     /**
@@ -84,10 +84,10 @@ abstract class Auth
             case 200:
                 return true;
                 break;
-            case 401.1:
+            case 401:
                 $this->notLogin();
                 break;
-            case 401.4:
+            case 403:
                 $this->exceed();
                 break;
             default:

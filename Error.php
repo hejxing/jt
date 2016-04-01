@@ -39,7 +39,7 @@ class Error extends Action
             E_USER_ERROR
         ])) {
             self::fatal('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' line ' . $errLine);
-        }elseif (RUN_MODE === 'develop') {
+        }elseif (ERRORS_VERBOSE) {
             self::notice($errNo, $errStr . ' in ' . $errFile . ' line ' . $errLine);
         }
     }
@@ -57,6 +57,11 @@ class Error extends Action
             list($code, $msg) = explode(':', $msg, 2);
         }
 
+        $data = [];
+        if(ERRORS_VERBOSE){
+            $data['_debug_trace'] = $e->getTrace();
+        }
+
         if (RUN_MODE !== 'production') {
             Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
         }
@@ -66,13 +71,14 @@ class Error extends Action
 
                 return;
             }
-            self::error($code, $msg, false, $e->getParam(), $e->getData());
+            $data = array_merge($data, $e->getData());
+            self::error($code, $msg, false, $e->getParam(), $data);
         }else {
-            self::fatalError($code, $msg);
+            self::fatalError($code, $msg, [], true, $data);
         }
     }
 
-    private static function fatalError($code, $msg = '', $param = [], $strict = true)
+    private static function fatalError($code, $msg = '', $param = [], $strict = true, $data = [])
     {
         self::$collected['fatal'] = [
             'code' => $code,
@@ -80,7 +86,7 @@ class Error extends Action
         ];
         //$handler = new ErrorHandler();
         \header('Status: 500', true);
-        self::error($code, $msg, $strict, $param);
+        self::error($code, $msg, $strict, $param, $data);
     }
 
     /**
@@ -129,9 +135,6 @@ class Error extends Action
             $action->out('code', $code);
             $action->out('msg', $msg);
             Controller::current()->setTemplate('error/error');
-        }
-        if ($fatal && RUN_MODE === 'develop') {
-            $action->out('trace', self::getTrace());
         }
         $action->outMass($data);
         $action->$method(...$param);

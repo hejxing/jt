@@ -166,7 +166,7 @@ class Router extends Action
         }
         //file_put_contents($saveAs, "<?php\nreturn [" . static::serialize($routerMap) . '];');
         file_put_contents($saveAs, "<?php\nreturn " . var_export($routerMap, true) . ';');
-
+        //>debug
         if (RUN_MODE === 'develop') {
             $dir      = new \RecursiveDirectoryIterator(\Config::RUNTIME_PATH_ROOT);
             $iterator = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::SELF_FIRST);
@@ -176,6 +176,7 @@ class Router extends Action
                 }
             }
         }
+        //debug<
         return $routerMap;
     }
 
