@@ -80,7 +80,7 @@ class Controller
      *
      * @type \jt\Auth
      */
-    protected $permission = null;
+    protected $authority = null;
     /**
      * 重试的次数
      *
@@ -131,7 +131,7 @@ class Controller
      *
      * @return bool
      */
-    private function checkPermission($className)
+    private function checkAuthority($className)
     {
         if (!$className) {
             $className = \Config::DEFAULT_AUTH_CHECKER;
@@ -140,9 +140,9 @@ class Controller
             return true;
         }
 
-        $this->permission = new $className();
+        $this->authority = new $className();
 
-        return $this->permission->check();
+        return $this->authority->check();
     }
 
     /**
@@ -152,11 +152,11 @@ class Controller
      */
     private function applyFilter()
     {
-        if ($this->permission === null) {
+        if ($this->authority === null) {
             return true;
         }
 
-        return $this->permission->filter();
+        return $this->authority->filter();
     }
 
     /**
@@ -172,7 +172,7 @@ class Controller
             $this->action->quiet();
         }
 
-        if ($this->checkPermission($this->ruler[4]) === false) {
+        if ($this->checkAuthority($this->ruler[4]) === false) {
             return;
         }
 

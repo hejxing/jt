@@ -37,7 +37,7 @@ abstract class Auth
     /**
      * 执行权限检查
      *
-     * @return int 200,401,402
+     * @return int 200,401,403
      */
     abstract public function auth();
 
@@ -104,6 +104,7 @@ abstract class Auth
     protected static function hold($data)
     {
         $token = Session::start(true);
+        $data['token'] = $token;
         $_SESSION = $data;
         (new Action())->header('token', $token);
 

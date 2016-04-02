@@ -15,11 +15,14 @@ use SessionHandlerInterface;
 
 abstract class Session implements SessionHandlerInterface
 {
-    public static function start($sowing = false, $sessionId = '')
+    public static function start($sowing = false, $sessionId = '', $restart = false)
     {
         ini_set('session.use_cookies', 0);
-        self::checkStatus();
         $sessionId = $sessionId ?: self::getSessionId($sowing);
+        if (self::checkStatus() === PHP_SESSION_ACTIVE && $restart) {
+            session_write_close();
+            return $sessionId;
+        }
         if ($sessionId) {
             $handlerClass = '\jt\lib\session\\' . \Config::SESSION['handler'];
             session_set_save_handler(new $handlerClass());
@@ -68,10 +71,10 @@ abstract class Session implements SessionHandlerInterface
     protected static function sowingIdByCookie($id, $name)
     {
         //TODO 配置Session Cookie
-        $expire = time() + 45 * 60;
-        $path = '/';
-        $domain = null;
-        $secure = null;
+        $expire   = time() + 45 * 60;
+        $path     = '/';
+        $domain   = null;
+        $secure   = null;
         $httpOnly = null;
         setcookie($name, $id, $expire, $path, $domain, $httpOnly);
     }
@@ -101,14 +104,17 @@ abstract class Session implements SessionHandlerInterface
 
     private static function checkStatus()
     {
-        switch (\session_status()) {
+        $status = session_status();
+        switch ($status) {
             case PHP_SESSION_DISABLED:
                 throw new TaskException('SessionDisabled:当前SESSION不可用，请打开PHP SESSION功能');
                 break;
             case PHP_SESSION_ACTIVE:
-                \session_write_close();
+                //\session_write_close();
                 break;
         }
+
+        return $status;
     }
 
     public static function getSessionId($sowing = false)
@@ -158,9 +164,10 @@ abstract class Session implements SessionHandlerInterface
     protected static function getIdByCookie($name)
     {
         $id = $_COOKIE[$name]??null;
-        if($id){
+        if ($id) {
             self::sowingIdByCookie($id, $name);//刷新Cookie的有效期
         }
+
         return $id;
     }
 
