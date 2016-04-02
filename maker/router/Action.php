@@ -25,7 +25,7 @@ abstract class Action extends Loader
     const CLASS_INFO_NAMES     = ['Auth', 'Create', 'version', 'title', 'desc', 'notice'];
     const GLOBAL_BASE_PATH     = ['basePath', 'baseTplPath'];
 
-    const METHOD_ATTRIBUTES = [
+    const METHOD_ATTRIBUTES  = [
         'methods',
         'uri',
         'class',
@@ -42,19 +42,21 @@ abstract class Action extends Loader
         'notice',
         'line'
     ];
+    const DEFAULT_INDEX      = 'index';
+    const TAB_AS_SPACE_COUNT = 4;
 
-    protected $classType = 'action';//当前类的类型 区别于 model
     //默认的规则
-    protected        $basePath        = '/';//URI的路径前缀
-    protected        $baseTplPath     = '/';//TPL的路径前缀
-    protected        $defaultRuler    = [
+    protected $basePath     = '/';//URI的路径前缀
+    protected $baseTplPath  = '/';//TPL的路径前缀
+    protected $defaultRuler = [
         'method' => 'get',
         'tpl'    => '',
         'auth'   => null,
-        'mime'   => ''
+        'mime'   => '',
+        'affix'  => ''
     ];
-    protected static $defaultIndex    = 'index';//index
-    protected static $tabAsSpaceCount = 4;
+
+    protected $classType = 'action';//当前类的类型 区别于 model
 
     /**
      * 搜集全局设置
@@ -166,7 +168,7 @@ abstract class Action extends Loader
     private function countIndent($line)
     {
         preg_match('/^([ \\t]*)/', $line, $matched);
-        $spaces = str_replace("\t", static::$tabAsSpaceCount, $matched[1]);
+        $spaces = str_replace("\t", static::TAB_AS_SPACE_COUNT, $matched[1]);
 
         return strlen($spaces);
     }
@@ -638,7 +640,7 @@ abstract class Action extends Loader
         }
         //为路径加上index
         if (substr($parsed['uri'], -1, 1) === '/') {
-            $parsed['uri'] .= static::$defaultIndex;
+            $parsed['uri'] .= static::DEFAULT_INDEX;
         }
         //加上模板前缀
         if (substr($parsed['tpl'], 0, 1) !== '/') {

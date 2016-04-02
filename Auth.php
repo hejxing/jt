@@ -105,6 +105,7 @@ abstract class Auth
     {
         $token = Session::start(true);
         $_SESSION = $data;
+        (new Action())->header('token', $token);
 
         return $token;
     }
