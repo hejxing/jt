@@ -60,9 +60,6 @@ class Error extends Action
         $data = [];
         if(ERRORS_VERBOSE){
             $data['_debug_trace'] = $e->getTrace();
-        }
-
-        if (RUN_MODE !== 'production') {
             Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
         }
 

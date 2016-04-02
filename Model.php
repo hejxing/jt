@@ -143,6 +143,18 @@ class Model
      */
     protected $isCleanSqlCollect = true;
     /**
+     * 控制是否输出sql
+     *
+     * @type bool
+     */
+    protected static $debugSql = false;
+    /**
+     * 是否处于调试模式，该模式下不会提交事务
+     *
+     * @type bool
+     */
+    protected static $debugMode = false;
+    /**
      * 解析表内容用到的值
      *
      * @type array
@@ -171,8 +183,6 @@ class Model
 
     /**
      * 构造Model
-     *
-     * @throws \ErrorException
      */
     public function __construct()
     {
@@ -245,8 +255,7 @@ class Model
                 break;
             default:
                 $class = \get_class(new static());
-                Error::fatal('tableColumnsRulerError', "数据库模型类 [{$class}] 配置表中 [{$name}] 项值 [{$key}] 有误，请检查");
-                break;
+                self::error('tableColumnsRulerError', "数据库模型类 [{$class}] 配置表中 [{$name}] 项值 [{$key}] 有误，请检查");
         }
 
         return $result;
@@ -262,9 +271,19 @@ class Model
         }
     }
 
-    private static function restartTransaction(\PDO $pdo){
-        if ($pdo->inTransaction()) {
+    private static function commitTransaction(\PDO $pdo)
+    {
+        if (!self::$debugMode) {
             $pdo->commit();
+        }
+    }
+
+    private static function restartTransaction(\PDO $pdo)
+    {
+        if ($pdo->inTransaction()) {
+            self::commitTransaction($pdo);
+        }
+        if (!$pdo->inTransaction()) {
             $pdo->beginTransaction();
         }
     }
@@ -277,7 +296,7 @@ class Model
         foreach (database\Connector::getPdoList() as $pdo) {
             /* @var $pdo \PDO */
             if ($pdo->inTransaction()) {
-                $pdo->commit();
+                self::commitTransaction($pdo);
             }
         }
     }
@@ -338,7 +357,6 @@ class Model
      *
      * @param \PDOException $e
      * @param string        $sql
-     * @throws TaskException
      *
      * @return bool 是否处理了错误
      */
@@ -358,9 +376,7 @@ class Model
 
         $errName = database\ErrorCode::getName($this->connector->getDatabaseType(), $e->getCode());
         $msg     = $this->errMsgList[$errName]??$e->getMessage();
-        $te      = new TaskException('DbOperateError:' . $msg . ' SQL[' . $sql . ']');
-        $te->setIgnoreTraceLine(2);
-        throw $te;
+        self::error('DbOperateError', $msg . ' SQL[' . $sql . ']');
     }
 
     /**
@@ -401,7 +417,9 @@ class Model
         //TODO: $this->logs[] = $sth->queryString; //写入文件
         self::$queryTimes++;
         $this->preSql = '';
-
+        if (self::$debugSql) {
+            (new Action())->header('sql.', $this->applyExecutableToPreSql($preSql));
+        }
         if ($this->isCleanSqlCollect) {
             $this->cleanSqlCollect();
         }
@@ -614,7 +632,6 @@ class Model
      * @param $name
      *
      * @return mixed
-     * @throws \ErrorException
      */
     private function checkData($value, $columns, $name)
     {
@@ -689,7 +706,6 @@ class Model
      * @param $column
      * @param $name
      * @return int|mixed|string
-     * @throws \jt\exception\TaskException
      */
     private function genDefaultValue($column, $name)
     {
@@ -700,7 +716,7 @@ class Model
         }elseif ($column['type'] === 'uuid' && isset($column['primary'])) {
             $value = Helper::uuid([], '-');
         }elseif (isset($column['require'])) {
-            throw new TaskException('InsertToDataBaseRequire:' . "表 [{$this->table}] 此项 [{$name}] 不允许为空");
+            self::error('InsertToDataBaseRequire', "表 [{$this->table}] 此项 [{$name}] 不允许为空");
         }else {
             $type = isset($column['type']) ? $column['type'] : '';
             switch ($type) {
@@ -720,8 +736,6 @@ class Model
 
     /**
      * 生成插入记录用的属性列表
-     *
-     * @throws \ErrorException
      */
     private function genInsertNames()
     {
@@ -778,9 +792,10 @@ class Model
         foreach ($this->sqlCollect['where'] as $index => $where) { //通观全局
             $whereCode[$index]    = ['', '', ' '];
             $whereCode[$index][1] = $where[2] ? 'OR ' : 'AND ';
-            if ($where[3] === 0 && $isClosed) { //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
-                $whereCode[($index - 1) >= 0 ? $index - 1 : $index][0] = '(';
-                $isClosed                                              = false;
+            if (!$where[3] && $isClosed) { //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
+                $pos                = $index >= 1 ? $index - 1 : $index;
+                $whereCode[$pos][0] = '(';
+                $isClosed           = false;
             }
             if ($where[3] && $isClosed === false) {
                 $whereCode[$index][2] = ')';
@@ -880,8 +895,6 @@ class Model
 
     /**
      * 生成插入记录用的属性列表
-     *
-     * @throws \ErrorException
      */
     private function genUpdateNames()
     {
@@ -901,18 +914,40 @@ class Model
                 unset($data[$name]);
             }
         }
+
         foreach ($data as $name => $value) {
             //将属性名与字段名进行映射
             $column = $this->findColumnByName($name);
             if ($column === null || isset($column['primary'])) {//不允许更新主键的内容
                 continue;
             }
-            $field    = isset($column['field']) ? $column['field'] : $name;
-            $fields[] = $field;
-            if (is_string($value) && substr($value, 0, 1) === '`' && substr($value, -1, 1) === '`') {
-                //原样保留可执行代码
-                $fieldValues[] = trim($value, '`');
+            $field    = $column['field']??$name;
+            $quotes   = static::$quotes;
+            $fields[] = $quotes . $field . $quotes;
+            if (is_string($value) && substr($value, 0, 1) === '`' && substr($value, -1, 1) === '`') {//值为可执行代码
+                $value = trim($value, '` ');
+                if (in_array($column['type'], self::$parseDict['numeric']) && preg_match('/^=([\+\-]) *(\d) *$/', $value, $match)) {
+                    $fieldValues[] = "{$quotes}$field{$quotes} {$match[1]} {$match[2]}";
+                }else {
+                    preg_match_all('/(\\\\*)\:(\w+[a-z0-9_\-]*)/i', $value, $matches, PREG_SET_ORDER);
+                    foreach ($matches as $match) {
+                        if ($match[1]) {
+                            if(strlen($match[1]) % 2 === 1){
+                                $value = str_replace($match[0], substr($match[1],0, intval(strlen($match[1]) / 2)).':'.$match[2],  $value);
+                                continue;
+                            }else{
+                                $match[1] = substr($match[1], 0, strlen($match[1]) / 2);
+                            }
+                        }
+                        $field = $this->nameMapField($match[2]);
+                        $value = $match[1].$field;
+                    }
+                    $fieldValues[] = $value;
+                }
             }else {
+                if (substr($value, 0, 2) === '\`') {
+                    $value = substr($value, 1);
+                }
                 $fieldValues[]             = ':u_' . $field;
                 $this->data['u_' . $field] = $this->checkData($value, $column, $name);
             }
@@ -920,10 +955,8 @@ class Model
         //TODO: 记录丢弃的数据
         //TODO: 数据完整性检查
         //TODO: 验证数据
-        $buffer = [];
-        $quotes = static::$quotes;
         foreach ($fields as $index => $f) {
-            $buffer[] = "{$quotes}{$f}{$quotes} = {$fieldValues[$index]}";
+            $buffer[] = "{$f} = {$fieldValues[$index]}";
         }
         $this->preSql .= ' SET ' . implode(', ', $buffer);
     }
@@ -949,7 +982,7 @@ class Model
                 //if (!isset(static::$columns[$name])) {
                 //    //TODO 记录不当的属性名
                 //}
-                $fullField = $this->convertAsMap($name);
+                $fullField = $this->nameMapField($name);
                 if (isset(static::$columns[$name]['lower'])) {
                     $fullField = "lower({$fullField})";
                     $value     = "lower({$value})";
@@ -1008,7 +1041,7 @@ class Model
      *
      * @return string
      */
-    private function convertAsMap($name)
+    private function nameMapField($name)
     {
         if (isset(static::$columns[$name]['field'])) {
             $name = static::$columns[$name]['field'];
@@ -1029,7 +1062,7 @@ class Model
         }
         $groupSql = '';
         foreach ($this->sqlCollect['group'] as $field) {
-            $groupSql .= ' GROUP BY ' . $this->convertAsMap($field);
+            $groupSql .= ' GROUP BY ' . $this->nameMapField($field);
         }
         $this->preSql .= $groupSql;
 
@@ -1047,7 +1080,7 @@ class Model
         $sqlBuffer = [];
         foreach ($this->sqlCollect['order'] as $oa) {
             //$sqlBuffer[] = $this->transfilerAsMap($oa[0]) . ' ' . strtoupper($oa[1]);
-            $sqlBuffer[] = $this->convertAsMap($oa[0]) . ' ' . strtoupper($oa[1]);
+            $sqlBuffer[] = $this->nameMapField($oa[0]) . ' ' . strtoupper($oa[1]);
         }
 
         if ($sqlBuffer) {
@@ -1984,5 +2017,19 @@ class Model
         $this->errMsgList = $list;
 
         return $this;
+    }
+
+    /**
+     * 统一抛出错误
+     *
+     * @param $code
+     * @param $msg
+     * @throws \jt\exception\TaskException
+     */
+    public function error($code, $msg)
+    {
+        $te = new TaskException($code . ':' . $msg);
+        $te->setIgnoreTraceLine(3);
+        throw $te;
     }
 }

@@ -9,6 +9,13 @@ namespace jt;
 
 use jt\exception\TaskException;
 
+define('FILL_DATA_OVER', 1);
+define('FILL_DATA_IGNORE', 2);
+define('FILL_DATA_APPEND', 3);
+define('FILL_DATA_PREPEND', 4);
+define('FILL_DATA_JOIN_RIGHT', 5);
+define('FILL_DATA_JOIN_LEFT', 6);
+
 /**
  * Action基类
  * 负责处理客户端的调用
@@ -63,7 +70,7 @@ class Action
      *
      * @return bool
      */
-    public function header($key, $value, $model = 1)
+    public function header($key, $value, $model = FILL_DATA_OVER)
     {
         return self::fillData(self::$headerStore, $key, $value, $model);
     }
@@ -77,7 +84,7 @@ class Action
      *
      * @return bool
      */
-    public function out($key, $value, $model = 1)
+    public function out($key, $value, $model = FILL_DATA_OVER)
     {
         return self::fillData(self::$dataStore, $key, $value, $model);
     }
@@ -88,7 +95,7 @@ class Action
      * @param array $data
      * @param int   $model 添加方式
      */
-    public function outMass(array $data, $model = 1)
+    public function outMass(array $data, $model = FILL_DATA_OVER)
     {
         foreach ($data as $key => $value) {
             self::fillData(self::$dataStore, $key, $value, $model);
@@ -110,33 +117,53 @@ class Action
 
             return true;
         }
+
+        $parts = explode('.', $key);
+        $p = array_shift($parts);
+        foreach ($parts as $p) {
+            if ($p) {
+                $data = &$data[$p];
+            }else{
+                $p = count($data);
+                $data = &$data[$p-1];
+            }
+        }
+        $key = $p;
         switch ($model) {
-            case O:
+            case FILL_DATA_OVER:
                 $data[$key] = $value;
                 break;
-            case I:
+            case FILL_DATA_IGNORE:
                 if (isset($data[$key])) {
                     return false;
                 }else {
                     $data[$key] = $value;
                 }
                 break;
-            case AL:
-                if (!isset($data[$key]) || is_array($data[$key])) {
-                    $data[$key][] = $value;
-                }else {
+            case FILL_DATA_APPEND:
+            case FILL_DATA_PREPEND:
+                if (!isset($data[$key])) {
+                    $data[$key] = [];
+                }
+                if (!is_array($data[$key])) {
                     return false;
                 }
+                if ($model === FILL_DATA_APPEND) {
+                    array_push($data[$key], $value);
+                }else {
+                    array_unshift($data[$key], $value);
+                }
                 break;
-            case AE:
-                if (!\is_string($value)) {
+            case FILL_DATA_JOIN_RIGHT:
+            case FILL_DATA_JOIN_LEFT:
+                if (!\is_string($value) || (isset($data[$key]) && !\is_string($data[$key]))) {
                     return false;
                 }
                 if (isset($data[$key])) {
-                    if (\is_string($data[$key])) {
+                    if ($model === FILL_DATA_JOIN_RIGHT) {
                         $data[$key] .= $value;
                     }else {
-                        return false;
+                        $data[$key] = $value . $data[$key];
                     }
                 }else {
                     $data[$key] = $value;
@@ -166,7 +193,7 @@ class Action
         $size = memory_get_usage(true) / 8;
         $i    = floor(log($size, 1024));
 
-        $headerStore['useMemory'] = round($size / pow(1024, $i), 2).' '.$unit[$i];
+        $headerStore['useMemory'] = round($size / pow(1024, $i), 2) . ' ' . $unit[$i];
         $headerStore['spendTime'] = intval((microtime(true) - Bootstrap::$startTime) * 1000);
 
         return $headerStore;
@@ -253,7 +280,7 @@ class Action
      * 在业务执行前执行
      *
      * @param string $method
-     * @param array $param
+     * @param array  $param
      * @return bool
      */
     public function before($method, $param)
@@ -265,7 +292,7 @@ class Action
      * 业务执行完毕，在内容输出前执行
      *
      * @param string $method
-     * @param array $param
+     * @param array  $param
      * @return bool
      */
     public function after($method, $param)
@@ -319,7 +346,7 @@ class Action
     public function fail($msg, $code = 'fail', $param = [], $status = null)
     {
         self::$taskSuccess = false;
-        if($status){
+        if ($status) {
             \header('Status: ' . $status, true);
         }
         $this->header('code', $code);
@@ -492,12 +519,7 @@ class Action
      */
     public static function __init($className)
     {
-        if ($className === __CLASS__) {
-            define('O', 1);
-            define('I', 2);
-            define('AL', 3);
-            define('AE', 4);
-        }
+
     }
 
     /**
@@ -545,14 +567,17 @@ class Action
      * @param int   $status 状态码
      * @param array $param 请求传递的参数
      * @param bool  $error 是否判定为错误
+     * @throws \jt\exception\TaskException
      */
     public function status($status, $param = [], $error = true)
     {
+        \header('Status: ' . $status);
         if ($status >= 400 && $error) {
             self::$taskSuccess = false;
-            Error::fatal($status, '', $param);
-        }else {
-            \header('Status: ' . $status);
+
+            $e = new TaskException($status . ':');
+            $e->setParam($param);
+            throw $e;
         }
     }
 

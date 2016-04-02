@@ -59,9 +59,8 @@ abstract class Auth
      */
     protected function notLogin()
     {
-        $this->action->out('loginUrl', $this->loginUrl);
-        $this->action->out('ref', $_SERVER['REQUEST_URI']);
-        $this->action->fail('未登录或登录失败，请重登录', 'notLogin', [], 401);
+        $this->action->out('loginUrl', $this->loginUrl.'?ref='.$_SERVER['REQUEST_URI']);
+        $this->action->fail('未登录或登录失败，请重登录', 401);
     }
 
     /**
@@ -69,7 +68,7 @@ abstract class Auth
      */
     protected function exceed()
     {
-        $this->action->fail('无权使用该功能或访问该资源', 'forbidden', [], 403);
+        $this->action->fail('无权使用该功能或访问该资源', 403);
     }
 
     /**
@@ -77,7 +76,7 @@ abstract class Auth
      *
      * @return bool
      */
-    public function check()
+    final public function check()
     {
         $code = $this->auth();
         switch ($code) {
