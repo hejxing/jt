@@ -81,7 +81,7 @@ class Requester
     /**
      * 检测参数是否合法
      *
-     * @param mixed $value
+     * @param mixed  $value
      * @param array  $option
      * @param string $name 获取参数的名单项名称
      * @param bool   $strict 是否严格模式
@@ -264,7 +264,7 @@ class Requester
                 }
                 break;
             case 'type' === $key:
-                $value = $value?:'string';
+                $value = $value ?: 'string';
                 if (in_array($value, self::VALUE_TYPE['single']) || in_array($value, self::VALUE_TYPE['composite'])) {
                     $result['type'] = $value;
                 }else {
@@ -603,7 +603,6 @@ class Requester
      * @param string $msg 错误消息
      * @param string $name 值名称
      * @param array  $option
-
      * @throws \jt\exception\TaskException
      */
     private static function error($code, $msg, $name, array $option)
@@ -615,7 +614,7 @@ class Requester
             $msg .= '.' . $line;
         }
 
-        $e = new TaskException('inputIll:'.$msg);
+        $e = new TaskException('inputIll:' . $msg);
         $e->addData(['field' => $name, 'code' => $code]);
         throw $e;
     }
@@ -670,5 +669,23 @@ class Requester
         $requester = self::createFromRequest($validate, $source);
 
         return $requester->get($name);
+    }
+
+    /**
+     * 按列表顺序取出第一个非空值
+     *
+     * @param array ...$names
+     * @return mixed|null
+     */
+    public function firstNotEmpty(...$names)
+    {
+        foreach ($names as $name) {
+            $v = $this->__get($name);
+            if ($v !== null) {
+                return $v;
+            }
+        }
+
+        return null;
     }
 }
