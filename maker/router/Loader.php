@@ -139,9 +139,57 @@ abstract class Loader
         }
     }
 
+    /**
+     * 处理引用
+     */
     public static function processReference()
     {
+        foreach (self::$cacheStore['action'] as $className => &$class) {
+            foreach ($class['methods'] as &$method) {
+                foreach ($method['param'] as &$param) {
+                    self::traverseRootNode($param, $className, 'param');
+                }
+                self::traverseRootNode($method['return'], $className, 'return');
+            }
+        }
+    }
 
+    protected static function traverseRootNode(&$root, $className, $type){
+        if(isset($root['nodes'])){
+            foreach ($root['nodes'] as $index => &$node) {
+                self::traverseForReference($node, $className, $type, $root['nodes'], $index);
+            }
+        }
+    }
+
+    protected static function traverseForReference(&$list, $className, $type, &$parent, $index)
+    {
+        if (isset($list['type']) && $list['type'] === '__reference') {
+            switch ($list['name']) {
+                case 'method':
+                    $origin = $list['ruler']['origin'];
+                    if (strpos($origin, '::') === false) {
+                        $class  = $className;
+                        $method = $origin;
+                    }else {
+                        list($class, $method) = explode('::', $list['ruler']['origin']);
+                    }
+
+                    //TODO: 解决循环引用
+
+                    foreach(self::$cacheStore['action'][$class]['methods'] as $router){
+                        if($router['method'] === $method){
+                            $replacement = $router[$type]['nodes'];
+                            array_splice($parent, $index, 1, $replacement);
+                        }
+                    }
+
+                    break;
+                default:
+                    throw new TaskException('ReferenceTypeIll:引用类型错误或未实现');
+            }
+        }
+        self::traverseRootNode($list, $className, $type);
     }
 
     private static function saveCache()
@@ -176,7 +224,7 @@ abstract class Loader
         $seed = filemtime($this->file);
         if (isset(static::$originCache['info'][$this->file]) && static::$originCache['info'][$this->file]['seed'] === $seed) {
             static::$cacheStore['info'][$this->file] = static::$originCache['info'][$this->file];
-            if(!isset(static::$cacheStore['info'][$this->file]['class'])){//忽略解析
+            if (!isset(static::$cacheStore['info'][$this->file]['class'])) {//忽略解析
                 return true;
             }
             $class = static::$cacheStore['info'][$this->file]['class'];

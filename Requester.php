@@ -81,7 +81,7 @@ class Requester
     /**
      * 检测参数是否合法
      *
-     * @param        $value
+     * @param mixed $value
      * @param array  $option
      * @param string $name 获取参数的名单项名称
      * @param bool   $strict 是否严格模式
@@ -111,13 +111,13 @@ class Requester
         }elseif (isset($option['validate'])) {
             $result = Validate::check($value, $option['validate']);
             if ($result === false) {
-                self::error('value_validate_invalid', '值需要一个有效的 [' . $option['validate'] . ']', $name, $option, $strict);
+                self::error('value_validate_invalid', '值只允许是 [' . $option['validate'] . ']', $name, $option, $strict);
             }elseif ($result === null) {
                 self::error('value_validate_type_invalid', '验证规则无效 [' . $option['validate'] . '],需要有效的规则或正则表达式', $name, $option, $strict);
             }
         }else {
             if (!self::typeCheck($value, $option['type'])) {
-                return self::error('value_type_invalid', '需要一个类型为 [' . $option['type'] . '] 的值', $name, $option, $strict);
+                return self::error('value_type_invalid', '需要类型为 [' . $option['type'] . '] 的值', $name, $option, $strict);
             }
         }
         if (in_array($option['type'], static::VALUE_RANGE_TYPE)) {

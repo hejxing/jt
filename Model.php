@@ -203,6 +203,13 @@ class Model
         static::$columns = $parsed;
     }
 
+    private static function tidyParsedLine(&$lined)
+    {
+        if (!empty($lined['del']) && !isset($lined['hidden'])) {
+            $lined['hidden'] = true;
+        }
+    }
+
     private static function line($str, $name)
     {
         $lined = [];
@@ -210,6 +217,7 @@ class Model
         foreach ($parts as $a) {
             $lined = \array_merge($lined, self::attr($a, $name));
         }
+        self::tidyParsedLine($lined);
 
         return $lined;
     }
@@ -273,7 +281,10 @@ class Model
 
     private static function commitTransaction(\PDO $pdo)
     {
-        if (!self::$debugMode) {
+        if (self::$debugMode) {
+            (new Action())->header('_db_debug_mode', true);
+            $pdo->rollBack();
+        }else{
             $pdo->commit();
         }
     }
@@ -374,9 +385,8 @@ class Model
                 return;
         }
 
-        $errName = database\ErrorCode::getName($this->connector->getDatabaseType(), $e->getCode());
-        $msg     = $this->errMsgList[$errName]??$e->getMessage();
-        self::error('DbOperateError', $msg . ' SQL[' . $sql . ']');
+        $msg     = database\ErrorCode::getMessage($this, $e, $sql);
+        self::error('DbOperateError', $msg);
     }
 
     /**
@@ -391,7 +401,7 @@ class Model
             $value = is_string($value) ? "'" . $value . "'" : $value;
             $sql   = str_replace(':' . $name, $value, $sql);
         }
-
+        $sql = preg_replace('/\([(?:\?\,)|\?]+\)/', '(\'' . implode('\', \'', $this->data) . '\')', $sql);
         return $sql;
     }
 
@@ -418,7 +428,7 @@ class Model
         self::$queryTimes++;
         $this->preSql = '';
         if (self::$debugSql) {
-            (new Action())->header('sql.', $this->applyExecutableToPreSql($preSql));
+            (new Action())->header('_debug_sql.', $this->applyExecutableToPreSql($preSql));
         }
         if ($this->isCleanSqlCollect) {
             $this->cleanSqlCollect();
@@ -584,7 +594,7 @@ class Model
             foreach ($fieldNameList as $n) {
                 if ($n === '*') { //如果需要映射到字段，需要在sql中使用as,则不能直接使用"*"
                     foreach (static::$columns as $name => $v) {
-                        if (isset($v['hidden']) && (\in_array($name, $showHiddenList) || \in_array('*', $showHiddenList))) {
+                        if (isset($v['hidden']) && (!\in_array($name, $showHiddenList) && !\in_array('*', $showHiddenList))) {
                             continue;
                         }
                         $collectedNames[] = $name;
@@ -644,8 +654,8 @@ class Model
             }
         }
         if (isset($columns['array'])) {
-            if (\is_array($value)) {
-                $value = \json_encode($value, JSON_UNESCAPED_UNICODE);
+            if (is_array($value)) {
+                $value = json_encode($value, JSON_UNESCAPED_UNICODE);
             }else {
                 Error::fatal('DataFormatError', '数据项 [' . $name . '] 期望是一个 [数组],当前给的值为: [' . $value . ']');
             }
@@ -700,6 +710,11 @@ class Model
         return $data;
     }
 
+    private static function genUUid()
+    {
+        return Helper::uuid([], '-');
+    }
+
     /**
      * 补充空数据
      *
@@ -710,25 +725,32 @@ class Model
     private function genDefaultValue($column, $name)
     {
         if (isset($column['default'])) {
-            $value = $column['default'];
-        }elseif (isset($column['at'])) {
-            $value = \microtime(true);
-        }elseif ($column['type'] === 'uuid' && isset($column['primary'])) {
-            $value = Helper::uuid([], '-');
-        }elseif (isset($column['require'])) {
+            return $column['default'];
+        }
+        if (isset($column['at'])) {
+            return \microtime(true);
+        }
+        if ($column['type'] === 'uuid' && isset($column['primary'])) {
+            return self::genUuid();
+        }
+        if (isset($column['require'])) {
             self::error('InsertToDataBaseRequire', "表 [{$this->table}] 此项 [{$name}] 不允许为空");
-        }else {
-            $type = isset($column['type']) ? $column['type'] : '';
-            switch ($type) {
-                case 'numeric':
-                    $value = 0;
-                    break;
-                case 'bool':
-                    $value = 0;
-                    break;
-                default:
-                    $value = '';
-            }
+        }
+
+        if (isset($column['array'])) {
+            return [];
+        }
+
+        $type = isset($column['type']) ? $column['type'] : '';
+        switch ($type) {
+            case 'numeric':
+                $value = 0;
+                break;
+            case 'bool':
+                $value = 0;
+                break;
+            default:
+                $value = '';
         }
 
         return $value;
@@ -932,15 +954,15 @@ class Model
                     preg_match_all('/(\\\\*)\:(\w+[a-z0-9_\-]*)/i', $value, $matches, PREG_SET_ORDER);
                     foreach ($matches as $match) {
                         if ($match[1]) {
-                            if(strlen($match[1]) % 2 === 1){
-                                $value = str_replace($match[0], substr($match[1],0, intval(strlen($match[1]) / 2)).':'.$match[2],  $value);
+                            if (strlen($match[1]) % 2 === 1) {
+                                $value = str_replace($match[0], substr($match[1], 0, intval(strlen($match[1]) / 2)) . ':' . $match[2], $value);
                                 continue;
-                            }else{
+                            }else {
                                 $match[1] = substr($match[1], 0, strlen($match[1]) / 2);
                             }
                         }
                         $field = $this->nameMapField($match[2]);
-                        $value = $match[1].$field;
+                        $value = $match[1] . $field;
                     }
                     $fieldValues[] = $value;
                 }
@@ -1681,13 +1703,13 @@ class Model
      *
      * @return $this
      */
-    public function equalsMulti($list)
+    public function equalsMulti($list, $glue = 'and')
     {
+        $buffer = [];
         foreach ($list as $name => $value) {
-            $this->where("$name=:$name", [$name => $value]);
+            $buffer[] = "$name=:$name";
         }
-
-        //array_walk();
+        $this->where(implode(" {$glue} ", $buffer), $list);
 
         return $this;
     }
@@ -2026,10 +2048,34 @@ class Model
      * @param $msg
      * @throws \jt\exception\TaskException
      */
-    public function error($code, $msg)
+    public static function error($code, $msg)
     {
         $te = new TaskException($code . ':' . $msg);
         $te->setIgnoreTraceLine(3);
         throw $te;
+    }
+
+    /**
+     * 获取当前所用的数据库类弄
+     * @return string
+     */
+    public function getConnectorType(){
+        return $this->connector->getDatabaseType();
+    }
+
+    /**
+     * 获取当前所用错误列表
+     * @return array
+     */
+    public function getErrorMsgList(){
+        return $this->errMsgList;
+    }
+
+    /**
+     * 开启调试模式，在该模式下不会真正写入数据库
+     */
+    public static function startDebug($debug = true, $debugSql = true){
+        self::$debugMode = $debug;
+        Self::$debugSql = $debugSql;
     }
 }

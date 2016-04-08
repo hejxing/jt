@@ -114,4 +114,20 @@ class Helper
     {
         return (\strpos($_SERVER['HTTP_USER_AGENT'], $flag) !== false);
     }
+
+    /**
+     * 搜集列表所需的内容
+     * @param $map
+     * @param $data
+     * @return array
+     */
+    public static function mapList($map, $data){
+        $list = [];
+        foreach($map as $key){
+            if(isset($data[$key])){
+                $list[$key] = $data[$key];
+            }
+        }
+        return $list;
+    }
 }

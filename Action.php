@@ -119,16 +119,19 @@ class Action
         }
 
         $parts = explode('.', $key);
-        $p = array_shift($parts);
+        $key = array_pop($parts);
         foreach ($parts as $p) {
-            if ($p) {
-                $data = &$data[$p];
-            }else{
+            if(!$p){
                 $p = count($data);
-                $data = &$data[$p-1];
             }
+            if(!isset($data[$p])){
+                $data[$p] = [];
+            }
+            $data = &$data[$p];
         }
-        $key = $p;
+        if(!$key){
+            $key = count($data);
+        }
         switch ($model) {
             case FILL_DATA_OVER:
                 $data[$key] = $value;
@@ -325,12 +328,17 @@ class Action
      *
      * @param string $msg 操作说明
      * @param string $code 错误代码
+     * @param bool   $responseEnd 是否结束响应，立即返回
+     *
      */
-    public function success($msg, $code = '')
+    public function success($msg, $code = '', $responseEnd = false)
     {
         $this->header('msg', $msg);
         if ($code) {
             $this->header('code', $code);
+        }
+        if ($responseEnd) {
+            Responder::end();
         }
     }
 
@@ -341,20 +349,24 @@ class Action
      * @param string $code 错误代码
      * @param array  $param 传递的参数
      * @param int    $status 错误状态
+     * @param bool   $responseEnd 是否结束响应，立即返回
      * @throws \jt\exception\TaskException
      */
-    public function fail($msg, $code = 'fail', $param = [], $status = null)
+    public function fail($msg, $code = 'fail', $param = [], $status = null, $responseEnd = true)
     {
         self::$taskSuccess = false;
         if ($status) {
-            \header('Status: ' . $status, true);
+            header('Status: ' . $status, true);
         }
-        $this->header('code', $code);
-        $this->header('msg', $msg);
-        $e = new TaskException("{$code}:{$msg}");
-        $e->setParam($param);
-        $e->setIgnoreTraceLine(1);
-        throw $e;
+        if ($responseEnd) {
+            $e = new TaskException("{$code}:{$msg}");
+            $e->setParam($param);
+            $e->setIgnoreTraceLine(1);
+            throw $e;
+        }else {
+            $this->header('code', $code);
+            $this->header('msg', $msg);
+        }
     }
 
     /**

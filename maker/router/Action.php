@@ -213,8 +213,14 @@ abstract class Action extends Loader
         }
         $type = $match[1];
         if (strpos($match[0], '+') === 0) {
-            $match[1] = 'require';
-            $match[2] = preg_split('/ *, */', $match[2]);
+            $list = preg_split('/ *, */', $match[2]?:'*');
+            $match[0] = substr($match[0], 1);
+            $match[2] = [
+                'origin' => $match[1],
+                'list' => $list,
+                'rule' => 'in'
+            ];
+            $match[1] = '__reference';
         }else {
             $ruler = trim($type . ' ' . $match[2]);
             try{
@@ -276,9 +282,10 @@ abstract class Action extends Loader
             $p            = $this->parseParamLine(trim($line));
             $parsed       = [
                 'name'  => $p[0],
+                'type'  => $p[1],
                 'ruler' => $p[2],
                 'desc'  => $p[3],
-                'line'  => $lineNo
+                'line'  => $p[4]
             ];
             $parsedList[] = $parsed;
         }
