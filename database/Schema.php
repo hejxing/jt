@@ -58,6 +58,7 @@ class Schema extends Connector
      */
     public function createTable($table, array $columns)
     {
+        $quotes = $this->getQuotes();
         $schema = '';
         if (strpos($table, '.') > 0) {
             $schema = explode('.', $table, 2)[0];
@@ -65,34 +66,50 @@ class Schema extends Connector
 
         if ($schema) {
             $this->executeDDL("CREATE SCHEMA IF NOT EXISTS " . $schema);
+            $this->executeDDL("SET search_path TO {$schema}");
         }
 
         $sql       = "CREATE TABLE {$table} (";
         $primary   = [];
+        $increment = [];
         $sqlBuffer = [];
         foreach ($columns as $name => $column) {
-            if (isset($column['field'])) {
-                $name = $column['field'];
-            }
+            $notNull = '';
+            $name = $column['field']??$name;
             $type = $this->genType($column);
 
             if (!isset($column['allowNull'])) {
-                $notNull = 'NOT NULL ';
+                $notNull = ' NOT NULL';
             }
 
             if (isset($column['primary'])) {
                 $primary[] = $name;
             }
 
-            $sqlBuffer[] = "\"{$name}\" {$type} {$notNull}";
+            if (isset($column['increment'])) {
+                $increment[] = $name;
+            }
+
+            $sqlBuffer[] = "{$quotes}{$name}{$quotes} {$type}{$notNull}";
         }
         $sql .= "\n" . implode(",\n", $sqlBuffer);
         if ($primary) {
-            $sql .= ",\n PRIMARY KEY (\"" . implode('", "', $primary) . '")';
+            $sql .= ",\n PRIMARY KEY ({$quotes}" . implode($quotes.', '.$quotes, $primary) . $quotes.')';
         }
         $sql .= "\n)";
         //TODO 索引 备注
-
         $this->executeDDL($sql);
+        $this->activeIncrement($table, $increment);
+    }
+
+    private function activeIncrement($table, array $columns)
+    {
+        $quotes = $this->getQuotes();
+        foreach ($columns as $name) {
+            $seqName = $table . '_' . $name . '_seq';
+            $seqName = str_replace($quotes, '', $seqName);
+            $this->executeDDL("CREATE SEQUENCE IF NOT EXISTS {$seqName} INCREMENT BY 1 START WITH 1 NO MINVALUE NO MAXVALUE CACHE 1 OWNED BY {$table}.{$quotes}{$name}{$quotes};");
+            $this->executeDDL("ALTER TABLE {$table} ALTER COLUMN {$quotes}{$name}{$quotes} SET DEFAULT nextval('{$seqName}');");
+        }
     }
 }

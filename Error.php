@@ -13,6 +13,11 @@ use jt\exception\TaskException;
 class Error extends Action
 {
     /**
+     * 是否直接输出错误
+     * @type bool
+     */
+    static protected $isDirectOutput = false;
+    /**
      * 收集到的错误信息
      *
      * @var array
@@ -58,7 +63,7 @@ class Error extends Action
         }
 
         $data = [];
-        if(ERRORS_VERBOSE){
+        if (ERRORS_VERBOSE) {
             $data['_debug_trace'] = $e->getTrace();
             Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
         }
@@ -123,6 +128,10 @@ class Error extends Action
      */
     protected static function error($code, $msg, $fatal, $param = [], $data = [])
     {
+        if(self::$isDirectOutput){
+            echo $code.': '.$msg;
+            return;
+        }
         $method = '_' . $code;
         $action = self::getAction($method, $fatal);
         $action->header('code', $code);
@@ -201,6 +210,9 @@ class Error extends Action
             'code' => $code,
             'msg'  => $msg
         ];
+        if(self::$isDirectOutput){
+            echo $code.': '.$msg;
+        }
     }
 
     /**
@@ -215,6 +227,9 @@ class Error extends Action
             'code' => $code,
             'msg'  => $msg
         ];
+        if(self::$isDirectOutput){
+            echo $code.': '.$msg;
+        }
     }
 
     /**
@@ -240,5 +255,15 @@ class Error extends Action
         }
 
         return $header;
+    }
+
+    /**
+     * 是否直接输出错误，便于调试
+     *
+     * @param bool $v
+     */
+    static public function directOutput($v = true)
+    {
+        self::$isDirectOutput = RUN_MODE === 'develop' ? $v : false;
     }
 }

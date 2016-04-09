@@ -136,12 +136,11 @@ class Controller
         if (!$className) {
             $className = \Config::DEFAULT_AUTH_CHECKER;
         }
-        if (!$className || $className === 'public') {
+        if ($className === 'public') {
             return true;
         }
 
         $this->authority = new $className();
-
         return $this->authority->check();
     }
 

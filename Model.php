@@ -164,6 +164,7 @@ class Model
         'type'    => ['uuid', 'bit', 'timestamp', 'date'],
         'string'  => ['char', 'varchar', 'text'],
         'numeric' => ['int2', 'int4', 'int8', 'float4', 'float8', 'decimal', 'numeric'],
+        'serial'  => ['serial2', 'serial4', 'serial8'],
         'boolean' => ['bool'],
         'object'  => ['json', 'jsonb'],
         'value'   => ['format', 'touch', 'foreign', 'field', 'default', 'validate', 'at'],
@@ -231,31 +232,36 @@ class Model
         }
         $result = [];
         switch (true) {
-            case \in_array($key, self::$parseDict['bool']):
+            case in_array($key, self::$parseDict['bool']):
                 if ($key === 'primary') {
                     static::$primary = $name;
                 }
                 $result[$key] = true;
                 break;
-            case \in_array($key, self::$parseDict['type']):
+            case in_array($key, self::$parseDict['type']):
                 $result['type'] = $key;
                 break;
-            case \in_array($key, self::$parseDict['string']):
+            case in_array($key, self::$parseDict['string']):
                 $result['fieldType'] = $key;
                 $result['type']      = 'string';
                 $result['length']    = intval($value);
                 break;
-            case \in_array($key, self::$parseDict['numeric']):
+            case in_array($key, self::$parseDict['serial']):
+                $result['fieldType']     = $key;
+                $result['type']          = 'numeric';
+                $result['increment'] = true;
+                break;
+            case in_array($key, self::$parseDict['numeric']):
                 $result['fieldType'] = $key;
                 $result['type']      = 'numeric';
                 break;
-            case \in_array($key, self::$parseDict['boolean']):
+            case in_array($key, self::$parseDict['boolean']):
                 $result['type'] = 'bool';
                 break;
-            case \in_array($key, self::$parseDict['object']):
+            case in_array($key, self::$parseDict['object']):
                 $result['type'] = 'object';
                 break;
-            case \in_array($key, self::$parseDict['value']):
+            case in_array($key, self::$parseDict['value']):
                 if ($key === 'field') {
                     self::$fieldMap[$value] = $name;
                 }
@@ -284,7 +290,7 @@ class Model
         if (self::$debugMode) {
             (new Action())->header('_db_debug_mode', true);
             $pdo->rollBack();
-        }else{
+        }else {
             $pdo->commit();
         }
     }
@@ -385,7 +391,7 @@ class Model
                 return;
         }
 
-        $msg     = database\ErrorCode::getMessage($this, $e, $sql);
+        $msg = database\ErrorCode::getMessage($this, $e, $sql);
         self::error('DbOperateError', $msg);
     }
 
@@ -402,6 +408,7 @@ class Model
             $sql   = str_replace(':' . $name, $value, $sql);
         }
         $sql = preg_replace('/\([(?:\?\,)|\?]+\)/', '(\'' . implode('\', \'', $this->data) . '\')', $sql);
+
         return $sql;
     }
 
@@ -500,8 +507,13 @@ class Model
     public function insert($preSql, array $data = [])
     {
         $this->query('INSERT INTO ' . $preSql, $data);
+        if($this->insertId){
+            $insertId = $this->insertId;
+        }else{
+            $insertId = $this->pdo->lastInsertId($this->table.'_'.static::$primary.'_seq');
+        }
 
-        return ['insertId' => $this->insertId ?: $this->pdo->lastInsertId(static::$primary ?: null)];
+        return ['insertId' => $insertId];
     }
 
     /**
@@ -795,10 +807,12 @@ class Model
         //TODO: 记录丢弃的数据
         //TODO: 数据完整性检查
         //TODO: 验证数据
-        $placeholders = array_fill(0, count(static::$columns), '?');
+        $placeholder = '?';
+
+        $placeholder .= str_repeat(', ?', count($this->data) - 1);
         $quotes       = static::$quotes;
         $this->preSql .= ' (' . $quotes . implode("{$quotes}, {$quotes}", $fields) . $quotes;
-        $this->preSql .= ') VALUES (' . implode(',', $placeholders) . ')';
+        $this->preSql .= ') VALUES (' . $placeholder . ')';
     }
 
     /**
@@ -2057,25 +2071,30 @@ class Model
 
     /**
      * 获取当前所用的数据库类弄
+     *
      * @return string
      */
-    public function getConnectorType(){
+    public function getConnectorType()
+    {
         return $this->connector->getDatabaseType();
     }
 
     /**
      * 获取当前所用错误列表
+     *
      * @return array
      */
-    public function getErrorMsgList(){
+    public function getErrorMsgList()
+    {
         return $this->errMsgList;
     }
 
     /**
      * 开启调试模式，在该模式下不会真正写入数据库
      */
-    public static function startDebug($debug = true, $debugSql = true){
+    public static function startDebug($debug = true, $debugSql = true)
+    {
         self::$debugMode = $debug;
-        Self::$debugSql = $debugSql;
+        Self::$debugSql  = $debugSql;
     }
 }

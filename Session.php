@@ -15,14 +15,23 @@ use SessionHandlerInterface;
 
 abstract class Session implements SessionHandlerInterface
 {
-    public static function start($sowing = false, $sessionId = '', $restart = false)
+    /**
+     * 开启会话，会根据配置自动获取会话标识，将会话内容充入$_SESSION
+     *
+     * @param bool   $sowing
+     * @param string $sessionId
+     * @param bool   $restart 如果当前会话处于活动状态是否关停
+     * @return string
+     * @throws \jt\exception\TaskException
+     */
+    public static function start($sowing = false, $sessionId = '', $restart = true)
     {
         ini_set('session.use_cookies', 0);
         $sessionId = $sessionId ?: self::getSessionId($sowing);
-        if (self::checkStatus() === PHP_SESSION_ACTIVE && $restart) {
-            session_write_close();
+        if(!self::checkStatus($restart)){
             return $sessionId;
         }
+
         if ($sessionId) {
             $handlerClass = '\jt\lib\session\\' . \Config::SESSION['handler'];
             session_set_save_handler(new $handlerClass());
@@ -37,6 +46,12 @@ abstract class Session implements SessionHandlerInterface
         return $sessionId;
     }
 
+    /**
+     * 将会话标识传递给客户端
+     *
+     * @param $id
+     * @throws \jt\exception\TaskException
+     */
     public static function sowing($id)
     {
         $savers = explode(',', \Config::SESSION['idSaver']);
@@ -53,6 +68,12 @@ abstract class Session implements SessionHandlerInterface
         }
     }
 
+    /**
+     * 通过Header传递会话ID
+     *
+     * @param $id
+     * @param $name
+     */
     protected static function sowingIdByHeader($id, $name)
     {
         $ns = explode('_', $name);
@@ -63,11 +84,23 @@ abstract class Session implements SessionHandlerInterface
         header("{$name}: {$id}");
     }
 
+    /**
+     * 通过Url传递会话ID
+     *
+     * @param $id
+     * @param $name
+     */
     protected static function sowingIdByUrl($id, $name)
     {
 
     }
 
+    /**
+     * 通过Cookie传递会话ID
+     *
+     * @param $id
+     * @param $name
+     */
     protected static function sowingIdByCookie($id, $name)
     {
         //TODO 配置Session Cookie
@@ -79,14 +112,25 @@ abstract class Session implements SessionHandlerInterface
         setcookie($name, $id, $expire, $path, $domain, $httpOnly);
     }
 
+    /**
+     * 清除该会话ID下的会话
+     *
+     * @param $sessionId
+     */
     public static function erase($sessionId)
     {
         if ($sessionId) {
             self::start(false, $sessionId);
-            \session_destroy();
+            session_destroy();
         }
     }
 
+    /**
+     * 重新生成会话ID
+     *
+     * @param bool $hold
+     * @param null $sessionId
+     */
     public static function regenerateId($hold = false, $sessionId = null)
     {
         $data = null;
@@ -102,7 +146,14 @@ abstract class Session implements SessionHandlerInterface
         }
     }
 
-    private static function checkStatus()
+    /**
+     * 检查会话状态
+     *
+     * @param bool $restart 是否重启新会话
+     * @return bool
+     * @throws \jt\exception\TaskException
+     */
+    private static function checkStatus($restart)
     {
         $status = session_status();
         switch ($status) {
@@ -110,13 +161,24 @@ abstract class Session implements SessionHandlerInterface
                 throw new TaskException('SessionDisabled:当前SESSION不可用，请打开PHP SESSION功能');
                 break;
             case PHP_SESSION_ACTIVE:
-                //\session_write_close();
+                if ($restart) {
+                    session_write_close();
+                }else{
+                    return false;
+                }
                 break;
         }
 
-        return $status;
+        return true;
     }
 
+    /**
+     * 获取会话ID
+     *
+     * @param bool $sowing
+     * @return string
+     * @throws \jt\exception\TaskException
+     */
     public static function getSessionId($sowing = false)
     {
         $savers = explode(',', \Config::SESSION['idSaver']);
@@ -143,6 +205,12 @@ abstract class Session implements SessionHandlerInterface
         return '';
     }
 
+    /**
+     * 生成会话ID
+     *
+     * @return string
+     * @throws \jt\exception\TaskException
+     */
     public static function genSessionId()
     {
         $id = Helper::uuid();
@@ -151,16 +219,34 @@ abstract class Session implements SessionHandlerInterface
         return $id;
     }
 
+    /**
+     * 通过Header获取会话ID
+     *
+     * @param $name
+     * @return null
+     */
     protected static function getIdByHeader($name)
     {
         return $_SERVER['HTTP_' . $name]??null;
     }
 
+    /**
+     * 通过Url获取会话ID
+     *
+     * @param $name
+     * @return null
+     */
     protected static function getIdByUrl($name)
     {
         return $_GET[$name]??null;
     }
 
+    /**
+     * 通过Cookie获取会话ID
+     *
+     * @param $name
+     * @return null
+     */
     protected static function getIdByCookie($name)
     {
         $id = $_COOKIE[$name]??null;

@@ -8,7 +8,6 @@
 
 namespace jt\database;
 
-use jt\Error;
 use jt\exception\TaskException;
 
 class Connector
