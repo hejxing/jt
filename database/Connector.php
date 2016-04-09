@@ -85,15 +85,15 @@ class Connector
 
     /**
      * 创建PDO
-     *
+     * @param bool $persistent 是否建立长连接
      * @return \PDO
      * @throws \ErrorException
      */
-    protected function createPDO()
+    protected function createPDO($persistent = true)
     {
         $pdo = new \PDO($this->generateDsn(), $this->config['user'], $this->config['password']);
         $pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true); //不使用数据库提供的prepares
-        $pdo->setAttribute(\PDO::ATTR_PERSISTENT, true); //长连接
+        $pdo->setAttribute(\PDO::ATTR_PERSISTENT, $persistent); //长连接
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION); //抛出异常
         $pdo->setAttribute(\PDO::ATTR_TIMEOUT, $this->config['timeout']);
         //$pdo->setAttribute(\PDO::ATTR_CASE, \PDO::CASE_NATURAL);

@@ -17,7 +17,8 @@ class Schema extends Connector
      */
     private function executeDDL($sql)
     {
-        $this->createPDO()->query($sql);
+        //去一个新线程执行
+        $this->createPDO(false)->query($sql);
     }
 
     /**

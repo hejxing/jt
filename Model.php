@@ -295,8 +295,14 @@ class Model
         }
     }
 
-    private static function restartTransaction(\PDO $pdo)
+    /**
+     * @param \PDO $pdo
+     */
+    private static function restartTransaction($pdo)
     {
+        if(!$pdo){
+            return;
+        }
         if ($pdo->inTransaction()) {
             self::commitTransaction($pdo);
         }
@@ -399,15 +405,16 @@ class Model
      * 替换Sql中的占位符
      *
      * @param $sql
+     * @param array $data
      * @return mixed
      */
-    private function applyExecutableToPreSql($sql)
+    private function applyExecutableToPreSql($sql, $data)
     {
-        foreach ($this->data as $name => $value) {
+        foreach ($data as $name => $value) {
             $value = is_string($value) ? "'" . $value . "'" : $value;
             $sql   = str_replace(':' . $name, $value, $sql);
         }
-        $sql = preg_replace('/\([(?:\?\,)|\?]+\)/', '(\'' . implode('\', \'', $this->data) . '\')', $sql);
+        $sql = preg_replace('/\([(?:\?\, )|\?]+\)/', '(\'' . implode('\', \'', $data) . '\')', $sql);
 
         return $sql;
     }
@@ -427,7 +434,7 @@ class Model
             $sth = $this->prepare($preSql);
             $sth->execute($data);
         }catch (\PDOException $e){
-            $this->processError($e, $this->applyExecutableToPreSql($preSql));
+            $this->processError($e, $this->applyExecutableToPreSql($preSql, $data));
             self::restartTransaction($this->pdo);
             $sth = $this->query($preSql, $data);
         }
@@ -435,7 +442,7 @@ class Model
         self::$queryTimes++;
         $this->preSql = '';
         if (self::$debugSql) {
-            (new Action())->header('_debug_sql.', $this->applyExecutableToPreSql($preSql));
+            (new Action())->header('_debug_sql.', $this->applyExecutableToPreSql($preSql, $data));
         }
         if ($this->isCleanSqlCollect) {
             $this->cleanSqlCollect();
