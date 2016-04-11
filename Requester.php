@@ -24,7 +24,6 @@ class Requester
      * @type array
      */
     protected $useNameMap = null;
-    protected $strict     = true;
 
     protected $method = '';
 
@@ -39,7 +38,7 @@ class Requester
     const TRUE_ITEM    = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert'];
     const INPUT_TYPE   = ['any', 'get', 'post', 'path'];
     const VALUE_TYPE   = [
-        'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json'],//json为字符串类型
+        'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json', 'uuid'],//json为字符串类型
         'composite' => ['object', 'objectList', 'list', 'array']
     ];
     const INJECT_VALUE = ['instance', 'param'];
@@ -50,16 +49,14 @@ class Requester
      *
      * @param        $name
      * @param string $ruler
-     * @param bool   $strict
-     *
      * @return mixed
      */
-    public function get($name, $ruler = null, $strict = null)
+    public function get($name, $ruler = null)
     {
         if ($ruler === null) {
             return $this->__get($name);
         }else {
-            return $this->value($name, self::parseValidate($ruler, $name), $strict);
+            return $this->value($name, self::parseValidate($ruler, $name));
         }
     }
 
@@ -68,14 +65,13 @@ class Requester
      *
      * @param mixed  $value
      * @param string $ruler
-     * @param bool   $strict
      * @param string $name
      *
      * @return mixed
      */
-    public static function validate($value, $ruler, $strict = false, $name = '')
+    public static function validate($value, $ruler, $name = '')
     {
-        return self::doProcess($value, self::parseValidate($ruler, $ruler), $name, $strict);
+        return self::doProcess($value, self::parseValidate($ruler, $ruler), $name);
     }
 
     /**
@@ -84,11 +80,10 @@ class Requester
      * @param mixed  $value
      * @param array  $option
      * @param string $name 获取参数的名单项名称
-     * @param bool   $strict 是否严格模式
      *
      * @return mixed
      */
-    public static function doProcess($value, array $option, $name, $strict = true)
+    public static function doProcess($value, array $option, $name)
     {
         if (!$option) {
             return $value;
@@ -97,44 +92,44 @@ class Requester
             if (isset($option['default'])) {
                 $value = $option['default'];
             }elseif (isset($option['require'])) {
-                self::error('value_empty', '该项值必填', $name, $option, $strict);
+                self::error('value_empty', '该项值必填', $name, $option);
             }else {
                 return null;
             }
         }
 
         if (isset($option['enum']) && !in_array($value, $option['enum'])) {
-            return self::error('value_over', '只能从 [' . implode(', ', $option['enum']) . '] 中取值', $name, $option, $strict);
+            self::error('value_over', '只能从 [' . implode(', ', $option['enum']) . '] 中取值', $name, $option);
         }
         if (in_array($option['type'], self::CONVERT_TYPE)) { //转换类型
             $value = self::convert($value, $option['type']);
         }elseif (isset($option['validate'])) {
             $result = Validate::check($value, $option['validate']);
             if ($result === false) {
-                self::error('value_validate_invalid', '值只允许是 [' . $option['validate'] . ']', $name, $option, $strict);
+                self::error('value_validate_invalid', '值只允许是 [' . $option['validate'] . ']', $name, $option);
             }elseif ($result === null) {
-                self::error('value_validate_type_invalid', '验证规则无效 [' . $option['validate'] . '],需要有效的规则或正则表达式', $name, $option, $strict);
+                self::error('value_validate_type_invalid', '验证规则无效 [' . $option['validate'] . '],需要有效的规则或正则表达式', $name, $option);
             }
         }else {
             if (!self::typeCheck($value, $option['type'])) {
-                return self::error('value_type_invalid', '需要类型为 [' . $option['type'] . '] 的值', $name, $option, $strict);
+                self::error('value_type_invalid', '需要类型为 [' . $option['type'] . '] 的值', $name, $option);
             }
         }
         if (in_array($option['type'], static::VALUE_RANGE_TYPE)) {
             if ($option['min'] && $value < $option['min']) {
-                return self::error('value_too_less', '值不能小于 ' . $option['min'], $name, $option, $strict);
+                self::error('value_too_less', '值不能小于 ' . $option['min'], $name, $option);
             }
             if ($option['max'] && $value > $option['max']) {
-                return self::error('value_too_large', '值不能大于 ' . $option['max'], $name, $option, $strict);
+                self::error('value_too_large', '值不能大于 ' . $option['max'], $name, $option);
             }
         }
 
         if (in_array($option['type'], static::LENGTH_RANGE_TYPE)) {//比较长度
             if ($option['min'] && \mb_strlen($value) < $option['min']) {
-                return self::error('value_too_less', '值不能少于 ' . $option['min'] . ' 位字符', $name, $option, $strict);
+                self::error('value_too_less', '值不能少于 ' . $option['min'] . ' 位字符', $name, $option);
             }
             if ($option['max'] && \mb_strlen($value) > $option['max']) {
-                return self::error('value_too_large', '值不能多于 ' . $option['max'] . ' 位字符', $name, $option, $strict);
+                self::error('value_too_large', '值不能多于 ' . $option['max'] . ' 位字符', $name, $option);
             }
         }
 
@@ -388,7 +383,7 @@ class Requester
     public function __get($name)
     {
         if (!isset($this->valueCache[$name])) {
-            $this->valueCache[$name] = $this->value($name, $this->getRuler($name), $this->strict);
+            $this->valueCache[$name] = $this->value($name, $this->getRuler($name));
         }
 
         return $this->valueCache[$name];
@@ -459,17 +454,13 @@ class Requester
     /**
      * 获取所有的值(忽略null,当值为null或不符合验证规则时会自动忽略)
      *
-     * @param bool $strict 是否严格模式
-     *
      * @return array
      */
-    public function fetchAll($strict = true)
+    public function fetchAll()
     {
         $data = [];
         $this->collectAsMap();
 
-        $originStrict = $this->strict;
-        $this->strict = $strict;
         foreach ($this->originData as $input => $value) {
             $name  = isset($this->useNameMap[$input]) ? $this->useNameMap[$input] : $input;
             $value = $this->__get($name);
@@ -480,10 +471,9 @@ class Requester
         //检查是否含有必填项
         foreach ($this->validate as $name => $validate) {
             if (isset($validate['require']) && !isset($data[$name])) {
-                self::error('value_empty', '该项值必填', $name, $validate, $strict);
+                self::error('value_empty', '该项值必填', $name, $validate);
             }
         }
-        $this->strict = $originStrict;
 
         return $data;
     }
@@ -543,8 +533,8 @@ class Requester
     public function fetchPage($pageSize = 10, $page = 1)
     {
         $option             = $this->fetch('page', 'pageSize');
-        $option['pageSize'] = $option['pageSize'] ? \intval($option['pageSize']) : $pageSize;
-        $option['page']     = $option['page'] ? \intval($option['page']) : $page;
+        $option['pageSize'] = $option['pageSize'] ? intval($option['pageSize']) : $pageSize;
+        $option['page']     = $option['page'] ? intval($option['page']) : $page;
 
         return $option;
     }
@@ -554,11 +544,10 @@ class Requester
      *
      * @param string $name 值名称
      * @param array  $ruler 验证规则
-     * @param bool   $strict 是否严格模式
      *
      * @return mixed
      */
-    protected function value($name, $ruler, $strict = true)
+    protected function value($name, $ruler)
     {
         $field = $name;
         if ($ruler && isset($ruler['use'])) {
@@ -570,17 +559,7 @@ class Requester
             return $value;
         }
 
-        return self::doProcess($value, $ruler, $name, $strict);
-    }
-
-    /**
-     * 是否严格模式,严格模式下不进行自动转换,非严格模式下对于不合规则的值返回null
-     *
-     * @param $strict
-     */
-    public function setStrict($strict)
-    {
-        $this->strict = $strict;
+        return self::doProcess($value, $ruler, $name);
     }
 
     /**
@@ -593,7 +572,7 @@ class Requester
     public function has($name)
     {
         //寻找规则
-        return self::value($name, $this->getRuler($name), false) !== null;
+        return self::value($name, $this->getRuler($name)) !== null;
     }
 
     /**
@@ -635,7 +614,7 @@ class Requester
             }
         }
         if (\is_string($msg)) {
-            static::error('require_value', $msg, implode(', ', $depend), [], true);
+            static::error('require_value', $msg, implode(', ', $depend), []);
         }
 
         return false;
