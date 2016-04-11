@@ -91,6 +91,11 @@ class Controller
      * @type bool 是否允许输出
      */
     private $outputAllow = true;
+    /**
+     * 是否需要重试
+     * @type bool
+     */
+    private $isNeedRetry = false;
 
     /**
      * 匹配访问入口
@@ -117,11 +122,30 @@ class Controller
         $c->cutURI();
         $c->dispatch();
         $c->execute();
+        if($c->isNeedRetry){
+            $c->retry();
+        }
         if ($c->outputAllow) {
             Responder::write();
         }
 
         return $c;
+    }
+
+    /**
+     * 遇到错误，错误解决后重新尝试执行
+     */
+    public function retry()
+    {
+        $this->isNeedRetry = false;
+        self::$retryTimes++;
+        if (self::$retryTimes <= 10) {
+            Action::cleanData();
+            Error::cleanData();
+            
+            Model::rollBack();
+            $this->execute();
+        }
     }
 
     /**
@@ -196,20 +220,6 @@ class Controller
         }
 
         Action::setIsRunComplete(true);
-    }
-
-    /**
-     * 遇到错误，错误解决后重新尝试执行
-     */
-    public function retry()
-    {
-        if (self::$retryTimes >= 10) {
-            return;
-        }
-        self::$retryTimes++;
-        $this->action->cleanData();
-        Model::rollBack();
-        $this->execute();
     }
 
     /**
@@ -398,8 +408,6 @@ class Controller
         $anyMatch          = [];
         $startAnyMathIndex = 0;
         //匹配路由
-        $index = 0;
-        $p     = '';
         foreach ($this->paths as $index => $p) {
             if (isset($router['__*'])) {
                 $anyMatch          = $router['__*'];
@@ -550,5 +558,9 @@ class Controller
     public function __destruct()
     {
         $this->action = null;
+    }
+
+    public function needRetry(){
+        $this->isNeedRetry = true;
     }
 }

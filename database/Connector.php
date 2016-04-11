@@ -85,6 +85,7 @@ class Connector
 
     /**
      * 创建PDO
+     *
      * @param bool $persistent 是否建立长连接
      * @return \PDO
      * @throws \ErrorException
@@ -96,6 +97,7 @@ class Connector
         $pdo->setAttribute(\PDO::ATTR_PERSISTENT, $persistent); //长连接
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION); //抛出异常
         $pdo->setAttribute(\PDO::ATTR_TIMEOUT, $this->config['timeout']);
+
         //$pdo->setAttribute(\PDO::ATTR_CASE, \PDO::CASE_NATURAL);
         return $pdo;
     }
@@ -107,12 +109,12 @@ class Connector
      */
     public function open()
     {
-        if (isset(self::$pdoList[$this->connSeed])) {
-            $pdo = self::$pdoList[$this->connSeed];
-        }else {
-            $pdo = $this->createPDO();
-            self::$pdoList[$this->connSeed] = $pdo;
+        if (empty(self::$pdoList[$this->connSeed])) {
+            self::$pdoList[$this->connSeed] = $this->createPDO();
         }
+        /** @type \PDO $pdo */
+        $pdo = self::$pdoList[$this->connSeed];
+
         if (!$pdo->inTransaction()) {
             $pdo->beginTransaction();
         }
@@ -144,6 +146,7 @@ class Connector
         $config = \array_replace_recursive($modelConfig['__base'], $modelConfig[$conn]);
 
         static::$configPool[$connSeed] = $config;
+
         return $config;
     }
 

@@ -247,8 +247,8 @@ class Model
                 $result['length']    = intval($value);
                 break;
             case in_array($key, self::$parseDict['serial']):
-                $result['fieldType']     = $key;
-                $result['type']          = 'numeric';
+                $result['fieldType'] = $key;
+                $result['type']      = 'numeric';
                 $result['increment'] = true;
                 break;
             case in_array($key, self::$parseDict['numeric']):
@@ -300,7 +300,7 @@ class Model
      */
     private static function restartTransaction($pdo)
     {
-        if(!$pdo){
+        if (!$pdo) {
             return;
         }
         if ($pdo->inTransaction()) {
@@ -381,7 +381,7 @@ class Model
      * @param \PDOException $e
      * @param string        $sql
      *
-     * @return bool 是否处理了错误
+     * @throws \jt\exception\TaskException
      */
 
     private function processError(\PDOException $e, $sql)
@@ -390,21 +390,23 @@ class Model
             case '7': //数据库不存在
                 $creator = new database\Schema(PROJECT_ROOT, $this->conn);
                 $creator->createDataBase();
-            case '42P01':
+            case '42P01': //表不存在
                 $creator = new database\Schema(PROJECT_ROOT, $this->conn);
                 $creator->createTable($this->genTableName(), static::$columns);
-
+                //标记为该请求可以重试
+                Controller::current()->needRetry();
                 return;
         }
 
         $msg = database\ErrorCode::getMessage($this, $e, $sql);
         self::error('DbOperateError', $msg);
+
     }
 
     /**
      * 替换Sql中的占位符
      *
-     * @param $sql
+     * @param       $sql
      * @param array $data
      * @return mixed
      */
@@ -429,17 +431,17 @@ class Model
      */
     private function query($preSql, array $data)
     {
+        self::$queryTimes++;
         try{
             $this->connectDb();
             $sth = $this->prepare($preSql);
             $sth->execute($data);
         }catch (\PDOException $e){
-            $this->processError($e, $this->applyExecutableToPreSql($preSql, $data));
             self::restartTransaction($this->pdo);
+            $this->processError($e, $this->applyExecutableToPreSql($preSql, $data));
             $sth = $this->query($preSql, $data);
         }
         //TODO: $this->logs[] = $sth->queryString; //写入文件
-        self::$queryTimes++;
         $this->preSql = '';
         if (self::$debugSql) {
             (new Action())->header('_debug_sql.', $this->applyExecutableToPreSql($preSql, $data));
@@ -514,10 +516,10 @@ class Model
     public function insert($preSql, array $data = [])
     {
         $this->query('INSERT INTO ' . $preSql, $data);
-        if($this->insertId){
+        if ($this->insertId) {
             $insertId = $this->insertId;
-        }else{
-            $insertId = $this->pdo->lastInsertId($this->table.'_'.static::$primary.'_seq');
+        }else {
+            $insertId = $this->pdo->lastInsertId($this->table . '_' . static::$primary . '_seq');
         }
 
         return ['insertId' => $insertId];
@@ -817,7 +819,7 @@ class Model
         $placeholder = '?';
 
         $placeholder .= str_repeat(', ?', count($this->data) - 1);
-        $quotes       = static::$quotes;
+        $quotes = static::$quotes;
         $this->preSql .= ' (' . $quotes . implode("{$quotes}, {$quotes}", $fields) . $quotes;
         $this->preSql .= ') VALUES (' . $placeholder . ')';
     }

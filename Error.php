@@ -69,9 +69,12 @@ class Error extends Action
         }
 
         if ($e instanceof TaskException) {
-            if ($e->getType() === 'taskEnd') {
-
-                return;
+            switch($e->getType()){
+                case 'taskEnd':
+                    return;
+                //case 'createDatabaseOrTable':
+                //    Controller::current()->retry();
+                //    return;
             }
             $data = array_merge($data, $e->getData());
             self::error($code, $msg, false, $e->getParam(), $data);
@@ -265,5 +268,9 @@ class Error extends Action
     static public function directOutput($v = true)
     {
         self::$isDirectOutput = RUN_MODE === 'develop' ? $v : false;
+    }
+    static public function cleanData()
+    {
+        self::$collected = [];
     }
 }

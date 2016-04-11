@@ -16,7 +16,7 @@ class Context
      *
      * @type string
      */
-    private static $currentThreadId = '';
+    private static $currentThreadId = '0';
     /**
      * 线程池
      *
@@ -54,5 +54,13 @@ class Context
     public static function __get($name)
     {
         return self::$threadPool[self::$currentThreadId][$name];
+    }
+
+    public static function current($name){
+        switch($name){
+            case 'Controller':
+                return Controller::current();
+                break;
+        }
     }
 }

@@ -133,14 +133,14 @@ class Bootstrap
         define('ERRORS_VERBOSE', RUN_MODE !== 'production');
 
         //定义自动加载文件方法
-        \spl_autoload_register('static::autoLoad');
+        spl_autoload_register('static::autoLoad');
 
         //注册错误、异常入口
-        \ini_set('display_errors', true);
-        \set_error_handler('\jt\Error::errorHandler');
-        \set_exception_handler('\jt\Error::exceptionHandler');
+        ini_set('display_errors', true);
+        set_error_handler('\jt\Error::errorHandler');
+        set_exception_handler('\jt\Error::exceptionHandler');
 
-        \date_default_timezone_set(\Config::TIME_ZONE);
+        date_default_timezone_set(\Config::TIME_ZONE);
     }
 
     /**

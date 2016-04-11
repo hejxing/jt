@@ -276,7 +276,9 @@ class Action
      */
     public static function cleanData()
     {
+        Controller::current()->getAction()->valueStore = [];
         self::$dataStore = [];
+        self::$headerStore = [];
     }
 
     /**
