@@ -125,6 +125,11 @@ class Model
      */
     private $data = [];
     /**
+     * 最近搜集到的要获取的属性列表
+     * @type array
+     */
+    protected $lastCollectedNames = null;
+    /**
      * 操作中遇到错误时的处理办法 fail,ignore
      *
      * @type string
@@ -160,7 +165,7 @@ class Model
      * @type array
      */
     protected static $parseDict = [
-        'bool'    => ['require', 'increment', 'primary', 'hidden', 'lower', 'del', 'array'],
+        'bool'    => ['require', 'increment', 'primary', 'hidden', 'lower', 'del', 'array', 'object'],
         'type'    => ['uuid', 'bit', 'timestamp', 'date'],
         'string'  => ['char', 'varchar', 'text'],
         'numeric' => ['int2', 'int4', 'int8', 'float4', 'float8', 'decimal', 'numeric'],
@@ -395,6 +400,7 @@ class Model
                 $creator->createTable($this->genTableName(), static::$columns);
                 //标记为该请求可以重试
                 Controller::current()->needRetry();
+
                 return;
         }
 
@@ -569,13 +575,9 @@ class Model
     /**
      * 打开一个数据模型
      *
-     * @param string $model 要打开的数据模型或表
-     * @param string $type 打开的类型 model | table
-     * @param string $conn 连接的名称 为null时，将启用默认的连接
-     *
      * @return $this
      */
-    public static function open($model = '', $type = 'model', $conn = null)
+    public static function open()
     {
         return new static();
     }
@@ -630,6 +632,11 @@ class Model
         foreach ($excludeFields as $name) {
             $index = array_search($name, $collectedNames);
             unset($collectedNames[$index]);
+        }
+        if (!empty($this->sqlCollect['fillEmpty'])) { //留着备用
+            $this->lastCollectedNames = $collectedNames;
+        }else{
+            $this->lastCollectedNames = null;
         }
         if (count($collectedNames) === count(static::$columns)) {
             $collectedNames = ['*'];
@@ -731,7 +738,7 @@ class Model
         return $data;
     }
 
-    private static function genUUid()
+    private static function genUuid()
     {
         return Helper::uuid([], '-');
     }
@@ -775,6 +782,23 @@ class Model
         }
 
         return $value;
+    }
+
+    private function genEmptyValue($name){
+        $type = static::$columns[$name]['type']??'string';
+        switch($type){
+            case 'timestamp':
+            case 'numeric':
+                return 0;
+            case 'bool':
+                return false;
+            case 'object':
+                return [];
+            //case 'date':
+            //    return '';
+            default:
+                return '';
+        }
     }
 
     /**
@@ -1000,6 +1024,7 @@ class Model
         //TODO: 记录丢弃的数据
         //TODO: 数据完整性检查
         //TODO: 验证数据
+        $buffer = [];
         foreach ($fields as $index => $f) {
             $buffer[] = "{$f} = {$fieldValues[$index]}";
         }
@@ -1250,6 +1275,18 @@ class Model
     }
 
     /**
+     * 当未查询到记录时是否返回一条空记录
+     *
+     * @param bool $is
+     * @return $this
+     */
+    public function fillEmpty($is = true)
+    {
+        $this->sqlCollect['fillEmpty'] = $is;
+        return $this;
+    }
+
+    /**
      * 取出符合条件的第一条记录
      *
      * @param string $names 要取出的字段表
@@ -1262,6 +1299,11 @@ class Model
         $res = $this->fetch($names);
         if ($res) {
             return $res[0];
+        }elseif ($this->lastCollectedNames) {//填充默认的空数据
+            $res = [];
+            foreach($this->lastCollectedNames as $name){
+                $res[$name] = $this->genEmptyValue($name);
+            }
         }
 
         return $res;
@@ -1459,11 +1501,13 @@ class Model
 
     /**
      * 设置修改指定属性的值
+     *
      * @param $name
      * @param $value
      * @return array
      */
-    public function set($name, $value){
+    public function set($name, $value)
+    {
         return $this->edit([$name => $value]);
     }
 
@@ -1504,7 +1548,7 @@ class Model
     }
 
     /**
-     * 如果存在则编辑，否则插入
+     * 如果存在则编辑，否则插入，通过判断返回的内容来判断执行的方式
      *
      * @param array $data
      *
@@ -1512,7 +1556,15 @@ class Model
      */
     public function replace(array $data)
     {
-        return [];
+        if(!empty($data[static::$primary])){
+            $row = $this->get($data[static::$primary]);
+            if($row){
+                $id = $data[static::$primary];
+                unset($data[static::$primary]);
+                return $this->find($id)->edit($data);
+            }
+        }
+        return $this->add($data);
     }
 
     /**
@@ -2114,6 +2166,6 @@ class Model
     public static function startDebug($debug = true, $debugSql = true)
     {
         self::$debugMode = $debug;
-        Self::$debugSql  = $debugSql;
+        self::$debugSql  = $debugSql;
     }
 }
