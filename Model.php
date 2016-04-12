@@ -1458,6 +1458,16 @@ class Model
     }
 
     /**
+     * 设置修改指定属性的值
+     * @param $name
+     * @param $value
+     * @return array
+     */
+    public function set($name, $value){
+        return $this->edit([$name => $value]);
+    }
+
+    /**
      * 存入数据，供后续使用
      *
      * @param array $data
