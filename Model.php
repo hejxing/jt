@@ -478,9 +478,13 @@ class Model
      */
     private function combQueryResult(array &$list)
     {
+        if(empty($list)){
+            return $list;
+        }
+        $item = $list[0];
         $convertList = [];
         foreach (static::$columns as $name => $column) {
-            if (isset($column['array'])) {
+            if (isset($item[$name]) && isset($column['array']) || isset($column['object'])) {
                 $convertList[] = $name;
             }
         }
@@ -1016,7 +1020,7 @@ class Model
                     $fieldValues[] = $value;
                 }
             }else {
-                if (substr($value, 0, 2) === '\`') {
+                if (is_string($value) && substr($value, 0, 2) === '\`') {
                     $value = substr($value, 1);
                 }
                 $fieldValues[]             = ':u_' . $field;
@@ -1564,12 +1568,12 @@ class Model
             $name = static::$primary;
         }
         if (!empty($data[$name])) {
-            $row = $this->equals($name, $data[$name]);
+            $row = $this->equals($name, $data[$name])->first($name);
             if ($row) {
-                $id = $data[$name];
+                $value = $data[$name];
                 unset($data[$name]);
 
-                return $this->find($id)->edit($data);
+                return $this->equals($name, $value)->edit($data);
             }
         }
 
@@ -2170,11 +2174,13 @@ class Model
     }
 
     /**
-     * 开启调试模式，在该模式下不会真正写入数据库
+     * 开启调试模式
+     * @param bool $commit 是否将结果写入数据库
+     * @param bool $printSql 是否打印执行过的SQL
      */
-    public static function startDebug($debug = true, $debugSql = true)
+    public static function startDebug($commit = false, $printSql = true)
     {
-        self::$debugMode = $debug;
-        self::$debugSql  = $debugSql;
+        self::$debugMode = !$commit;
+        self::$debugSql  = $printSql;
     }
 }

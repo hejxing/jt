@@ -104,7 +104,7 @@ abstract class Session implements SessionHandlerInterface
     protected static function sowingIdByCookie($id, $name)
     {
         //TODO 配置Session Cookie
-        $expire   = time() + 45 * 60;
+        $expire   = 0;//time() + 45 * 60;
         $path     = '/';
         $domain   = null;
         $secure   = null;
