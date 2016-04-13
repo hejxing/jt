@@ -126,6 +126,7 @@ class Model
     private $data = [];
     /**
      * 最近搜集到的要获取的属性列表
+     *
      * @type array
      */
     protected $lastCollectedNames = null;
@@ -635,7 +636,7 @@ class Model
         }
         if (!empty($this->sqlCollect['fillEmpty'])) { //留着备用
             $this->lastCollectedNames = $collectedNames;
-        }else{
+        }else {
             $this->lastCollectedNames = null;
         }
         if (count($collectedNames) === count(static::$columns)) {
@@ -784,9 +785,10 @@ class Model
         return $value;
     }
 
-    private function genEmptyValue($name){
+    private function genEmptyValue($name)
+    {
         $type = static::$columns[$name]['type']??'string';
-        switch($type){
+        switch ($type) {
             case 'timestamp':
             case 'numeric':
                 return 0;
@@ -1283,6 +1285,7 @@ class Model
     public function fillEmpty($is = true)
     {
         $this->sqlCollect['fillEmpty'] = $is;
+
         return $this;
     }
 
@@ -1301,7 +1304,7 @@ class Model
             return $res[0];
         }elseif ($this->lastCollectedNames) {//填充默认的空数据
             $res = [];
-            foreach($this->lastCollectedNames as $name){
+            foreach ($this->lastCollectedNames as $name) {
                 $res[$name] = $this->genEmptyValue($name);
             }
         }
@@ -1550,20 +1553,26 @@ class Model
     /**
      * 如果存在则编辑，否则插入，通过判断返回的内容来判断执行的方式
      *
-     * @param array $data
+     * @param array  $data
+     * @param string $name 以该属性的内容判定是否冲突,默认为主键
      *
      * @return array
      */
-    public function replace(array $data)
+    public function replace(array $data, $name = null)
     {
-        if(!empty($data[static::$primary])){
-            $row = $this->get($data[static::$primary]);
-            if($row){
-                $id = $data[static::$primary];
-                unset($data[static::$primary]);
+        if ($name === null) {
+            $name = static::$primary;
+        }
+        if (!empty($data[$name])) {
+            $row = $this->equals($name, $data[$name]);
+            if ($row) {
+                $id = $data[$name];
+                unset($data[$name]);
+
                 return $this->find($id)->edit($data);
             }
         }
+
         return $this->add($data);
     }
 
