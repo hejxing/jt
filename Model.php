@@ -113,6 +113,12 @@ class Model
      */
     private $sqlCollect = [];
     /**
+     * 查询完成后对结果的处一办法
+     *
+     * @type array
+     */
+    private $filterCollect = [];
+    /**
      * 生成的PreSql
      *
      * @type string
@@ -124,12 +130,6 @@ class Model
      * @type array
      */
     private $data = [];
-    /**
-     * 最近搜集到的要获取的属性列表
-     *
-     * @type array
-     */
-    protected $lastCollectedNames = null;
     /**
      * 操作中遇到错误时的处理办法 fail,ignore
      *
@@ -173,7 +173,7 @@ class Model
         'serial'  => ['serial2', 'serial4', 'serial8'],
         'boolean' => ['bool'],
         'object'  => ['json', 'jsonb'],
-        'value'   => ['format', 'touch', 'foreign', 'field', 'default', 'validate', 'at'],
+        'value'   => ['format', 'touch', 'foreign', 'field', 'default', 'validate', 'at', 'filter'],
         'compare' => ['=', '>', '<', '>=', '<=', '<>', ' like ', ' between ', ' in ']
     ];
 
@@ -478,24 +478,45 @@ class Model
      */
     private function combQueryResult(array &$list)
     {
-        if(empty($list)){
+        if (empty($list)) {
+            if (!empty($this->filterCollect['fillEmpty'])) {//填充默认的空数据
+                foreach ($this->filterCollect['lastCollectedNames'] as $name) {
+                    $list[$name] = $this->genEmptyValue($name);
+                }
+            }
+
             return $list;
         }
-        $item = $list[0];
-        $convertList = [];
+
+        list(, $item) = each($list);
+        $convertStack = [];
+        $filterStack  = [];
         foreach (static::$columns as $name => $column) {
-            if (isset($item[$name]) && isset($column['array']) || isset($column['object'])) {
-                $convertList[] = $name;
+            if (!isset($item[$name])) {
+                continue;
+            }
+            if (isset($column['array']) || isset($column['object'])) {
+                $convertStack[] = $name;
+            }
+            if (isset($column['filter'])) {
+                $filterStack[$column['filter']] = $name;
             }
         }
 
-        if ($convertList) {
-            foreach ($list as &$item) {
-                foreach ($convertList as $name) {
-                    $item[$name] = \json_decode($item[$name], true);
-                }
+        if (!$convertStack && !$filterStack) {
+            return $list;
+        }
+        foreach ($list as &$item) {
+            foreach ($convertStack as $name) {
+                $item[$name] = json_decode($item[$name], true);
+            }
+
+            foreach ($filterStack as $filter => $name) {
+                $item[$name] = $this->$filter($item[$name]);
             }
         }
+
+        $this->filterCollect = [];
 
         return $list;
     }
@@ -638,10 +659,8 @@ class Model
             $index = array_search($name, $collectedNames);
             unset($collectedNames[$index]);
         }
-        if (!empty($this->sqlCollect['fillEmpty'])) { //留着备用
-            $this->lastCollectedNames = $collectedNames;
-        }else {
-            $this->lastCollectedNames = null;
+        if (!empty($this->filterCollect['fillEmpty'])) { //留着备用
+            $this->filterCollect['lastCollectedNames'] = $collectedNames;
         }
         if (count($collectedNames) === count(static::$columns)) {
             $collectedNames = ['*'];
@@ -686,7 +705,7 @@ class Model
                 $value = str_replace('-', '', $value);
             }
         }
-        if (isset($columns['array'])) {
+        if (isset($columns['array']) || isset($columns['object'])) {
             if (is_array($value)) {
                 $value = json_encode($value, JSON_UNESCAPED_UNICODE);
             }else {
@@ -772,6 +791,9 @@ class Model
 
         if (isset($column['array'])) {
             return [];
+        }
+        if (isset($column['object'])) {
+            return (Object)[];
         }
 
         $type = isset($column['type']) ? $column['type'] : '';
@@ -1288,7 +1310,7 @@ class Model
      */
     public function fillEmpty($is = true)
     {
-        $this->sqlCollect['fillEmpty'] = $is;
+        $this->filterCollect['fillEmpty'] = $is;
 
         return $this;
     }
@@ -1303,14 +1325,10 @@ class Model
     public function first($names = '*')
     {
         $this->limit(1);
+
         $res = $this->fetch($names);
         if ($res) {
             return $res[0];
-        }elseif ($this->lastCollectedNames) {//填充默认的空数据
-            $res = [];
-            foreach ($this->lastCollectedNames as $name) {
-                $res[$name] = $this->genEmptyValue($name);
-            }
         }
 
         return $res;
@@ -2175,6 +2193,7 @@ class Model
 
     /**
      * 开启调试模式
+     *
      * @param bool $commit 是否将结果写入数据库
      * @param bool $printSql 是否打印执行过的SQL
      */
