@@ -271,6 +271,10 @@ class Error extends Action
     {
         self::$isDirectOutput = RUN_MODE === 'develop' ? $v : false;
     }
+
+    /**
+     * 清除搜集到的错误
+     */
     static public function cleanData()
     {
         self::$collected = [];
