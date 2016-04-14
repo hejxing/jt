@@ -109,7 +109,7 @@ class Schema extends Connector
         foreach ($columns as $name) {
             $seqName = $table . '_' . $name . '_seq';
             $seqName = str_replace($quotes, '', $seqName);
-            $this->executeDDL("CREATE SEQUENCE IF NOT EXISTS {$seqName} INCREMENT BY 1 START WITH 0 NO MINVALUE NO MAXVALUE CACHE 1 OWNED BY {$table}.{$quotes}{$name}{$quotes};");
+            $this->executeDDL("CREATE SEQUENCE IF NOT EXISTS {$seqName} INCREMENT BY 1 START WITH 0 MINVALUE 0 NO MAXVALUE CACHE 1 OWNED BY {$table}.{$quotes}{$name}{$quotes};");
             $this->executeDDL("ALTER TABLE {$table} ALTER COLUMN {$quotes}{$name}{$quotes} SET DEFAULT nextval('{$seqName}');");
         }
     }
