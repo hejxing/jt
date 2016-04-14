@@ -798,10 +798,6 @@ class Model
         if ($column['type'] === 'uuid' && isset($column['primary'])) {
             return self::genUuid();
         }
-        if (isset($column['require'])) {
-            self::error('InsertToDataBaseRequire', "表 [{$this->table}] 此项 [{$name}] 不允许为空");
-        }
-
         if (isset($column['array'])) {
             return [];
         }
@@ -873,7 +869,12 @@ class Model
                 array_pop($fields);
                 continue;
             }
-            $data[$field] = $this->genDefaultValue($column, $name);
+            if(empty($data[$field])){
+                if (isset($column['require'])) {
+                    self::error('InsertToDataBaseRequire', "表 [{$this->table}] 此项 [{$name}] 不允许为空");
+                }
+                $data[$field] = $this->genDefaultValue($column, $name);
+            }
             $this->data[] = $this->checkData($data[$field], $column, $name);
             if (isset($column['primary'])) {
                 $this->insertId = $data[$field];
