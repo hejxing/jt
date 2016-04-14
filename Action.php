@@ -362,6 +362,7 @@ class Action
         }
         if ($responseEnd) {
             $e = new TaskException("{$code}:{$msg}");
+            $e->setType('taskFail');
             $e->setParam($param);
             $e->setIgnoreTraceLine(1);
             throw $e;

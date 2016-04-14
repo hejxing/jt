@@ -63,7 +63,7 @@ class Error extends Action
         }
 
         $data = [];
-        if (ERRORS_VERBOSE) {
+        if (ERRORS_VERBOSE && $e->getType() !== 'taskFail') {
             $data['_debug_trace'] = $e->getTrace();
             Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
         }
@@ -72,6 +72,8 @@ class Error extends Action
             switch($e->getType()){
                 case 'taskEnd':
                     return;
+                case 'taskFail':
+                    break;
                 //case 'createDatabaseOrTable':
                 //    Controller::current()->retry();
                 //    return;
