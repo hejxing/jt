@@ -12,7 +12,7 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
     public function testEnvironment()
     {
         $this->assertEquals('develop', RUN_MODE);
-        $this->assertEquals('app', MODULE);
+        $this->assertEquals('jt', MODULE);
         $this->assertTrue(class_exists('\Config'));
         $this->assertTrue(class_exists('\jt\Action'));
     }

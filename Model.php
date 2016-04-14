@@ -54,6 +54,11 @@ class Model
      */
     protected static $primary = 'id';
     /**
+     * 主键类型
+     * @type string
+     */
+    protected static $primaryType = 'uuid';
+    /**
      * 最新插入记录的ID值
      *
      * @type bool
@@ -207,7 +212,14 @@ class Model
         foreach (static::$columns as $name => $column) {
             $parsed[$name] = self::line($column, $name);
         }
-        static::$columns = $parsed;
+        static::$columns = self::tidyParsed($parsed);
+    }
+    
+    private static function tidyParsed($parsed){
+        if(static::$primary && isset($parsed[static::$primary]['increment'])){
+            static::$primaryType = 'increment';
+        }
+        return $parsed;
     }
 
     private static function tidyParsedLine(&$lined)
@@ -241,6 +253,9 @@ class Model
             case in_array($key, self::$parseDict['bool']):
                 if ($key === 'primary') {
                     static::$primary = $name;
+                }
+                if($key === 'del'){
+                    $result['type'] = 'bool';
                 }
                 $result[$key] = true;
                 break;
@@ -548,13 +563,11 @@ class Model
     public function insert($preSql, array $data = [])
     {
         $this->query('INSERT INTO ' . $preSql, $data);
-        if ($this->insertId) {
-            $insertId = $this->insertId;
-        }else {
-            $insertId = $this->pdo->lastInsertId($this->table . '_' . static::$primary . '_seq');
+        if ($this->insertId === null && static::$primaryType === 'increment') {
+            $this->insertId = $this->pdo->lastInsertId($this->table . '_' . static::$primary . '_seq');
         }
 
-        return ['insertId' => $insertId];
+        return ['insertId' => $this->insertId];
     }
 
     /**
@@ -853,13 +866,14 @@ class Model
                 $fields[] = $field;
             }
 
-            if (!isset($data[$field])) {
-                if (isset($column['increment'])) {//自增类型
-                    \array_pop($fields);
-                    continue;
+            if (isset($column['increment'])) {//自增类型
+                if(!empty($data[$field])){
+                    self::error('IncrementFieldNotAllowAssignValue', '自增类型字段不允许给值');
                 }
-                $data[$field] = $this->genDefaultValue($column, $name);
+                array_pop($fields);
+                continue;
             }
+            $data[$field] = $this->genDefaultValue($column, $name);
             $this->data[] = $this->checkData($data[$field], $column, $name);
             if (isset($column['primary'])) {
                 $this->insertId = $data[$field];

@@ -13,7 +13,14 @@ if ($pos) {
     $root = implode('/', array_slice(explode('/', $pwd, 6), 0, 5));
 }
 
-\jt\Bootstrap::test($root);
-if (file_exists($root . '/test_entrance.php')) {
-    require $root . '/test_entrance.php';
+$testClass = $_SERVER['argv'][4];
+$testFile = $_SERVER['argv'][5];
+
+$projectRoot = explode(str_replace('\\',DIRECTORY_SEPARATOR, $testClass), $testFile)[0];
+$projectRoot = substr($projectRoot, 0 ,-1);
+//\jt\Bootstrap::test($root);
+if (file_exists($projectRoot . '/test_entrance.php')) {
+    require $projectRoot . '/test_entrance.php';
+}else{
+    \jt\Bootstrap::test($projectRoot);
 }
