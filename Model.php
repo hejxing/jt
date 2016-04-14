@@ -286,10 +286,13 @@ class Model
                 if ($key === 'field') {
                     self::$fieldMap[$value] = $name;
                 }
+                if ($key === 'filter' && !method_exists(get_called_class(), $value)){
+                    self::error('filterNotExists', "数据库模型类 [".get_called_class()."] 配置表中 filter 方法[{$value}]不存在，请检查");
+                }
                 $result[$key] = $value;
                 break;
             default:
-                $class = \get_class(new static());
+                $class = get_called_class();
                 self::error('tableColumnsRulerError', "数据库模型类 [{$class}] 配置表中 [{$name}] 项值 [{$key}] 有误，请检查");
         }
 
@@ -722,7 +725,7 @@ class Model
             if (is_array($value)) {
                 $value = json_encode($value, JSON_UNESCAPED_UNICODE);
             }else {
-                Error::fatal('DataFormatError', '数据项 [' . $name . '] 期望是一个 [数组],当前给的值为: [' . $value . ']');
+                Error::fatal('DataFormatError', '数据项 [' . $name . '] 期望是一个 [数组],当前给的值为: [' . var_export($value, true) . ']');
             }
         }
 
@@ -730,7 +733,6 @@ class Model
             $columns['type'] = 'timestamp';
         } //edit,remove,restore的create_at,update_at没有设置type属性
         $value = $this->convertType($value, $columns['type']);
-
         return $value;
     }
 
@@ -798,11 +800,8 @@ class Model
         if ($column['type'] === 'uuid' && isset($column['primary'])) {
             return self::genUuid();
         }
-        if (isset($column['array'])) {
+        if (isset($column['array']) || isset($column['object'])) {
             return [];
-        }
-        if (isset($column['object'])) {
-            return (Object)[];
         }
 
         $type = isset($column['type']) ? $column['type'] : '';
@@ -884,7 +883,6 @@ class Model
         //TODO: 数据完整性检查
         //TODO: 验证数据
         $placeholder = '?';
-
         $placeholder .= str_repeat(', ?', count($this->data) - 1);
         $quotes = static::$quotes;
         $this->preSql .= ' (' . $quotes . implode("{$quotes}, {$quotes}", $fields) . $quotes;

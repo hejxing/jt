@@ -63,16 +63,18 @@ class Error extends Action
         }
 
         $data = [];
-        if (ERRORS_VERBOSE && $e->getType() !== 'taskFail') {
-            $data['_debug_trace'] = $e->getTrace();
-            Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
-        }
 
         if ($e instanceof TaskException) {
             switch($e->getType()){
                 case 'taskEnd':
                     return;
                 case 'taskFail':
+                    break;
+                default:
+                    if (ERRORS_VERBOSE) {
+                        $data['_debug_trace'] = $e->getTrace();
+                        Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
+                    }
                     break;
                 //case 'createDatabaseOrTable':
                 //    Controller::current()->retry();
@@ -81,6 +83,10 @@ class Error extends Action
             $data = array_merge($data, $e->getData());
             self::error($code, $msg, false, $e->getParam(), $data);
         }else {
+            if (ERRORS_VERBOSE) {
+                $data['_debug_trace'] = $e->getTrace();
+                Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
+            }
             self::fatalError($code, $msg, [], true, $data);
         }
     }
