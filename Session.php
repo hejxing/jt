@@ -27,7 +27,7 @@ abstract class Session implements SessionHandlerInterface
     public static function start($sowing = false, $sessionId = '', $restart = true)
     {
         ini_set('session.use_cookies', 0);
-        $sessionId = $sessionId ?: self::getSessionId($sowing);
+        $sessionId = $sessionId ?: self::getSessionId($sowing, $restart);
         if(!self::checkStatus($restart)){
             return $sessionId;
         }
@@ -176,13 +176,19 @@ abstract class Session implements SessionHandlerInterface
      * 获取会话ID
      *
      * @param bool $sowing
+     * @param bool $restart
      * @return string
      * @throws \jt\exception\TaskException
      */
-    public static function getSessionId($sowing = false)
+    public static function getSessionId($sowing = false, $restart = false)
     {
+
         $savers = explode(',', \Config::SESSION['idSaver']);
         $names  = explode(',', \Config::SESSION['idName']);
+
+        if ($sowing && $restart) {
+            return self::genSessionId();
+        }
 
         foreach ($savers as $index => $saver) {
             $name = $names[$index]??$names[0];
