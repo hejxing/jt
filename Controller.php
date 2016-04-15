@@ -424,7 +424,7 @@ class Controller
             }
         }
 
-        $method = \strtolower($_SERVER['REQUEST_METHOD']);
+        $method = strtolower($_SERVER['REQUEST_METHOD']);
         //检查是否是一个有效的$router
         if (!isset($router['__method']) && !isset($anyMatch['__method'])) {
             //判断是否可以补'/'
@@ -497,7 +497,7 @@ class Controller
                     }
                     break;
                 default:
-                    $this->param[] = Requester::doProcess($p[$option[4]], $option[2], 'path:' . $name, true);
+                    $this->param[] = Requester::doProcess($p[$option[4]], $option[2], 'path:' . $name);
                     break;
             }
         }
