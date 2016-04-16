@@ -76,7 +76,7 @@ class Controller
     /**
      * 权限控制器
      *
-     * @type \jt\Auth
+     * @type \jt\auth\Auth
      */
     protected $authority = null;
     /**
@@ -189,7 +189,7 @@ class Controller
             return;
         }
 
-        if (strpos($this->ruler[8], 'output_quiet') !== false) {
+        if (strpos($this->ruler[7], 'output_quiet') !== false) {
             $this->action->quiet();
         }
 

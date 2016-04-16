@@ -8,7 +8,7 @@ namespace jt\compile\router;
 
 class Router extends Action
 {
-    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'log', 'affix'];
+    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'affix'];
 
     /**
      * 清理参数子结点数据
