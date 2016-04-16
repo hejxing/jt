@@ -189,7 +189,7 @@ class Controller
             return;
         }
 
-        if (strpos($this->ruler[7], 'output_quiet') !== false) {
+        if (strpos($this->ruler[8], 'output_quiet') !== false) {
             $this->action->quiet();
         }
 

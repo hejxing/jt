@@ -2,7 +2,7 @@
 /**
  * 文档自动生成
  */
-namespace jt\maker\docs;
+namespace jt\compile\docs;
 
 use jt\Action;
 use jt\lib\markdown\michelf\Markdown;

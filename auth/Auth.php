@@ -6,7 +6,7 @@
  * Time: 17:38
  */
 
-namespace jt;
+namespace jt\auth;
 
 /**
  * 权限控制基类

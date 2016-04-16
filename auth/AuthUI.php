@@ -11,10 +11,10 @@
  * 授权类将由 授权类UI决定
  */
 
-namespace jt;
+namespace jt\auth;
 
 
-class AuthUI
+class UI
 {
 
 }

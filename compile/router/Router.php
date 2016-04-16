@@ -8,7 +8,7 @@ namespace jt\compile\router;
 
 class Router extends Action
 {
-    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'affix'];
+    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'log', 'affix'];
 
     /**
      * 清理参数子结点数据
@@ -220,6 +220,7 @@ class Router extends Action
      *
      * @param $map
      * @param $ser
+     * @return string
      */
     private static function recursionPrint($map, &$ser)
     {
@@ -237,6 +238,6 @@ class Router extends Action
             }
             $ser .= "],";
         }
-        $ser = substr($ser, 0, -1);
+        return  substr($ser, 0, -1);
     }
 }
