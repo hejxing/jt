@@ -6,7 +6,7 @@
  * Time: 11:27
  */
 
-namespace jt\database;
+namespace jt\lib\database;
 
 class Table extends \jt\Model
 {

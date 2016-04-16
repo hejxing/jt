@@ -7,8 +7,6 @@
 
 namespace jt;
 
-use jt\exception\TaskException;
-
 define('FILL_DATA_OVER', 1);
 define('FILL_DATA_IGNORE', 2);
 define('FILL_DATA_APPEND', 3);
@@ -194,7 +192,7 @@ class Action
         //debug<
         $unit = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
         $size = memory_get_usage(true) / 8;
-        $i    = floor(log($size, 1024));
+        $i    = (int)floor(log($size, 1024));
 
         $headerStore['useMemory'] = round($size / pow(1024, $i), 2) . ' ' . $unit[$i];
         $headerStore['spendTime'] = intval((microtime(true) - Bootstrap::$startTime) * 1000);
@@ -352,7 +350,7 @@ class Action
      * @param array  $param 传递的参数
      * @param int    $status 错误状态
      * @param bool   $responseEnd 是否结束响应，立即返回
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     public function fail($msg, $code = 'fail', $param = [], $status = null, $responseEnd = true)
     {
@@ -361,7 +359,7 @@ class Action
             header('Status: ' . $status, true);
         }
         if ($responseEnd) {
-            $e = new TaskException("{$code}:{$msg}");
+            $e = new Exception("{$code}:{$msg}");
             $e->setType('taskFail');
             $e->setParam($param);
             $e->setIgnoreTraceLine(1);
@@ -582,7 +580,7 @@ class Action
      * @param int   $status 状态码
      * @param array $param 请求传递的参数
      * @param bool  $error 是否判定为错误
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     public function status($status, $param = [], $error = true)
     {
@@ -590,7 +588,7 @@ class Action
         if ($status >= 400 && $error) {
             self::$taskSuccess = false;
 
-            $e = new TaskException($status . ':');
+            $e = new Exception($status . ':');
             $e->setParam($param);
             throw $e;
         }

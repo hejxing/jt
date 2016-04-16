@@ -7,7 +7,7 @@
 namespace jt\maker\router;
 
 use jt\Error;
-use jt\exception\TaskException;
+use jt\Exception;
 
 /**
  * Class Loader
@@ -186,7 +186,7 @@ abstract class Loader
 
                     break;
                 default:
-                    throw new TaskException('ReferenceTypeIll:引用类型错误或未实现');
+                    throw new Exception('ReferenceTypeIll:引用类型错误或未实现');
             }
         }
         self::traverseRootNode($list, $className, $type);
@@ -447,18 +447,18 @@ abstract class Loader
      */
     protected function error($code, $msg)
     {
-        $this->throwError(new TaskException($code . ':' . $msg));
+        $this->throwError(new Exception($code . ':' . $msg));
     }
 
     /**
      * 输出解析中的错误
      *
-     * @param \jt\exception\TaskException $e
-     * @throws \jt\exception\TaskException
+     * @param Exception $e
+     * @throws Exception
      */
-    protected function throwError(TaskException $e)
+    protected function throwError(Exception $e)
     {
-        throw new TaskException($e->getMessage() . ' in ' . $this->file . ' line ' . $this->line);
+        throw new Exception($e->getMessage() . ' in ' . $this->file . ' line ' . $this->line);
     }
 
     /**

@@ -7,8 +7,6 @@
 
 namespace jt;
 
-
-use jt\exception\TaskException;
 use jt\lib\session\Invalid;
 use jt\utils\Helper;
 use SessionHandlerInterface;
@@ -22,7 +20,7 @@ abstract class Session implements SessionHandlerInterface
      * @param string $sessionId
      * @param bool   $restart 如果当前会话处于活动状态是否关停
      * @return string
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     public static function start($sowing = false, $sessionId = '', $restart = true)
     {
@@ -50,7 +48,7 @@ abstract class Session implements SessionHandlerInterface
      * 将会话标识传递给客户端
      *
      * @param $id
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     public static function sowing($id)
     {
@@ -63,7 +61,7 @@ abstract class Session implements SessionHandlerInterface
             if (method_exists(__CLASS__, $sowingMethod)) {
                 self::$sowingMethod($id, $name);
             }else {
-                throw new TaskException('sessionSowingIdNotExists:存储方式:' . $saver . ' 的存储SessionId的方法未实现');
+                throw new Exception('sessionSowingIdNotExists:存储方式:' . $saver . ' 的存储SessionId的方法未实现');
             }
         }
     }
@@ -151,14 +149,14 @@ abstract class Session implements SessionHandlerInterface
      *
      * @param bool $restart 是否重启新会话
      * @return bool
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     private static function checkStatus($restart)
     {
         $status = session_status();
         switch ($status) {
             case PHP_SESSION_DISABLED:
-                throw new TaskException('SessionDisabled:当前SESSION不可用，请打开PHP SESSION功能');
+                throw new Exception('SessionDisabled:当前SESSION不可用，请打开PHP SESSION功能');
                 break;
             case PHP_SESSION_ACTIVE:
                 if ($restart) {
@@ -178,7 +176,7 @@ abstract class Session implements SessionHandlerInterface
      * @param bool $sowing
      * @param bool $restart
      * @return string
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     public static function getSessionId($sowing = false, $restart = false)
     {
@@ -201,7 +199,7 @@ abstract class Session implements SessionHandlerInterface
                     return $sessionId;
                 }
             }else {
-                throw new TaskException('sessionSaverNotExists:存储方式:' . $saver . ' 的获取SessionId的方法未实现');
+                throw new Exception('sessionSaverNotExists:存储方式:' . $saver . ' 的获取SessionId的方法未实现');
             }
         }
         if ($sowing) {
@@ -215,7 +213,7 @@ abstract class Session implements SessionHandlerInterface
      * 生成会话ID
      *
      * @return string
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     public static function genSessionId()
     {

@@ -8,8 +8,6 @@
 
 namespace jt;
 
-use jt\exception\TaskException;
-
 /**
  * 给客户端输出请求结果
  *
@@ -41,6 +39,7 @@ class Responder
             case 'xml':
                 return self::xml();
         }
+        return '';
     }
 
     /**
@@ -162,7 +161,7 @@ class Responder
      * 结束本次请求
      *
      * @param int $status
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     public static function end($status = null)
     {
@@ -170,7 +169,7 @@ class Responder
             \header('Status: ' . $status, true);
         }
 
-        $e = new TaskException('User end task');
+        $e = new Exception('User end task');
         $e->setType('taskEnd');
 
         throw $e;

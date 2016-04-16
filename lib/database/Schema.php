@@ -5,7 +5,7 @@
  * Date: 2015/6/14 8:33
  */
 
-namespace jt\database;
+namespace jt\lib\database;
 
 
 class Schema extends Connector

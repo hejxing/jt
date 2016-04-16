@@ -5,16 +5,14 @@
  * Auth: hejxing
  * Create: 2015/12/7 14:39
  */
-namespace jt\exception;
-
-use Exception;
+namespace jt;
 
 /**
  * 因业务逻辑出错导致的异常
  *
  * @package jt\exception
  */
-class TaskException extends Exception
+class Exception extends \Exception
 {
     protected $type       = 'task';
     protected $ignoreLine = 0;

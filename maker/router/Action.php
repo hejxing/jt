@@ -8,7 +8,7 @@
 
 namespace jt\maker\router;
 
-use jt\exception\TaskException;
+use jt\Exception;
 use jt\Requester;
 
 abstract class Action extends Loader
@@ -225,7 +225,7 @@ abstract class Action extends Loader
             $ruler = trim($type . ' ' . $match[2]);
             try{
                 $match[2] = Requester::parseValidate($ruler, 'paramNode:' . $ruler);
-            }catch (TaskException $e){
+            }catch (Exception $e){
                 $this->throwError($e);
             }
         }
@@ -417,7 +417,7 @@ abstract class Action extends Loader
         ];
         try{
             $parsed['ruler'] = Requester::parseValidate($ruler, 'return:' . $ruler);
-        }catch (TaskException $e){
+        }catch (Exception $e){
             $this->throwError($e);
         }
         if ($parsed['ruler']['type'] === 'array') {
@@ -753,7 +753,7 @@ abstract class Action extends Loader
             if (isset($item['ruler']) && $item['ruler']) {
                 try{
                     $item['ruler'] = Requester::parseValidate($item['ruler'], 'param[' . $name . ']:' . $item['ruler']);
-                }catch (TaskException $e){
+                }catch (Exception $e){
                     $this->throwError($e);
                 }
 

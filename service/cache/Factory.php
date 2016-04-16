@@ -8,7 +8,7 @@
 namespace jt\service\cache;
 
 
-use jt\exception\TaskException;
+use jt\Exception;
 
 class Factory
 {
@@ -18,6 +18,7 @@ class Factory
      * @param array  $serverList
      * @param string $persistentId 持久连接的名称
      * @return \Memcached
+     * @throws Exception
      */
     public static function memcached(array $serverList, $persistentId = '')
     {
@@ -26,7 +27,7 @@ class Factory
             $saver->addServers($serverList);
         }
         if (!$saver->set('checkServer', true)) {
-            throw new TaskException('MemcachedServiceDisable:Memcached服务不可用');
+            throw new Exception('MemcachedServiceDisable:Memcached服务不可用');
         }
 
         return $saver;
@@ -41,6 +42,9 @@ class Factory
      */
     public static function redis(array $serverList, $persistentId = '')
     {
-        return new \Redis();
+        $redis = new \Redis();
+        $redis->pconnect($serverList);
+        $redis->persist($persistentId);
+        return $redis;
     }
 }

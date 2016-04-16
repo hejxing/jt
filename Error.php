@@ -8,8 +8,6 @@
 
 namespace jt;
 
-use jt\exception\TaskException;
-
 class Error extends Action
 {
     /**
@@ -64,7 +62,7 @@ class Error extends Action
 
         $data = [];
 
-        if ($e instanceof TaskException) {
+        if ($e instanceof Exception) {
             switch($e->getType()){
                 case 'taskEnd':
                     return;

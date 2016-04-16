@@ -6,9 +6,9 @@
  * Time: 14:02
  */
 
-namespace jt\database;
+namespace jt\lib\database;
 
-use jt\exception\TaskException;
+use jt\Exception;
 
 class Connector
 {
@@ -156,7 +156,7 @@ class Connector
      * @param string $root 本置文件所在的根目录
      *
      * @return mixed
-     * @throws TaskException
+     * @throws Exception
      */
     public static function readConfig($root)
     {
@@ -164,7 +164,7 @@ class Connector
         $result = @include($file);
 
         if ($result === false) {
-            throw new TaskException('databaseConfigNotFound: 数据库配置文件 [' . $file . '] 不存在');
+            throw new Exception('databaseConfigNotFound: 数据库配置文件 [' . $file . '] 不存在');
         }
 
         return $result;

@@ -8,8 +8,6 @@
 
 namespace jt;
 
-use jt\exception\TaskException;
-
 /**
  * 处理外部获取到的参数
  *
@@ -235,7 +233,7 @@ class Requester
      * @param string $a
      * @param string $name
      * @return array
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     private static function attr($a, $name)
     {
@@ -263,7 +261,7 @@ class Requester
                 if (in_array($value, self::VALUE_TYPE['single']) || in_array($value, self::VALUE_TYPE['composite'])) {
                     $result['type'] = $value;
                 }else {
-                    throw new TaskException("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 的属性 [{$value}] 有误，请检查");
+                    throw new Exception("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 的属性 [{$value}] 有误，请检查");
                 }
                 break;
             case in_array($key, self::VALUE_RULE):
@@ -280,7 +278,7 @@ class Requester
                 }
                 break;
             default:
-                throw new TaskException("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 有误，请检查");
+                throw new Exception("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 有误，请检查");
                 break;
         }
 
@@ -582,7 +580,7 @@ class Requester
      * @param string $msg 错误消息
      * @param string $name 值名称
      * @param array  $option
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     private static function error($code, $msg, $name, array $option)
     {
@@ -593,7 +591,7 @@ class Requester
             $msg .= '.' . $line;
         }
 
-        $e = new TaskException('inputIll:' . $msg);
+        $e = new Exception('inputIll:' . $msg);
         $e->addData(['field' => $name, 'code' => $code]);
         throw $e;
     }

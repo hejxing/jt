@@ -5,7 +5,7 @@
  * Create: 2016/1/13 18:54
  */
 
-namespace jt\database;
+namespace jt\lib\database;
 
 
 class ErrorCode

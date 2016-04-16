@@ -6,7 +6,7 @@
  * Time: 2:09
  */
 
-namespace jt\database;
+namespace jt\lib\database;
 
 
 class ColumnsParser

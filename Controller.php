@@ -9,8 +9,6 @@
 
 namespace jt;
 
-use jt\exception\TaskException;
-
 /**
  * 任务调度、管控中心，框架核心部件
  * 负责应用路由规则，触发任务执行前、执行后的相关事件，将执行结果进一步加工
@@ -344,7 +342,7 @@ class Controller
      * @param string $method
      * @return bool
      *
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     public function loadAction($class, $method)
     {
@@ -352,11 +350,11 @@ class Controller
             /** @type Action $action */
             $action = new $class();
         }else {
-            throw new TaskException('Action ' . $class . ' not found', 404);
+            throw new Exception('Action ' . $class . ' not found', 404);
         }
 
         if ($action->init() === false) {
-            throw new TaskException('Action ' . $class . ' init fail', 500);
+            throw new Exception('Action ' . $class . ' init fail', 500);
         }
 
         if (method_exists($action, $method)) {
@@ -365,7 +363,7 @@ class Controller
 
             return true;
         }else {
-            throw new TaskException('Method not found ' . $class . '::' . $method, 404);
+            throw new Exception('Method not found ' . $class . '::' . $method, 404);
         }
     }
 

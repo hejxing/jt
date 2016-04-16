@@ -8,8 +8,8 @@ namespace jt;
 
 define('MODEL_UUID_ZERO', '00000000-0000-0000-0000-000000000000');
 
-use jt\exception\TaskException;
 use jt\utils\Helper;
+use jt\lib\database\Connector;
 
 class Model
 {
@@ -32,7 +32,7 @@ class Model
     /**
      * 数据库类型
      *
-     * @type database\Connector
+     * @type Connector
      */
     protected $connector = null;
     /**
@@ -184,10 +184,8 @@ class Model
 
     /**
      * 类加载后自动执行的方法
-     *
-     * @param string $className 当前类名
      */
-    public static function __init($className)
+    public static function __init()
     {
         //解析表结构和属性
         self::parseColumns();
@@ -198,7 +196,7 @@ class Model
      */
     public function __construct()
     {
-        $this->connector = new database\Connector(PROJECT_ROOT, $this->conn);
+        $this->connector = new Connector(PROJECT_ROOT, $this->conn);
         static::$quotes  = $this->connector->getQuotes();
         $this->table     = $this->connector->getTablePrefix() . $this->table;
     }
@@ -304,7 +302,7 @@ class Model
      */
     public static function commit()
     {
-        foreach (database\Connector::getPdoList() as $pdo) {
+        foreach (Connector::getPdoList() as $pdo) {
             self::restartTransaction($pdo);
         }
     }
@@ -340,7 +338,7 @@ class Model
      */
     public static function autoCommit()
     {
-        foreach (database\Connector::getPdoList() as $pdo) {
+        foreach (Connector::getPdoList() as $pdo) {
             /* @var $pdo \PDO */
             if ($pdo->inTransaction()) {
                 self::commitTransaction($pdo);
@@ -353,7 +351,7 @@ class Model
      */
     public static function beginTransaction()
     {
-        foreach (database\Connector::getPdoList() as $pdo) {
+        foreach (Connector::getPdoList() as $pdo) {
             /* @var $pdo \PDO */
             if (!$pdo->inTransaction()) {
                 $pdo->beginTransaction();
@@ -366,7 +364,7 @@ class Model
      */
     public static function rollBack()
     {
-        foreach (database\Connector::getPdoList() as $pdo) {
+        foreach (Connector::getPdoList() as $pdo) {
             /* @var $pdo \PDO */
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -405,17 +403,17 @@ class Model
      * @param \PDOException $e
      * @param string        $sql
      *
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
 
     private function processError(\PDOException $e, $sql)
     {
         switch ($e->getCode()) {
             case '7': //数据库不存在
-                $creator = new database\Schema(PROJECT_ROOT, $this->conn);
+                $creator = new lib\database\Schema(PROJECT_ROOT, $this->conn);
                 $creator->createDataBase();
             case '42P01': //表不存在
-                $creator = new database\Schema(PROJECT_ROOT, $this->conn);
+                $creator = new lib\database\Schema(PROJECT_ROOT, $this->conn);
                 $creator->createTable($this->genTableName(), static::$columns);
                 //标记为该请求可以重试
                 Controller::current()->needRetry();
@@ -423,7 +421,7 @@ class Model
                 return;
         }
 
-        $msg = database\ErrorCode::getMessage($this, $e, $sql);
+        $msg = lib\database\ErrorCode::getMessage($this, $e, $sql);
         self::error('DbOperateError', $msg);
 
     }
@@ -786,10 +784,9 @@ class Model
      * 补充空数据
      *
      * @param $column
-     * @param $name
      * @return int|mixed|string
      */
-    private function genDefaultValue($column, $name)
+    private function genDefaultValue($column)
     {
         if (isset($column['default'])) {
             return $column['default'];
@@ -872,7 +869,7 @@ class Model
                 if (isset($column['require'])) {
                     self::error('InsertToDataBaseRequire', "表 [{$this->table}] 此项 [{$name}] 不允许为空");
                 }
-                $data[$field] = $this->genDefaultValue($column, $name);
+                $data[$field] = $this->genDefaultValue($column);
             }
             $this->data[] = $this->checkData($data[$field], $column, $name);
             if (isset($column['primary'])) {
@@ -2175,11 +2172,11 @@ class Model
      *
      * @param $code
      * @param $msg
-     * @throws \jt\exception\TaskException
+     * @throws Exception
      */
     public static function error($code, $msg)
     {
-        $te = new TaskException($code . ':' . $msg);
+        $te = new Exception($code . ':' . $msg);
         $te->setIgnoreTraceLine(3);
         throw $te;
     }
