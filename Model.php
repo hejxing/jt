@@ -10,6 +10,8 @@ define('MODEL_UUID_ZERO', '00000000-0000-0000-0000-000000000000');
 
 use jt\utils\Helper;
 use jt\lib\database\Connector;
+use jt\lib\database\Schema;
+use jt\lib\database\ErrorCode;
 
 class Model
 {
@@ -410,10 +412,10 @@ class Model
     {
         switch ($e->getCode()) {
             case '7': //数据库不存在
-                $creator = new lib\database\Schema(PROJECT_ROOT, $this->conn);
+                $creator = new Schema(PROJECT_ROOT, $this->conn);
                 $creator->createDataBase();
             case '42P01': //表不存在
-                $creator = new lib\database\Schema(PROJECT_ROOT, $this->conn);
+                $creator = new Schema(PROJECT_ROOT, $this->conn);
                 $creator->createTable($this->genTableName(), static::$columns);
                 //标记为该请求可以重试
                 Controller::current()->needRetry();
@@ -421,7 +423,7 @@ class Model
                 return;
         }
 
-        $msg = lib\database\ErrorCode::getMessage($this, $e, $sql);
+        $msg = ErrorCode::getMessage($this, $e, $sql);
         self::error('DbOperateError', $msg);
 
     }
