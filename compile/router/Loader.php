@@ -4,7 +4,7 @@
  * Create: 2015/10/20 16:47
  */
 
-namespace jt\maker\router;
+namespace jt\compile\router;
 
 use jt\Error;
 use jt\Exception;
@@ -12,7 +12,7 @@ use jt\Exception;
 /**
  * Class Loader
  *
- * @package jt\maker
+ * @package jt\compile
  */
 abstract class Loader
 {

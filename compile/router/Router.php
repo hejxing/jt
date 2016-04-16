@@ -4,7 +4,7 @@
  * @Create 2015/10/22 15:14
  */
 
-namespace jt\maker\router;
+namespace jt\compile\router;
 
 class Router extends Action
 {
