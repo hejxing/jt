@@ -211,14 +211,14 @@ class Controller
             $this->action->outMass($result);
         }
 
-        if ($this->applyFilter() === false) {
-            return;
-        }
-
         if (\call_user_func_array([$this->action, 'after'], [$this->method, $this->param]) === false) {
             return;
         }
 
+
+        if ($this->applyFilter() === false) {
+            return;
+        }
         Action::setIsRunComplete(true);
     }
 

@@ -8,6 +8,10 @@
 
 namespace jt\utils;
 
+define('JT_CHAR_NUMBER', 1);
+define('JT_CHAR_LOWERCASE', 2);
+define('JT_CHAR_UPPERCASE', 4);
+define('JT_CHAR_ZN_CH', 8);
 
 class Helper
 {
@@ -195,5 +199,8 @@ class Helper
         }
 
         return $long ? ip2long($ip) : $ip;
+    }
+    public static function randString($length, $mask = JT_CHAR_NUMBER){
+
     }
 }

@@ -52,7 +52,7 @@ abstract class Auth
 
     /**
      * 访问结果过滤
-     * @return mixed
+     * @return int
      */
     abstract public function filter();
 
