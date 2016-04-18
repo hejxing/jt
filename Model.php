@@ -57,6 +57,7 @@ class Model
     protected static $primary = 'id';
     /**
      * 主键类型
+     *
      * @type string
      */
     protected static $primaryType = 'uuid';
@@ -180,7 +181,7 @@ class Model
         'serial'  => ['serial2', 'serial4', 'serial8'],
         'boolean' => ['bool'],
         'object'  => ['json', 'jsonb'],
-        'value'   => ['format', 'touch', 'foreign', 'field', 'default', 'validate', 'at', 'filter'],
+        'value'   => ['format', 'touch', 'foreign', 'field', 'default', 'validate', 'at', 'filter', 'stuffer'],
         'compare' => ['=', '>', '<', '>=', '<=', '<>', ' like ', ' between ', ' in ']
     ];
 
@@ -214,14 +215,27 @@ class Model
         }
         static::$columns = self::tidyParsed($parsed);
     }
-    
-    private static function tidyParsed($parsed){
-        if(static::$primary && isset($parsed[static::$primary]['increment'])){
+
+    /**
+     * 整理解析结果
+     *
+     * @param $parsed
+     * @return mixed
+     */
+    private static function tidyParsed($parsed)
+    {
+        if (static::$primary && isset($parsed[static::$primary]['increment'])) {
             static::$primaryType = 'increment';
         }
+
         return $parsed;
     }
 
+    /**
+     * 整理解析的一行结果
+     *
+     * @param $lined
+     */
     private static function tidyParsedLine(&$lined)
     {
         if (!empty($lined['del']) && !isset($lined['hidden'])) {
@@ -229,6 +243,13 @@ class Model
         }
     }
 
+    /**
+     * 解析一行
+     *
+     * @param $str
+     * @param $name
+     * @return array
+     */
     private static function line($str, $name)
     {
         $lined = [];
@@ -241,6 +262,14 @@ class Model
         return $lined;
     }
 
+    /**
+     * 解析规则
+     *
+     * @param $a
+     * @param $name
+     * @return array
+     * @throws \jt\Exception
+     */
     private static function attr($a, $name)
     {
         if (\strpos($a, ':')) {
@@ -254,7 +283,7 @@ class Model
                 if ($key === 'primary') {
                     static::$primary = $name;
                 }
-                if($key === 'del'){
+                if ($key === 'del') {
                     $result['type'] = 'bool';
                 }
                 $result[$key] = true;
@@ -286,8 +315,11 @@ class Model
                 if ($key === 'field') {
                     self::$fieldMap[$value] = $name;
                 }
-                if ($key === 'filter' && !method_exists(get_called_class(), $value)){
-                    self::error('filterNotExists', "数据库模型类 [".get_called_class()."] 配置表中 filter 方法[{$value}]不存在，请检查");
+                if ($key === 'filter' && !method_exists(get_called_class(), $value)) {
+                    self::error('filterNotExists', "数据库模型类 [" . get_called_class() . "] 配置表中 filter 方法[{$value}]不存在，请检查");
+                }
+                if ($key === 'stuffer' && !method_exists(get_called_class(), $value)) {
+                    self::error('stufferNotExists', "数据库模型类 [" . get_called_class() . "] 配置表中 stuffer 方法[{$value}]不存在，请检查");
                 }
                 $result[$key] = $value;
                 break;
@@ -309,6 +341,11 @@ class Model
         }
     }
 
+    /**
+     * 提交指连接的事务
+     *
+     * @param \PDO $pdo
+     */
     private static function commitTransaction(\PDO $pdo)
     {
         if (self::$debugMode) {
@@ -733,6 +770,7 @@ class Model
             $columns['type'] = 'timestamp';
         } //edit,remove,restore的create_at,update_at没有设置type属性
         $value = $this->convertType($value, $columns['type']);
+
         return $value;
     }
 
@@ -777,9 +815,29 @@ class Model
         return $data;
     }
 
+    /**
+     * 生成uuid
+     *
+     * @return string
+     */
     private static function genUuid()
     {
-        return Helper::uuid([], '-');
+        $partLength = [8, 4, 4, 4, 12];
+        $default    = [];
+
+        foreach ($partLength as $i => $length) {
+            if (isset($default[$i])) {
+                $default[$i] = str_pad(substr($default[$i], 0, $length), $length, '0', STR_PAD_LEFT);
+            }else {
+                $default[$i] = '';
+                while (strlen($default[$i]) < $length) {
+                    $default[$i] .= str_pad(base_convert(mt_rand(0, 65535), 10, 16), 4, '0', STR_PAD_LEFT);
+                }
+            }
+        }
+        ksort($default);
+
+        return implode('-', $default);
     }
 
     /**
@@ -793,8 +851,15 @@ class Model
         if (isset($column['default'])) {
             return $column['default'];
         }
+
+        if (isset($column['stuffer'])) {
+            $stuffer = $column['stuffer'];
+
+            return $this->$stuffer();
+        }
+
         if (isset($column['at'])) {
-            return \microtime(true);
+            return microtime(true);
         }
         if ($column['type'] === 'uuid' && isset($column['primary'])) {
             return self::genUuid();
@@ -818,6 +883,11 @@ class Model
         return $value;
     }
 
+    /**
+     * 生成空值
+     * @param $name
+     * @return mixed
+     */
     private function genEmptyValue($name)
     {
         $type = static::$columns[$name]['type']??'string';
@@ -861,13 +931,13 @@ class Model
             }
 
             if (isset($column['increment'])) {//自增类型
-                if(!empty($data[$field])){
+                if (!empty($data[$field])) {
                     self::error('IncrementFieldNotAllowAssignValue', '自增类型字段不允许给值');
                 }
                 array_pop($fields);
                 continue;
             }
-            if(empty($data[$field])){
+            if (empty($data[$field])) {
                 if (isset($column['require'])) {
                     self::error('InsertToDataBaseRequire', "表 [{$this->table}] 此项 [{$name}] 不允许为空");
                 }

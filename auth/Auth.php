@@ -1,12 +1,16 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: hejxi
+ * User: ax@jentian.com
  * Date: 2015/11/24
  * Time: 17:38
  */
 
 namespace jt\auth;
+
+use jt\Controller;
+use jt\Session;
+use jt\Action;
 
 /**
  * 权限控制基类
@@ -33,6 +37,11 @@ abstract class Auth
      * @type string
      */
     protected $loginUrl = '/login';
+    /**
+     * 操作员
+     * @type null
+     */
+    private $operator = null;
 
     /**
      * 执行权限检查
@@ -41,7 +50,37 @@ abstract class Auth
      */
     abstract public function auth();
 
+    /**
+     * 访问结果过滤
+     * @return mixed
+     */
     abstract public function filter();
+
+    /**
+     * 初始化操作员信息
+     * @return \jt\auth\Operator
+     */
+    protected function createOperator(){
+        return new Operator('undefined', '', '');
+    }
+
+    /**
+     * 写未授权访问的空接口
+     */
+    public function writeInExceedLog(){
+    }
+
+    /**
+     * 写未授权访问的空接口
+     */
+    public function writeOutExceedLog(){
+    }
+
+    /**
+     * 写访问成功日志的空接口
+     */
+    public function writeSuccessLog(){
+    }
 
     /**
      * Auth constructor.
@@ -66,9 +105,17 @@ abstract class Auth
     /**
      * 处理越权事件
      */
-    protected function exceed()
+    protected function inExceed()
     {
-        $this->action->fail('无权使用该功能或访问该资源', 403);
+        $this->action->fail('无权使用该功能', 403);
+    }
+
+    /**
+     * 处理越权事件
+     */
+    protected function outExceed()
+    {
+        $this->action->fail('无权访问该资源', 403);
     }
 
     /**
@@ -76,7 +123,7 @@ abstract class Auth
      *
      * @return bool
      */
-    final public function check()
+    final public function inCheck()
     {
         $code = $this->auth();
         switch ($code) {
@@ -87,7 +134,30 @@ abstract class Auth
                 $this->notLogin();
                 break;
             case 403:
-                $this->exceed();
+                $this->writeInExceedLog();
+                $this->inExceed();
+                break;
+            default:
+                $this->action->status($code, [], false);
+        }
+
+        return false;
+    }
+
+    /**
+     * 访问完成时做的检查
+     * @return mixed
+     */
+    final public function outCheck(){
+        $code = $this->filter();
+        switch ($code) {
+            case 200:
+                $this->writeSuccessLog();
+                return true;
+                break;
+            case 403:
+                $this->writeOutExceedLog();
+                $this->outExceed();
                 break;
             default:
                 $this->action->status($code, [], false);
@@ -108,5 +178,16 @@ abstract class Auth
         (new Action())->header('token', $token);
 
         return $token;
+    }
+
+    /**
+     * 获取操作员
+     * @return \jt\auth\Operator
+     */
+    public function getOperator(){
+        if($this->operator === null){
+            $this->operator = $this->createOperator();
+        }
+        return $this->operator;
     }
 }

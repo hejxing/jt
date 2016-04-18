@@ -23,13 +23,14 @@ class Helper
     {
         $partLength = [8, 4, 4, 4, 12];
         foreach ($partLength as $i => $length) {
-            if (!isset($default[$i])) {
+            if (isset($default[$i])) {
+                $default[$i] = str_pad(substr($default[$i], 0, $length), $length, '0', STR_PAD_LEFT);
+            }else {
                 $default[$i] = '';
                 while (strlen($default[$i]) < $length) {
-                    $default[$i] .= base_convert(mt_rand(), 10, 16);
+                    $default[$i] .= str_pad(base_convert(mt_rand(0, 65535), 10, 16), 4, '0', STR_PAD_LEFT);
                 }
             }
-            $default[$i] = str_pad(substr($default[$i], 0, $length), $length, '0', STR_PAD_LEFT);
         }
         ksort($default);
 
@@ -171,8 +172,9 @@ class Helper
         return $ip;
     }
 
-    private static function getShakeIp(){
-        return $_SERVER['REMOTE_ADDR']??getenv('REMOTE_ADDR')?:'0.0.0.0';
+    private static function getShakeIp()
+    {
+        return $_SERVER['REMOTE_ADDR']??getenv('REMOTE_ADDR') ?: '0.0.0.0';
     }
 
     /**

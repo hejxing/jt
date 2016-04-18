@@ -1,13 +1,35 @@
 <?php
-
 /**
  * @Copyright jentian.com
  * Auth: ax@jentian.com
  * Create: 2016/4/16 11:06
  */
+
+namespace jt\protocol;
+
+use jt\Controller;
+use jt\Exception;
+
 abstract class Sms
 {
+    /**
+     * 发送短信通道
+     *
+     * @var string
+     */
+    protected $sender = 'undefined';
+    /**
+     * 读取短信黑名单的数据库表
+     *
+     * @type string
+     */
     protected $ipBlackTable = 'ruler.sms_ip_black';
+    /**
+     * 写短信日志的表
+     *
+     * @type string
+     */
+    protected $logModel = '/jt/lib/model/log/SmsLogModel';
     /**
      * 接收人清单,手机号码
      *
@@ -27,12 +49,6 @@ abstract class Sms
      */
     protected $remark = '';
     /**
-     * 发送短信通道
-     *
-     * @var $this
-     */
-    private $sender = null;
-    /**
      * 是否需要回执 (尚不清楚回执是否收费)
      *
      * @var bool
@@ -40,30 +56,51 @@ abstract class Sms
     protected $needBack = true;
 
     /**
+     * 真正发送短信的实现
+     *
+     * @return mixed
+     */
+    abstract protected function sending();
+
+    /**
      * 构造函数
-     * @param \jt\Operator $operator 操作员
+     *
      * @param string $remark 备注说明,会写入发送日志
      */
-    public function __construct($operator, $remark)
+    public function __construct($remark)
     {
-        $this->operator = $operator;
         $this->remark = $remark;
     }
 
+
     /**
-     * 寻找合适的短信发送者
+     * 是否允许该终端发短信
+     *
+     * @return bool
      */
-    private function findSender()
+    protected function clientFilter()
     {
-        if ($this->sender) {
-            return;
-        }
-        if (\in_array($this->type, $this->urgentTypeList)) {
-            //$this->sender = new module\YiMei();
-            $this->sender = new module\DuanXinTong();
-        }else {
-            $this->sender = new module\ShangXinTong();
-        }
+        return true;
+    }
+
+    /**
+     * 是否允许该收件人收短信发送
+     *
+     * @return bool
+     */
+    protected function receiverFilter()
+    {
+        return true;
+    }
+
+    /**
+     * 发送内容过滤
+     *
+     * @return bool
+     */
+    protected function contentFilter()
+    {
+        return true;
     }
 
     /**
@@ -77,102 +114,66 @@ abstract class Sms
     }
 
     /**
-     * 设置本次发送短信的类型,类型映射表见枚举类\config\Enum
-     *
-     * @param int    $type 本次所发送短信的类型
-     * @param string $remark
-     */
-    public function setType($type, $remark = '')
-    {
-        $this->sender = null;
-        $this->type   = $type;
-        $this->remark = $remark;
-    }
-
-    /**
-     * 设置短信内容
-     *
-     * @param string $msg 短信内容
-     */
-    public function setMsg($msg)
-    {
-        $this->msg = $msg;
-    }
-
-    /**
      * 添加接收手机号码,有相同号码,将会被覆盖
      *
-     * @param string || array $receive 接收手机号码或列表
+     * @param string|array $receive 接收手机号码或列表
      */
     public function addReceiver($receive)
     {
-        $receive       = is_array($receive) ? $receive : preg_split(" *, *", $receive);
+        $receive       = is_array($receive) ? $receive : preg_split('/ *, */', $receive);
         $this->receive = array_unique(array_merge($this->receive, $receive));
     }
 
     /**
      * 发送短信
      *
-     * @param string||array $receive 接收手机号码
-     * @param string $msg 发送的短信(70个字以内,否则会分成多条发送,一个中文算一个字)
-     * @return \tools\Res
+     * @param string       $msg 发送的短信(70个字以内,否则会分成多条发送,一个中文算一个字)
+     * @param string|array $receive 接收手机号码
+     * @return bool
      */
-    public function send($receive = null, $msg = '')
+    public function send($msg, $receive = null)
     {
-        $ip = \tools\Tools::getIp();
-        if (!\pool\Session::get('canBatchSendSms') && in_array($ip, $this->ipBlackList)) {
-            $this->res->put('success', false);
-            $this->res->put('msg', 'system refuse');
-            $this->res->put('code', 1);
-
-            return false;
-        }
-        $this->findSender();
+        $this->msg = $msg;
         if ($receive) {
             $this->addReceiver($receive);
         }
-        if ($msg) {
-            $this->setMsg($msg);
-        }
-        if ($this->verify()) {
-            $this->sender->send($this->getBody());
-            $this->res = $this->sender->getResult();
-            $this->addSendLog();
+        if ($this->verify() === true) {
+            $this->sending();
+            $this->writeLog();
+
+            return true;
         }
 
-        return $this->res;
-    }
-
-    /**
-     * 要发送的短信内容
-     *
-     * @return array
-     */
-    private function getBody()
-    {
-        return [
-            'receivers' => $this->receive,
-            'msg'       => $this->msg,
-            'type'      => $this->type,
-            'needBack'  => $this->needBack
-        ];
+        return false;
     }
 
     /**
      * 验证是否允许发送
+     *
+     * @return bool
+     * @throws Exception
      */
     private function verify()
     {
         if (count($this->receive) === 0) {
-            $this->res->put('success', false);
-            $this->res->put('msg', 'Error:接收短信名单不能为空 ');
+            throw new Exception('receiverSmsListEmpty:短信接收人为空');
         }
         if ($this->msg === '') {
-            $this->res->put('success', false);
-            $this->res->put('msg', 'Error:没有设置短信发送内容');
+            throw new Exception('smsContentEmpty:短信内容为空');
         }
 
-        return $this->res->success();
+        if ($this->contentFilter() !== true) {
+            return false;
+        }
+
+        if ($this->clientFilter() !== true) {
+            return false;
+        }
+        if ($this->receiverFilter() !== true) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -194,35 +195,19 @@ abstract class Sms
     }
 
     /**
-     * 获取发送结果,且体类型有待求证
+     * 写发送日志
      *
-     * @return array
+     * @return bool
      */
-    public function getResult()
+    private function writeLog()
     {
-        return $this->res;
-    }
-
-    /**
-     * 添加新的发送记录
-     *
-     * @return \tools\Res
-     */
-    private function addSendLog()
-    {
-        $smsSendLogManager = \bll\comm\SmsSendLog::create();
-        foreach ($this->receive as $receiveMobile) {
-            $info = [
-                'type'           => $this->type,
-                'remark'         => $this->remark,
-                'mobile'         => $receiveMobile,
-                'content'        => $this->msg,
-                'callbackString' => \json_encode($this->res->get()),
-                'resultCode'     => $this->res->get('code')
-            ];
-            $smsSendLogManager->add($info);
-        }
-
-        return true;
+        /** @type \jt\Model $modelName */
+        $modelName = $this->logModel;
+        $model     = $modelName::open();
+        $model->add(array_merge([
+            'content'  => $this->msg,
+            'receiver' => $this->receive,
+            'sender'   => $this->sender
+        ], Controller::current()->getOperator()->fetchAll()));
     }
 }

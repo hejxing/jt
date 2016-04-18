@@ -614,4 +614,12 @@ class Action
     {
         return true;
     }
+
+    /**
+     * 获取当前Action实例
+     * @return \jt\Action
+     */
+    public static function current(){
+        return Controller::current()->getAction();
+    }
 }

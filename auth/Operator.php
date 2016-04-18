@@ -10,75 +10,156 @@
 namespace jt\auth;
 
 
-abstract class Operator
+class Operator
 {
     /**
      * 操作员类型
      *
      * @type string
      */
-    protected $type = null;
+    private $type = null;
     /**
      * 操作员ID
      *
      * @type string|int
      */
-    protected $id = null;
+    private $id = null;
 
     /**
      * 操作员姓名
      *
      * @type string
      */
-    protected $name = null;
+    private $name = null;
     /**
      * 操作员职位名称
      *
+     * @type string|int
+     */
+    private $positionId = '';
+    /**
+     * 职位名称
+     *
      * @type string
      */
-    protected $position = null;
+    private $positionName = '';
     /**
-     * 扩展信息
+     * 操作员其它信息
      *
      * @type array
      */
-    protected $info = null;
+    private $info = [];
 
     /**
-     * Operator constructor.
+     * 实例化一个操作员
      *
+     * @param string     $type 操作员类型
      * @param string|int $id 操作员ID
+     * @param string     $name 操作员姓名
      */
-    public function __construct($id)
+    public function __construct($type, $id, $name)
     {
-        $this->id = $id;
-        $this->initProper();
+        $this->type = $type;
+        $this->id   = $id;
+        $this->name = $name;
     }
 
-    abstract function initProper();
+    /**
+     * 设置操作员职位
+     *
+     * @param $id
+     * @param $name
+     */
+    public function setPosition($id, $name)
+    {
+        $this->positionId   = $id;
+        $this->positionName = $name;
+    }
 
+    /**
+     * 设置操作的其它信息
+     *
+     * @param array $info
+     */
+    public function setInfo(array $info)
+    {
+        $this->info = $info;
+    }
+
+    /**
+     * 获取操作员类型
+     *
+     * @return string
+     */
     public function getType()
     {
         return $this->type;
     }
 
+    /**
+     * 获取操作员ID
+     *
+     * @return int|string
+     */
     public function getId()
     {
         return $this->id;
     }
 
+    /**
+     * 获取操作员姓名
+     *
+     * @return string
+     */
     public function getName()
     {
         return $this->name;
     }
 
-    public function getPosition()
+    /**
+     * 获取操作员职位ID
+     *
+     * @return int|string
+     */
+    public function getPositionId()
     {
-        return $this->position;
+        return $this->positionId;
     }
 
+    /**
+     * 获取操作员职位名
+     *
+     * @return string
+     */
+    public function getPositionName()
+    {
+        return $this->positionName;
+    }
+
+    /**
+     * 获取操作信息
+     *
+     * @return array
+     */
     public function getInfo()
     {
         return $this->info;
+    }
+
+    /**
+     * 获取操作员信息
+     *
+     * @return array
+     */
+    public function fetchAll()
+    {
+        return [
+            'operatorType'         => $this->type,
+            'operatorId'           => $this->id,
+            'operatorName'         => $this->name,
+            'operatorPositionId'   => $this->positionId,
+            'operatorPositionName' => $this->positionName,
+            'operatorInfo'         => $this->info
+        ];
     }
 }

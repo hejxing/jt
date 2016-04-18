@@ -84,13 +84,14 @@ class Controller
      *
      * @type int
      */
-    private static $retryTimes = 0;
+    private static $retryTimes = 10;
     /**
      * @type bool 是否允许输出
      */
     private $outputAllow = true;
     /**
      * 是否需要重试
+     *
      * @type bool
      */
     private $isNeedRetry = false;
@@ -120,7 +121,7 @@ class Controller
         $c->cutURI();
         $c->dispatch();
         $c->execute();
-        if($c->isNeedRetry){
+        if ($c->isNeedRetry) {
             $c->retry();
         }
         if ($c->outputAllow) {
@@ -136,11 +137,11 @@ class Controller
     public function retry()
     {
         $this->isNeedRetry = false;
-        self::$retryTimes++;
-        if (self::$retryTimes <= 10) {
+        self::$retryTimes--;
+        if (self::$retryTimes > 0) {
             Action::cleanData();
             Error::cleanData();
-            
+
             Model::rollBack();
             $this->execute();
         }
@@ -163,7 +164,8 @@ class Controller
         }
 
         $this->authority = new $className();
-        return $this->authority->check();
+
+        return $this->authority->inCheck();
     }
 
     /**
@@ -177,7 +179,7 @@ class Controller
             return true;
         }
 
-        return $this->authority->filter();
+        return $this->authority->outCheck();
     }
 
     /**
@@ -241,9 +243,10 @@ class Controller
      */
     public function getAction()
     {
-        if($this->action === null){
+        if ($this->action === null) {
             return new Action();
         }
+
         return $this->action;
     }
 
@@ -558,7 +561,25 @@ class Controller
         $this->action = null;
     }
 
-    public function needRetry(){
+    /**
+     * 标记为需要进行重试,当在执行完成时将再次重新执行本次请求，一次请求重试次数由retryTimes控制
+     */
+    public function needRetry()
+    {
         $this->isNeedRetry = true;
+    }
+
+    /**
+     * 获取本次操作的操作员信息
+     *
+     * return \jt\auth\Operator
+     */
+    public function getOperator()
+    {
+        if ($this->authority) {
+            return $this->authority->getOperator();
+        }else {
+            return new auth\Operator('public', '', '');
+        }
     }
 }
