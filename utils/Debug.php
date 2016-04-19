@@ -96,6 +96,7 @@ class Debug
     {
         if (!file_exists(\Config::LOG_PATH_ROOT)) {
             mkdir(\Config::LOG_PATH_ROOT, 0777, true);
+            
         }
         $request = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'];
         $request .= "\r\npost: " . \file_get_contents('php://input') . "\r\nget: " . $_SERVER['QUERY_STRING'];

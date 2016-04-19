@@ -165,7 +165,7 @@ class Bootstrap
             'docRoot' => \getcwd(),
             'nsRoot'  => $nsRoot
         ]);
-        Debug::log('$_REQUEST', [$_GET, $_POST, $_FILES]);
+        //Debug::log('$_REQUEST', [$_GET, $_POST, $_FILES]);
         //run_before
         Controller::run($_SERVER['SCRIPT_NAME']);
     }
