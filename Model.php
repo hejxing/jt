@@ -881,6 +881,7 @@ class Model
 
     /**
      * 生成空值
+     *
      * @param $name
      * @return mixed
      */
@@ -1091,6 +1092,9 @@ class Model
         }
 
         foreach ($data as $name => $value) {
+            if($value === null){
+                continue;
+            }
             //将属性名与字段名进行映射
             $column = $this->findColumnByName($name);
             if ($column === null || isset($column['primary'])) {//不允许更新主键的内容
