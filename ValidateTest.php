@@ -23,8 +23,13 @@ class ValidateTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(Validate::mobile('13066815732'));
         $this->assertTrue(Validate::mobile('130-6681-5732'));
         $this->assertTrue(Validate::mobile('(+86)157-6681-5732'));
+        $this->assertTrue(Validate::mobile('(+86)13066815732'));
+        $this->assertTrue(Validate::mobile('( +86 )13066815732'));
         $this->assertFalse(Validate::mobile('(+86)130668157321'));
-        $this->assertFalse(Validate::mobile('(+86)130668157321'));
-        $this->assertFalse(Validate::mobile('(+86)130668157321'));
+    }
+
+    public function testIdentityCard(){
+        $this->assertTrue(Validate::identityCard('511324198312076499'));
+        $this->assertTrue(Validate::identityCard('362430198906108115'));
     }
 }

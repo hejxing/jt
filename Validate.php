@@ -12,7 +12,7 @@ class Validate
 {
     const REGEX_EMAIL           = '/^[\w+\.]+@([\w-]+\.)+[\w]+$/';
     const REGEX_PHONE           = '/^\+?\d*(\([\d]+\))?([ -]{0,1}[\d]+)+$/';
-    const REGEX_UNIVERSE_MOBILE = '/^\+?(\d+[ -]?)(\d+[-]?\d+)+$/';
+    const REGEX_UNIVERSE_MOBILE = '/^(\(\+\d+\))?((?:\d+[ -]?\d+)+)$/';
     const REGEX_ID_CARD         = '/^(?:[\d -]{17}|[\d -]{14})[\dxX]{1}$/';
     const REGEX_ZH_CN           = '/^[\x{4e00}-\x{9fa5}A-Za-z0-9_]+$/u';
 
@@ -39,25 +39,30 @@ class Validate
     }
 
     /**
-     * 检查是否是有效的手机号码
+     * 检查是否是有效的手机号码（中国大陆手机号）
      *
-     * @param $value
+     * @param      $value
+     * @param bool $comb 是否整理手机格式
      * @return bool
      */
-    public static function mobile($value)
+    public static function mobile($value, $comb = false)
     {
-        if (preg_match(self::REGEX_UNIVERSE_MOBILE, $value)) {
-            $value = str_replace('-', '', $value);
-            $value = str_replace('+', '', $value);
+        $value = str_replace(' ', '', $value);
+        if (preg_match(self::REGEX_UNIVERSE_MOBILE, $value, $matched)) {
+            if ($matched[1] === '' || $matched[1] === '(+86)') {
+                $matched[2] = str_replace('-', '', $matched[2]);
 
-            return strlen($value) === 11;
+                if (strlen($matched[2]) === 11) {
+                    return $comb ? $matched[2] : true;
+                }
+            }
         }
 
         return false;
     }
 
     /**
-     * 检查是否是有效的手机号码
+     * 检查是否是有效的手机号码(全球手机号)
      *
      * @param $value
      * @return bool

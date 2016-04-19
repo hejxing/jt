@@ -871,16 +871,12 @@ class Model
         $type = isset($column['type']) ? $column['type'] : '';
         switch ($type) {
             case 'numeric':
-                $value = 0;
-                break;
             case 'bool':
-                $value = 0;
-                break;
+            case 'bit':
+                return 0;
             default:
-                $value = '';
+                return '';
         }
-
-        return $value;
     }
 
     /**
