@@ -24,6 +24,7 @@ class SmsLogModel extends Model
         'operatorInfo'         => 'field:operator_info array varchar:1024',
         'content'              => 'varchar:1024',
         'receiver'             => 'array text',
+        'channel'              => 'varchar:32',//短信发送通道
         'ip'                   => 'varchar:32 stuffer:getIp',
         'agent'                => 'text stuffer:getAgent',
         'createAt'             => 'field:create_at timestamp at:create'

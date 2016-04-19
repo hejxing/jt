@@ -22,5 +22,5 @@ $projectRoot = substr($projectRoot, 0 ,-1);
 if (file_exists($projectRoot . '/test_entrance.php')) {
     require $projectRoot . '/test_entrance.php';
 }else{
-    \jt\Bootstrap::test($projectRoot, 'jt/');
+    \jt\Bootstrap::test($projectRoot);
 }

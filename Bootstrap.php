@@ -9,6 +9,8 @@
 
 namespace jt;
 
+use jt\utils\Debug;
+
 class Bootstrap
 {
     /**
@@ -35,33 +37,37 @@ class Bootstrap
         $classFile = self::getClassFile($className);
         self::loadClass($classFile, $className);
     }
-    
-    public static function tryLoad($className){
+
+    public static function tryLoad($className)
+    {
         $classFile = self::getClassFile($className);
-        if(\file_exists($classFile)){
+        if (\file_exists($classFile)) {
             return self::loadClass($classFile, $className);
-        }else{
+        }else {
             return false;
         }
     }
-    
-    private static function loadClass($classFile, $className){
+
+    private static function loadClass($classFile, $className)
+    {
         $res = @include($classFile);
-        if($res === false){
+        if ($res === false) {
             return false;
         }
 
         if (\method_exists($className, '__init')) {
             $className::__init($className);
         }
+
         return $res;
     }
-    
-    public static function getClassFile($className){
+
+    public static function getClassFile($className)
+    {
         $prefix = substr($className, 0, strpos($className, '\\'));
-        if($prefix === 'jt'){
+        if ($prefix === 'jt') {
             $root = CORE_ROOT;
-        }else{
+        }else {
             $root = \Config::NAMESPACE_PATH_MAP[$prefix]??PROJECT_ROOT;
         }
 
@@ -73,6 +79,7 @@ class Bootstrap
      */
     public static function exeComplete()
     {
+        Debug::log('$_REQUEST', [$_GET, $_POST, $_FILES]);
         if (Action::isRunComplete() && Action::isSuccess()) {//代码执行 && 业务成功
             if (class_exists('\jt\Model', false)) {
                 Model::commit();
@@ -106,6 +113,7 @@ class Bootstrap
      */
     public static function init($option)
     {
+        umask(0);
         //记录代码执行开始时间
         self::$startTime = microtime(true);
         self::$now       = intval(self::$startTime);
@@ -116,8 +124,8 @@ class Bootstrap
         if ($option['nsRoot']) {
             $module      = \str_replace('\\', '_', $option['nsRoot']);
             $projectRoot = \substr($projectRoot, -1 - \strlen($option['nsRoot']));
-        }else{
-            $module      = substr($projectRoot, strrpos($projectRoot, DIRECTORY_SEPARATOR) + 1);
+        }else {
+            $module = substr($projectRoot, strrpos($projectRoot, DIRECTORY_SEPARATOR) + 1);
         }
 
         //定义基本常量

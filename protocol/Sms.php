@@ -8,16 +8,27 @@
 namespace jt\protocol;
 
 use jt\Controller;
+use jt\Error;
 use jt\Exception;
 
 abstract class Sms
 {
     /**
+     * 同一个手机号每天发送的最大条数
+     * @type int
+     */
+    protected $maxCount = 5;
+    /**
+     * 同一个手机号最小的间隔时间
+     * @type int
+     */
+    protected $minMargin = 60;
+    /**
      * 发送短信通道
      *
      * @var string
      */
-    protected $sender = 'undefined';
+    protected $channel = 'undefined';
     /**
      * 读取短信黑名单的数据库表
      *
@@ -41,7 +52,7 @@ abstract class Sms
      *
      * @var string
      */
-    protected $msg = '';
+    protected $content = '';
     /**
      * 短信备注
      *
@@ -54,6 +65,12 @@ abstract class Sms
      * @var bool
      */
     protected $needBack = true;
+    /**
+     * 当天的发送日志
+     *
+     * @type array
+     */
+    protected $todayLog = [];
 
     /**
      * 真正发送短信的实现
@@ -85,12 +102,26 @@ abstract class Sms
 
     /**
      * 是否允许该收件人收短信发送
-     *
-     * @return bool
      */
     protected function receiverFilter()
     {
-        return true;
+        foreach($this->receive as $index => $mobile){
+            if(empty($this->todayLog[$mobile])){
+                continue;
+            }
+            if(count($this->todayLog[$mobile]) > $this->maxCount){
+                unset($this->receive[$index]);
+                Error::notice('moreThanMaxSendCount', "号码[{$mobile}]在发送通道[{$this->channel}]中每天最多只允许发送[{$this->maxCount}]条");
+            }
+            $lastLog = $this->todayLog[$mobile][0];
+            if((time() - $lastLog['createAt']) < $this->minMargin){
+                unset($this->receive[$index]);
+                Error::notice('sendSmsIntervalTooBrief', "向号码[{$mobile}]发送的短信至少要间隔[{$this->minMargin}]秒");
+            }
+        }
+        if(empty($this->receive)){
+            throw new Exception('sendSmsBlock:禁止发送');
+        }
     }
 
     /**
@@ -133,7 +164,7 @@ abstract class Sms
      */
     public function send($msg, $receive = null)
     {
-        $this->msg = $msg;
+        $this->content = $msg;
         if ($receive) {
             $this->addReceiver($receive);
         }
@@ -148,6 +179,24 @@ abstract class Sms
     }
 
     /**
+     * 读取当天的发送日志
+     */
+    protected function readTodayLog()
+    {
+        /** @type \jt\Model $modelName */
+        $modelName  = $this->logModel;
+        $model      = $modelName::open();
+        $todayBegin = mktime(0, 0, 0, date('m'), date('d'), date('Y'));
+        foreach($this->receive as $mobile){
+            $this->todayLog[$mobile] = $model->where('createAt > :todayBegin', ['todayBegin' => $todayBegin])
+                ->equals('receiver', $mobile)
+                ->equals('channel', $this->channel)
+                ->order('createAt', 'desc')
+                ->fetch('id, createAt');
+        }
+    }
+
+    /**
      * 验证是否允许发送
      *
      * @return bool
@@ -158,20 +207,16 @@ abstract class Sms
         if (count($this->receive) === 0) {
             throw new Exception('receiverSmsListEmpty:短信接收人为空');
         }
-        if ($this->msg === '') {
+        if ($this->content === '') {
             throw new Exception('smsContentEmpty:短信内容为空');
         }
 
-        if ($this->contentFilter() !== true) {
-            return false;
-        }
+        $this->contentFilter();
 
-        if ($this->clientFilter() !== true) {
-            return false;
-        }
-        if ($this->receiverFilter() !== true) {
-            return false;
-        }
+        $this->readTodayLog();
+
+        $this->clientFilter();
+        $this->receiverFilter();
 
         return true;
     }
@@ -205,7 +250,7 @@ abstract class Sms
         $modelName = $this->logModel;
         $model     = $modelName::open();
         $model->add(array_merge([
-            'content'  => $this->msg,
+            'content'  => $this->content,
             'receiver' => $this->receive,
             'sender'   => $this->sender
         ], Controller::current()->getOperator()->fetchAll()));

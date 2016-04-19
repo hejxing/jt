@@ -200,7 +200,60 @@ class Helper
 
         return $long ? ip2long($ip) : $ip;
     }
-    public static function randString($length, $mask = JT_CHAR_NUMBER){
 
+    /**
+     * 将unicode数字编码转为字符
+     *
+     * @param $dec
+     * @return string
+     */
+    public static function uniChr($dec)
+    {
+        if ($dec < 128) {
+            $utf = chr($dec);
+        }else {
+            if ($dec < 2048) {
+                $utf = chr(192 + (($dec - ($dec % 64)) / 64));
+                $utf .= chr(128 + ($dec % 64));
+            }else {
+                $utf = chr(224 + (($dec - ($dec % 4096)) / 4096));
+                $utf .= chr(128 + ((($dec % 4096) - ($dec % 64)) / 64));
+                $utf .= chr(128 + ($dec % 64));
+            }
+        }
+
+        return $utf;
+    }
+
+    public static function randString($length, $mask = JT_CHAR_NUMBER)
+    {
+        $randomString = "";
+        $type         = [];
+        foreach ([1, 2, 4, 8] as $t) {
+            if ($t & $mask) {
+                $type[] = $t;
+            }
+        }
+        while ($length) {
+            $c = '';
+            switch ($type[array_rand($type)]) {
+                case JT_CHAR_NUMBER:
+                    $c = chr(mt_rand(48, 57));
+                    break;
+                case JT_CHAR_LOWERCASE:
+                    $c = chr(mt_rand(97, 122));
+                    break;
+                case JT_CHAR_UPPERCASE:
+                    $c = chr(mt_rand(65, 90));
+                    break;
+                case JT_CHAR_ZN_CH:
+                    $c = self::uniChr(mt_rand(0x4e00, 0x9fa5));
+                    break;
+            }
+            $randomString .= $c;
+            $length--;
+        }
+
+        return $randomString;
     }
 }
