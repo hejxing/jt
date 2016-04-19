@@ -79,7 +79,6 @@ class Bootstrap
      */
     public static function exeComplete()
     {
-        Debug::log('$_REQUEST', [$_GET, $_POST, $_FILES]);
         if (Action::isRunComplete() && Action::isSuccess()) {//代码执行 && 业务成功
             if (class_exists('\jt\Model', false)) {
                 Model::commit();
@@ -166,6 +165,7 @@ class Bootstrap
             'docRoot' => \getcwd(),
             'nsRoot'  => $nsRoot
         ]);
+        Debug::log('$_REQUEST', [$_GET, $_POST, $_FILES]);
         //run_before
         Controller::run($_SERVER['SCRIPT_NAME']);
     }
