@@ -50,12 +50,14 @@ class Bootstrap
 
     private static function loadClass($classFile, $className)
     {
-        $res = @include($classFile);
-        if ($res === false) {
+        if (file_exists($classFile)) {
+            /** @type mixed $classFile */
+            $res = include $classFile;
+        }else{
             return false;
         }
 
-        if (\method_exists($className, '__init')) {
+        if (method_exists($className, '__init')) {
             $className::__init($className);
         }
 
@@ -87,7 +89,7 @@ class Bootstrap
             if (class_exists('\jt\Model', false)) {
                 Model::rollBack();
             }
-            $lastError = \error_get_last();
+            $lastError = error_get_last();
             if ($lastError) {
                 Error::errorHandler($lastError['type'], $lastError['message'], $lastError['file'], $lastError['line']);
                 //短信、邮件通知负责人
@@ -141,7 +143,6 @@ class Bootstrap
 
         //定义自动加载文件方法
         spl_autoload_register('static::autoLoad');
-
         //注册错误、异常入口
         ini_set('display_errors', true);
         set_error_handler('\jt\Error::errorHandler');
@@ -159,7 +160,7 @@ class Bootstrap
     public static function boot($runMode = 'production', $nsRoot = '')
     {
         //定义扫尾方法
-        \register_shutdown_function('\jt\Bootstrap::exeComplete');
+        register_shutdown_function('\jt\Bootstrap::exeComplete');
         static::init([
             'runMode' => $runMode,
             'docRoot' => \getcwd(),
@@ -168,20 +169,5 @@ class Bootstrap
         //Debug::log('$_REQUEST', [$_GET, $_POST, $_FILES]);
         //run_before
         Controller::run($_SERVER['SCRIPT_NAME']);
-    }
-
-    /**
-     * 测试入口
-     *
-     * @param string $root 项目根目录
-     * @param string $nsRoot 项目根命名空间
-     */
-    public static function test($root, $nsRoot = '')
-    {
-        static::init([
-            'runMode' => 'develop',
-            'docRoot' => $root,
-            'nsRoot'  => $nsRoot
-        ]);
     }
 }

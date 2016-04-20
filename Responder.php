@@ -47,12 +47,12 @@ class Responder
      */
     protected static function json()
     {
-        \header('Content-type: application/json; charset=' . \Config::CHARSET);
+        header('Content-type: application/json; charset=' . \Config::CHARSET, true);
         $header         = Error::prepareHeader();
         $header         = array_merge($header, Action::getHeaderStore());
         $header['data'] = Action::getDataStore();
 
-        $content = \json_encode($header, \Config::JSON_FORMAT);
+        $content = json_encode($header, \Config::JSON_FORMAT);
 
         return $content;
     }
@@ -64,7 +64,7 @@ class Responder
     {
         ob_end_flush();
         self::$startObClean = true;
-        \header('Content-type: text/html; charset=' . \Config::CHARSET);
+        header('Content-type: text/html; charset=' . \Config::CHARSET, true);
         $data = Action::getDataStore();
         if (self::$tplEngine) {
             $tpl = self::$tplEngine;
@@ -123,7 +123,7 @@ class Responder
      */
     protected static function xml()
     {
-        \header('Content-type: application/xml; charset=' . \Config::CHARSET);
+        header('Content-type: application/xml; charset=' . \Config::CHARSET);
         $header         = Error::prepareHeader();
         $header         = \array_replace_recursive($header, Action::getHeaderStore());
         $header['data'] = Action::getDataStore();

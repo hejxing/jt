@@ -8,9 +8,19 @@
 
 namespace jt\utils;
 
+use jt\Action;
+use jt\Bootstrap;
+use jt\Error;
+use jt\Model;
 
 class Debug
 {
+    /**
+     * 是否提交对数据库的操作
+     *
+     * @type bool
+     */
+    private static $isCommit = true;
     /**
      * 上一次调用的时间(ms)
      *
@@ -23,12 +33,12 @@ class Debug
     {
         $now = microtime(true);
         if (self::$lastTime === null) {
-            self::$lastTime = \jt\Bootstrap::$startTime;
+            self::$lastTime = Bootstrap::$startTime;
         }
         if ($margin) {
             $spendTime = $now - self::$lastTime;
         }else {
-            $spendTime = $now - \jt\Bootstrap::$startTime;
+            $spendTime = $now - Bootstrap::$startTime;
         }
         self::$lastTime = $now;
 
@@ -96,10 +106,66 @@ class Debug
     {
         if (!file_exists(\Config::LOG_PATH_ROOT)) {
             mkdir(\Config::LOG_PATH_ROOT, 0777, true);
-            
+
         }
         $request = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'];
         $request .= "\r\npost: " . \file_get_contents('php://input') . "\r\nget: " . $_SERVER['QUERY_STRING'];
         file_put_contents(\Config::LOG_PATH_ROOT . "/$file", "{$request}:\r\n$content\r\n\r\n", FILE_APPEND);
+    }
+
+    /**
+     * 测试完成后的任务
+     */
+    public static function complete()
+    {
+        if (class_exists('\jt\Model', false)) {
+            if (self::$isCommit) {//代码执行 && 业务成功
+                Model::commit();
+            }else {
+                Model::rollBack();
+            }
+        }
+        $lastError = error_get_last();
+        if ($lastError) {
+            echo '---------------------ERROR-----------------', PHP_EOL;
+            var_export($lastError);
+        }else {
+            Action::setIsRunComplete(true);
+        }
+
+        echo PHP_EOL, PHP_EOL;
+        echo '---------------------RESULT-----------------', PHP_EOL;
+
+        $header         = Error::prepareHeader();
+        $header         = array_merge($header, Action::getHeaderStore());
+        $header['data'] = Action::getDataStore();
+        
+        if($header['success']){
+            unset($header['success']);
+            unset($header['msg']);
+        }
+        var_export($header);
+
+        echo PHP_EOL, PHP_EOL;
+    }
+
+    /**
+     * 进入测试入口
+     *
+     * @param        $root
+     * @param string $nsRoot
+     */
+    public static function entrance($root, $nsRoot = '')
+    {
+        require(__DIR__ . '/../Bootstrap.php');
+        //定义扫尾方法
+        register_shutdown_function('\jt\utils\Debug::complete');
+        Bootstrap::init([
+            'runMode' => 'develop',
+            'docRoot' => $root,
+            'nsRoot'  => $nsRoot
+        ]);
+        Error::directOutput();
+        $_SERVER['HTTP_USER_AGENT'] = 'Cli/debug';
     }
 }

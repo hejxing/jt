@@ -78,6 +78,7 @@ class Error extends Action
                 //    Controller::current()->retry();
                 //    return;
             }
+            
             $data = array_merge($data, $e->getData());
             self::error($code, $msg, false, $e->getParam(), $data);
         }else {
@@ -138,7 +139,7 @@ class Error extends Action
     protected static function error($code, $msg, $fatal, $param = [], $data = [])
     {
         if(self::$isDirectOutput){
-            echo $code.': '.$msg;
+            echo $code.': '.$msg, PHP_EOL;
             return;
         }
         $method = '_' . $code;
@@ -220,7 +221,7 @@ class Error extends Action
             'msg'  => $msg
         ];
         if(self::$isDirectOutput){
-            echo $code.': '.$msg;
+            echo $code.': '.$msg, PHP_EOL;
         }
     }
 
@@ -237,7 +238,7 @@ class Error extends Action
             'msg'  => $msg
         ];
         if(self::$isDirectOutput){
-            echo $code.': '.$msg;
+            echo $code.': '.$msg, PHP_EOL;
         }
     }
 

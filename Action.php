@@ -306,11 +306,21 @@ class Action
     /**
      * 设置是否执行完成
      *
-     * @param $isComplete
+     * @param bool $isComplete
      */
     public static function setIsRunComplete($isComplete)
     {
         self::$runComplete = $isComplete;
+    }
+
+    /**
+     * 设置是否执行成功
+     *
+     * @param bool $success
+     */
+    public static function setIsSuccess($success)
+    {
+        self::$taskSuccess = $success;
     }
 
     /**

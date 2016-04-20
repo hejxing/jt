@@ -10,16 +10,19 @@ namespace jt\protocol;
 use jt\Controller;
 use jt\Error;
 use jt\Exception;
+use jt\utils\Helper;
 
 abstract class Sms
 {
     /**
      * 同一个手机号每天发送的最大条数
+     *
      * @type int
      */
     protected $maxCount = 5;
     /**
      * 同一个手机号最小的间隔时间
+     *
      * @type int
      */
     protected $minMargin = 60;
@@ -34,19 +37,31 @@ abstract class Sms
      *
      * @type string
      */
-    protected $ipBlackTable = 'ruler.sms_ip_black';
+    protected $ipBlackModel = '\jt\lib\model\ruler\SmsIpBlack';
     /**
      * 写短信日志的表
      *
      * @type string
      */
-    protected $logModel = '/jt/lib/model/log/SmsLogModel';
+    protected $logModel = '\jt\lib\model\log\SmsLogModel';
     /**
      * 接收人清单,手机号码
      *
      * @var array
      */
     protected $receive = [];
+    /**
+     * 发送成功的列表
+     *
+     * @type array
+     */
+    protected $successList = [];
+    /**
+     * 发送失败的列表
+     *
+     * @type array
+     */
+    protected $failList = [];
     /**
      * 短信内容
      *
@@ -73,6 +88,13 @@ abstract class Sms
     protected $todayLog = [];
 
     /**
+     * 短信签名
+     *
+     * @type string
+     */
+    protected $signature = '';
+
+    /**
      * 真正发送短信的实现
      *
      * @return mixed
@@ -86,7 +108,9 @@ abstract class Sms
      */
     public function __construct($remark)
     {
-        $this->remark = $remark;
+        $this->remark  = $remark;
+        $classInfo     = explode('\\', get_called_class());
+        $this->channel = array_pop($classInfo);
     }
 
 
@@ -105,21 +129,22 @@ abstract class Sms
      */
     protected function receiverFilter()
     {
-        foreach($this->receive as $index => $mobile){
-            if(empty($this->todayLog[$mobile])){
+        foreach ($this->receive as $index => $mobile) {
+            if (empty($this->todayLog[$mobile])) {
                 continue;
             }
-            if(count($this->todayLog[$mobile]) > $this->maxCount){
+            if (count($this->todayLog[$mobile]) >= $this->maxCount) {
                 unset($this->receive[$index]);
                 Error::notice('moreThanMaxSendCount', "号码[{$mobile}]在发送通道[{$this->channel}]中每天最多只允许发送[{$this->maxCount}]条");
             }
             $lastLog = $this->todayLog[$mobile][0];
-            if((time() - $lastLog['createAt']) < $this->minMargin){
+
+            if ((time() - strtotime($lastLog['createAt'])) < $this->minMargin) {
                 unset($this->receive[$index]);
                 Error::notice('sendSmsIntervalTooBrief', "向号码[{$mobile}]发送的短信至少要间隔[{$this->minMargin}]秒");
             }
         }
-        if(empty($this->receive)){
+        if (empty($this->receive)) {
             throw new Exception('sendSmsBlock:禁止发送');
         }
     }
@@ -156,6 +181,30 @@ abstract class Sms
     }
 
     /**
+     * 检查短信内容是否有签上名(按政策必须如此)
+     */
+    protected function supplementarySignature()
+    {
+        $signature = $this->signature;
+        if (!$signature && defined('\Config::SMS_SIGNATURE')) {
+            $signature = \Config::SMS_SIGNATURE;
+        }
+        if ($signature && !preg_match("/^【.+】/", $this->content)) {
+            $this->content = '【' . $signature . '】' . $this->content;
+        }
+    }
+
+    /**
+     * 设置短信签名
+     *
+     * @param $signature
+     */
+    public function setSignature($signature)
+    {
+        $this->signature = $signature;
+    }
+
+    /**
      * 发送短信
      *
      * @param string       $msg 发送的短信(70个字以内,否则会分成多条发送,一个中文算一个字)
@@ -169,8 +218,8 @@ abstract class Sms
             $this->addReceiver($receive);
         }
         if ($this->verify() === true) {
+            $this->supplementarySignature();
             $this->sending();
-            $this->writeLog();
 
             return true;
         }
@@ -184,15 +233,15 @@ abstract class Sms
     protected function readTodayLog()
     {
         /** @type \jt\Model $modelName */
-        $modelName  = $this->logModel;
-        $model      = $modelName::open();
-        $todayBegin = mktime(0, 0, 0, date('m'), date('d'), date('Y'));
-        foreach($this->receive as $mobile){
-            $this->todayLog[$mobile] = $model->where('createAt > :todayBegin', ['todayBegin' => $todayBegin])
+        $modelName = $this->logModel;
+        $model     = $modelName::open();
+        $today     = date('Y-m-d');
+        foreach ($this->receive as $mobile) {
+            $this->todayLog[$mobile] = $model->where('createAt > :today', ['today' => $today])
                 ->equals('receiver', $mobile)
                 ->equals('channel', $this->channel)
-                ->order('createAt', 'desc')
-                ->fetch('id, createAt');
+                ->equals('status', 'success')
+                ->order('createAt', 'desc')->fetch('id, createAt');
         }
     }
 
@@ -240,19 +289,51 @@ abstract class Sms
     }
 
     /**
+     * 响应成功事件
+     *
+     * @param string $mobile
+     * @param mixed  $response
+     */
+    protected function success($mobile, $response)
+    {
+        $this->writeLog($mobile, $response, 'success');
+    }
+
+    /**
+     * 响应失败事件
+     *
+     * @param $mobile
+     * @param $response
+     */
+    protected function fail($mobile, $response)
+    {
+        $this->writeLog($mobile, $response, 'fail');
+    }
+
+    /**
      * 写发送日志
      *
-     * @return bool
+     * @param string $mobile 接收短信的手机号
+     * @param string $response 第三方平台响应的信息
+     * @param string $status 发送状态  success fail
+     * @return array
      */
-    private function writeLog()
+    private function writeLog($mobile, $response, $status)
     {
         /** @type \jt\Model $modelName */
         $modelName = $this->logModel;
         $model     = $modelName::open();
-        $model->add(array_merge([
-            'content'  => $this->content,
-            'receiver' => $this->receive,
-            'sender'   => $this->sender
-        ], Controller::current()->getOperator()->fetchAll()));
+
+        $data = array_merge([
+            'content'    => $this->content,
+            'receiver'   => $mobile,
+            'status'     => $status,
+            'resultInfo' => Helper::encodeJSON($response),
+            'channel'    => $this->channel,
+            'remark'     => $this->remark
+        ], Controller::current()->getOperator()->fetchAll());
+        $model::startDebug(true);
+
+        return $model->add($data);
     }
 }

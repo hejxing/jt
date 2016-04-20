@@ -77,10 +77,23 @@ class Helper
      */
     public static function decodeJSON($json)
     {
-        if (\is_string($json) && !empty($json)) {
-            return \json_decode($json, true);
+        if (is_string($json) && !empty($json)) {
+            return json_decode($json, true);
         }else {
             return [];
+        }
+    }
+
+    /**
+     * 将数据序列化成json,将不对中文进行编码
+     * @param $data
+     * @return string
+     */
+    public static function encodeJSON($data){
+        if(is_string($data)){
+            return $data;
+        }else{
+            return json_encode($data, JSON_UNESCAPED_UNICODE);
         }
     }
 
