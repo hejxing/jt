@@ -129,14 +129,8 @@ abstract class Loader
             if (MODULE === $moduleName) {
                 $currentCache = static::$cacheStore;
             }
-
-            unset($cacheFiles[$moduleName . '.php']);
         }
         static::$cacheStore = $currentCache;
-
-        foreach ($cacheFiles as $file => $v) {
-            unlink($cacheRoot . '/' . $file);
-        }
     }
 
     /**
