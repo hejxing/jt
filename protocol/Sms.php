@@ -332,7 +332,6 @@ abstract class Sms
             'channel'    => $this->channel,
             'remark'     => $this->remark
         ], Controller::current()->getOperator()->fetchAll());
-        $model::startDebug(true);
 
         return $model->add($data);
     }
