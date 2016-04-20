@@ -1923,17 +1923,25 @@ class Model
     /**
      * 搜索
      *
-     * @param string $condition 搜索条件 ['name', 'like', '%:name%', 'or']
-     * @param array  $data 搜索用的值
+     * @param array $condition 搜索相关的字段
+     * @param array  $keywords 关键字
+     * @param string $model 查询模式
+     * @param string $glue 条件间的连接方式
      *
      * @return $this
      */
-    public function search($condition, $data)
+    public function search(array $condition, $keywords, $model = 'like', $glue = 'OR')
     {
-        //TODO:转换成where语句
-        //$this->sqlCollect['page'] = [$length, $page];
+        $sqlBuffer = [];
+        foreach($condition as $name){
+            $column = $this->findColumnByName($name);
+            $name = $column['field']??$name;
+            $sqlBuffer[] = "{$name} {$model} :keywords";
+        }
+        $this->where(implode(" {$glue} ", $sqlBuffer), ['keywords' => $keywords]);
         return $this;
     }
+
 
     /**
      * 搜索条件与之前条件间用OR连接
