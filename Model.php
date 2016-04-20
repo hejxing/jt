@@ -1934,8 +1934,6 @@ class Model
     {
         $sqlBuffer = [];
         foreach($condition as $name){
-            $column = $this->findColumnByName($name);
-            $name = $column['field']??$name;
             $sqlBuffer[] = "{$name} {$model} :keywords";
         }
         $this->where(implode(" {$glue} ", $sqlBuffer), ['keywords' => $keywords]);
