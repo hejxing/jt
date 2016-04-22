@@ -297,7 +297,7 @@ class Requester
     {
         $data = [];
         if ($source === 'query' || $source === 'any') {
-            $data = self::parseInput($_SERVER['QUERY_STRING']);
+            $data = self::parseInput(urldecode($_SERVER['QUERY_STRING']));
         }
 
         if ($source === 'body' || $source === 'any') {
