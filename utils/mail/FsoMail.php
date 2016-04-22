@@ -101,12 +101,14 @@ class FsoMail extends Email
                 $this->error('PASSWORD', $message);
             }
         }
-        //fputs($fp, "MAIL FROM: <".$this->mailFrom.">\r\n");
 
-        fputs($fp, "MAIL FROM: " . $this->addressEncode($this->from) . " \r\n");
-        $message = fgets($fp, 512);
-        if (substr($message, 0, 3) != 250) {
-            $this->error('MAIL FROM', $message);
+        $from = $this->getFrom();
+        if ($from) {
+            fputs($fp, "MAIL FROM: " . $from . " \r\n");
+            $message = fgets($fp, 512);
+            if (substr($message, 0, 3) != 250) {
+                $this->error('MAIL FROM', $message);
+            }
         }
 
         foreach ($this->receive as $to) {
