@@ -28,7 +28,7 @@ abstract class Email
      *
      * @type string
      */
-    protected $from = 'noReply<service@mail.com>'; // 发件人
+    protected $from = ''; // 发件人
     /**
      * 邮件主题
      *
@@ -255,8 +255,10 @@ abstract class Email
         $header .= "X-MSMail-Priority: Normal{$delimiter}";
         $header .= "X-Mailer: csmall.com(copyRight 2008){$delimiter}";
         $header .= "Content-Type: {$this->contentType}; charset={$this->encoding}; format=flowed" . $this->delimiter;
-        if ($this->from) {
-            $header .= "FROM: " . $this->addressEncode($this->from) . $delimiter;
+
+        $from = $this->from ?: defined('\Config::MAIL_FROM') ? \Config::MAIL_FROM : '';
+        if ($from) {
+            $header .= "FROM: " . $this->addressEncode($from) . $delimiter;
         }
         //$header .= "Content-Transfer-Encoding: {$this->encoding}{$delimiter}";
         $this->header = $header;

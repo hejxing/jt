@@ -17,7 +17,7 @@ class FsoMail extends Email
      *
      * @type string
      */
-    private $smtpServer = '127.0.0.1';
+    private $smtpServer = 'test.csmall.com';
     /**
      * 邮件服务器端口
      *
