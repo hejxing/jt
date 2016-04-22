@@ -127,6 +127,16 @@ abstract class Email
     }
 
     /**
+     * 设置邮件内容格式
+     *
+     * @param $mime
+     */
+    public function setMime($mime)
+    {
+        $this->contentType = 'text/' . $mime;
+    }
+
+    /**
      * 添加附件
      *
      * @param string $file 附件文件地址，多个文件用逗号分隔
@@ -146,29 +156,9 @@ abstract class Email
     public function send()
     {
         $this->fillHeader();
+        $this->encodeBody();
         $this->preSend();
         $this->sending();
-    }
-
-    protected function fillHeader()
-    {
-        $delimiter = $this->delimiter;
-        //if($this->mailCC != ""){
-        //    $header .= "CC: ".$this->mailCC.$delimiter;
-        //}
-        //if($this->mailBCC != ""){
-        //    $header .= "BCC: ".$this->mailBCC.$delimiter;
-        //}
-        $header = "MIME-Version: 1.0{$delimiter}";
-        $header .= "X-Priority: 3{$delimiter}";
-        $header .= "X-MSMail-Priority: Normal{$delimiter}";
-        $header .= "X-Mailer: csmall.com(copyRight 2008){$delimiter}";
-        $header .= "Content-type: text/plain; charset={$this->encoding}{$delimiter}";
-        if ($this->from) {
-            $header .= "FROM: " . $this->addressEncode($this->from) . $delimiter;
-        }
-        //$header .= "Content-Transfer-Encoding: {$this->encoding}{$delimiter}";
-        $this->header = $header;
     }
 
     /**
@@ -251,6 +241,27 @@ abstract class Email
         }
     }
 
+    protected function fillHeader()
+    {
+        $delimiter = $this->delimiter;
+        //if($this->mailCC != ""){
+        //    $header .= "CC: ".$this->mailCC.$delimiter;
+        //}
+        //if($this->mailBCC != ""){
+        //    $header .= "BCC: ".$this->mailBCC.$delimiter;
+        //}
+        $header = "MIME-Version: 1.0{$delimiter}";
+        $header .= "X-Priority: 3{$delimiter}";
+        $header .= "X-MSMail-Priority: Normal{$delimiter}";
+        $header .= "X-Mailer: csmall.com(copyRight 2008){$delimiter}";
+        $header .= "Content-Type: {$this->contentType}; charset={$this->encoding}; format=flowed" . $this->delimiter;
+        if ($this->from) {
+            $header .= "FROM: " . $this->addressEncode($this->from) . $delimiter;
+        }
+        //$header .= "Content-Transfer-Encoding: {$this->encoding}{$delimiter}";
+        $this->header = $header;
+    }
+
     /**
      * 编码邮件主体
      *
@@ -258,12 +269,15 @@ abstract class Email
      */
     protected function encodeBody()
     {
-        $outTextHeader = "Content-Type: {$this->contentType}; charset={$this->encoding}; format=flowed" . $this->delimiter;
-        $outTextHeader .= "Content-Transfer-Encoding: base64" . $this->delimiter;
-        $outTextHeader .= "Content-Disposition: inline" . $this->delimiter . $this->delimiter;
-        $outTextHeader .= chunk_split(base64_encode($this->body)) . $this->delimiter;
+        if ($this->contentType !== 'text/html') {
+            return;
+        }
+        $header = "Content-Transfer-Encoding: base64" . $this->delimiter;
+        $header .= "Content-Disposition: inline" . $this->delimiter . $this->delimiter;
+        $header .= chunk_split(base64_encode($this->body)) . $this->delimiter;
 
-        return $outTextHeader;
+        $this->header .= $header;
+        $this->body = '';
     }
 
     /**
