@@ -241,6 +241,15 @@ abstract class Email
         }
     }
 
+    /**
+     * 获取发件人地址
+     * @return string
+     */
+    protected function getFrom()
+    {
+        return $this->from ?: defined('\Config::MAIL_FROM') ? \Config::MAIL_FROM : '';
+    }
+
     protected function fillHeader()
     {
         $delimiter = $this->delimiter;
@@ -256,7 +265,7 @@ abstract class Email
         $header .= "X-Mailer: csmall.com(copyRight 2008){$delimiter}";
         $header .= "Content-Type: {$this->contentType}; charset={$this->encoding}; format=flowed" . $this->delimiter;
 
-        $from = $this->from ?: defined('\Config::MAIL_FROM') ? \Config::MAIL_FROM : '';
+        $from = $this->getFrom();
         if ($from) {
             $header .= "FROM: " . $this->addressEncode($from) . $delimiter;
         }

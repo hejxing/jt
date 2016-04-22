@@ -4,7 +4,7 @@
  */
 namespace jt;
 
-require CORE_ROOT . '/jt/lib/smarty3/Smarty.class.php';
+require JT_FRAMEWORK_ROOT . '/jt/lib/smarty3/Smarty.class.php';
 use Config;
 
 class Template extends \Smarty

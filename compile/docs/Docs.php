@@ -169,7 +169,7 @@ class Docs extends Action
     {
         $markerDown = new Markdown();
 
-        return $markerDown->defaultTransform(file_get_contents(DOCUMENT_ROOT . '/' . $file));
+        return $markerDown->defaultTransform(file_get_contents(PROJECT_ROOT . '/' . $file));
     }
 
     private function loadParsed()

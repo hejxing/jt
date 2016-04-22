@@ -37,8 +37,8 @@ class WxPayConfig
      *
      * @var path
      */
-    const SSLCERT_PATH = CORE_ROOT . '/cert/wechat_pay/' . self::MCHID . '/apiclient_cert.pem';
-    const SSLKEY_PATH  = CORE_ROOT . '/cert/wechat_pay/' . self::MCHID . '/apiclient_key.pem';
+    const SSLCERT_PATH = PROJECT_ROOT . '/cert/wechat_pay/' . self::MCHID . '/apiclient_cert.pem';
+    const SSLKEY_PATH  = PROJECT_ROOT . '/cert/wechat_pay/' . self::MCHID . '/apiclient_key.pem';
 
     //=======【curl代理设置】===================================
     /**

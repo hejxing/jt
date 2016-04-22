@@ -41,7 +41,7 @@ class Error extends Action
             E_COMPILE_ERROR,
             E_USER_ERROR
         ])) {
-            self::fatal('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' line ' . $errLine);
+            self::exeFatal('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' line ' . $errLine, []);
         }elseif (ERRORS_VERBOSE) {
             self::notice($errNo, $errStr . ' in ' . $errFile . ' line ' . $errLine);
         }
@@ -102,7 +102,7 @@ class Error extends Action
     }
 
     /**
-     * 产生致命错误
+     * 触发致命错误
      *
      * @param string $code
      * @param string $msg
@@ -110,6 +110,17 @@ class Error extends Action
      */
     public static function fatal($code, $msg = '', $param = [])
     {
+        self::exeFatal($code, $msg, $param);
+        Responder::end();
+    }
+
+    /**
+     * 执行致命错误
+     * @param        $code
+     * @param string $msg
+     * @param array  $param
+     */
+    private static function exeFatal($code, $msg, $param){
         $p = [];
         $d = [];
         foreach ($param as $k => $v) {
@@ -124,7 +135,6 @@ class Error extends Action
             self::getAction($method, true)->outMass($d);
         }
         self::fatalError($code, $msg, $p, false);
-        Responder::end();
     }
 
     /**
@@ -178,7 +188,7 @@ class Error extends Action
             return $action;
         }
 
-        $class = MODULE_NAMESPACE_ROOT . '\action\ErrorHandler';
+        $class = '\action\ErrorHandler';
         if (Bootstrap::tryLoad($class)) {
             $action = new $class();
             if (\method_exists($action, $method)) {
