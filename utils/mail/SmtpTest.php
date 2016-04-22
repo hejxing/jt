@@ -11,7 +11,7 @@ namespace jt\utils\mail;
 class SmtpTest extends \PHPUnit_Framework_TestCase
 {
     public function testSend(){
-        $sender = new Smtp();
+        $sender = new SmtpMail();
         $sender->addReceiver('ax@jentian.com');
         $sender->setFrom('noReply<noReply@csmall.com>');
         $sender->setSubject('测试邮件');

@@ -9,7 +9,7 @@ namespace jt\utils\mail;
 
 use jt\protocol\Email;
 
-class Smtp extends Email
+class SmtpMail extends Email
 {
     /**
      * 邮件服务器地址

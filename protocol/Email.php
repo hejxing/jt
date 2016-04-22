@@ -153,21 +153,20 @@ abstract class Email
     protected function fillHeader()
     {
         $delimiter = $this->delimiter;
-        $header    = "";
         //if($this->mailCC != ""){
         //    $header .= "CC: ".$this->mailCC.$delimiter;
         //}
         //if($this->mailBCC != ""){
         //    $header .= "BCC: ".$this->mailBCC.$delimiter;
         //}
-        if ($this->from) {
-            $header .= "FROM: " . $this->addressEncode($this->from) . $delimiter;
-        }
-        $header .= "MIME-Version: 1.0{$delimiter}";
+        $header = "MIME-Version: 1.0{$delimiter}";
         $header .= "X-Priority: 3{$delimiter}";
         $header .= "X-MSMail-Priority: Normal{$delimiter}";
         $header .= "X-Mailer: csmall.com(copyRight 2008){$delimiter}";
         $header .= "Content-type: text/plain; charset={$this->encoding}{$delimiter}";
+        if ($this->from) {
+            $header .= "FROM: " . $this->addressEncode($this->from) . $delimiter;
+        }
         //$header .= "Content-Transfer-Encoding: {$this->encoding}{$delimiter}";
         $this->header = $header;
     }

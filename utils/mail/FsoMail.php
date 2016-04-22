@@ -10,14 +10,14 @@ namespace jt\utils\mail;
 use jt\Exception;
 use jt\protocol\Email;
 
-class Fso extends Email
+class FsoMail extends Email
 {
     /**
      * 邮件服务器地址
      *
      * @type string
      */
-    private $smtpServer = 'localhost';
+    private $smtpServer = '127.0.0.1';
     /**
      * 邮件服务器端口
      *
@@ -31,8 +31,8 @@ class Fso extends Email
      */
     private $mailAuth   = false;
     private $authDomain = 'csmall.com';
-    private $user       = 'zshejxing@163.com';
-    private $password   = 'wskiliwwsk';
+    private $user       = '';
+    private $password   = '';
 
 
     /**
@@ -69,7 +69,7 @@ class Fso extends Email
         stream_set_timeout($fp, 1, 0);
         $message = fgets($fp, 512);
         if (substr($message, 0, 3) != '220') {
-            //$this->error('CONNECT', $message);
+            $this->error('CONNECT', $message);
         }
         fputs($fp, ($this->mailAuth ? 'EHLO' : 'HELO') . " {$this->authDomain}\r\n");
         $message = fgets($fp, 512);
@@ -102,10 +102,8 @@ class Fso extends Email
             }
         }
         //fputs($fp, "MAIL FROM: <".$this->mailFrom.">\r\n");
-        /**
-         * 尝试解决
-         */
-        fputs($fp, "MAIL FROM: ".$this->addressEncode($this->from)."\r\n");
+
+        fputs($fp, "MAIL FROM: " . $this->addressEncode($this->from) . " \r\n");
         $message = fgets($fp, 512);
         if (substr($message, 0, 3) != 250) {
             $this->error('MAIL FROM', $message);
