@@ -160,11 +160,6 @@ a.hightLight{
     padding:10px 0;
 }
 
-.content-box.highlight{
-    background:#438ac7;
-    color:#ffffff;
-}
-
 .content-box p{
     margin:0;
 }
@@ -339,4 +334,9 @@ a.hightLight{
 }
 .detail-box .content-box{
     background:#fff;
+}
+
+.detail-box .content-box.highlight{
+    background:#438ac7;
+    color:#ffffff;
 }
