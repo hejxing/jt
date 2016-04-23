@@ -296,4 +296,6 @@ a.hightLight{
 .item-list-box{
     padding-bottom:20px;
 }
-
+.collect a{
+    display:none;
+}
