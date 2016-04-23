@@ -262,9 +262,9 @@ a.hightLight{
     color:#fff;
     position:absolute;
     z-index:1;
-    left:20px;
+    left:18px;
     right:20px;
-    padding:0 10px;
+    padding:6px 10px;
 }
 
 .less-important .title{
@@ -326,7 +326,7 @@ a.hightLight{
 .detail-box{
     position:absolute;
     top:0;
-    padding:46px 10px 50px 10px;
+    padding:40px 10px 50px 10px;
     bottom:0;
     left:15px;
     right:0;
