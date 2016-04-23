@@ -7,6 +7,7 @@ body{
     position:relative;
     padding-bottom:80px;
     min-height:100%;
+    max-height:100%;
     font-family:Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
@@ -125,8 +126,6 @@ a.hightLight{
 }
 
 .copyright{
-    position:absolute;
-    bottom:0;
     width:100%;
     text-align:center;
     line-height:80px;
