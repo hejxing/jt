@@ -104,13 +104,15 @@ class Debug
 
     private static function saveToFile($file, $content)
     {
-        if (!file_exists(\Config::LOG_PATH_ROOT)) {
-            mkdir(\Config::LOG_PATH_ROOT, 0777, true);
+        $logPath = RUNTIME_PATH_ROOT . '/log';
+        if (!file_exists($logPath)) {
+            mkdir($logPath, 0777, true);
 
         }
         $request = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'];
         $request .= "\r\npost: " . \file_get_contents('php://input') . "\r\nget: " . $_SERVER['QUERY_STRING'];
-        file_put_contents(\Config::LOG_PATH_ROOT . "/$file", "{$request}:\r\n$content\r\n\r\n", FILE_APPEND);
+        file_put_contents($logPath . "/$file", "{$request}:\r\n$content\r\n\r\n", FILE_APPEND);
+        chmod($logPath."/$file", 0777);
     }
 
     /**
