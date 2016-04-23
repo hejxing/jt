@@ -158,7 +158,7 @@ class Requester
                 return in_array(strtolower($value), self::FALSE_VALUE) ? false : boolval(is_numeric($value) ? floatval($value) : $value);
             case 'array':
                 if(is_string($value)){
-                    $arr = json_decode($value, true);
+                    $arr = json_decode(urldecode($value), true);
                     if($arr === null){
                         $arr = preg_split('/ *, */', $value);
                     }
