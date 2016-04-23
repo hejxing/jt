@@ -114,10 +114,16 @@ a.hightLight{
     width:147px;
     z-index:11;
 }
+.list-title{
+    line-height:1.1em;
+    padding:8px 15px;
+    background:#fff;
+}
 
 .api-list a{
     line-height:1.1em;
     padding:8px 15px;
+    background:#fff;
 }
 
 .copyright{
@@ -295,6 +301,9 @@ a.hightLight{
 
 .item-list-box{
     padding-bottom:20px;
+}
+.collect .title{
+
 }
 .collect a{
     display:none;
