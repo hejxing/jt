@@ -121,14 +121,10 @@ a.hightLight{
 }
 
 .copyright{
-    width:100%;
     text-align:center;
     line-height:36px;
     color:#c7c7c7;
     text-shadow:2px 3px 1px #060606;
-    position:absolute;
-    bottom:0;
-    z-index:-1;
 }
 
 .box-wrap{
@@ -268,7 +264,7 @@ a.hightLight{
     left:18px;
     right:20px;
     padding:9px 10px;
-    text-indent:5px;
+    text-indent:8px;
 }
 
 .less-important .title{
