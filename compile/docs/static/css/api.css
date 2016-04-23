@@ -323,6 +323,7 @@ a.hightLight{
     position: absolute;
     right: 0;
     top: 50px;
+    background:#fff;
 }
 .detail-box{
     position:absolute;
