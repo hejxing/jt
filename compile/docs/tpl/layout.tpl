@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="//docs-resource.csmall.com/css/api.css">
     <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
     <script src="//docs-resource.csmall.com/js/jquery.js"></script>
-    <script src="//docs-resource.csmall.com/js/gototop.js"></script>
 </head>
 <body>
 <div class="container-fluid">
