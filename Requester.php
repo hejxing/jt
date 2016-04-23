@@ -25,7 +25,7 @@ class Requester
 
     protected $method = '';
 
-    const CONVERT_TYPE  = ['int', 'float', 'double', 'bool', 'array'];
+    const CONVERT_TYPE  = ['int', 'float', 'double', 'bool'];
     const VALIDATE_TYPE = ['email', 'mobile', 'phone', 'identityCard', 'number', 'zn_ch'];
 
     const VALUE_RANGE_TYPE  = ['int', 'float', 'numeric', 'double'];
@@ -99,7 +99,7 @@ class Requester
         if (isset($option['enum']) && !in_array($value, $option['enum'])) {
             self::error('value_over', '只能从 [' . implode(', ', $option['enum']) . '] 中取值', $name, $option);
         }
-        if (in_array($option['type'], self::CONVERT_TYPE)) { //转换类型
+        if (in_array($option['type'], self::CONVERT_TYPE) || in_array($option['type'], self::VALUE_TYPE['composite'])) { //转换类型
             $value = self::convert($value, $option['type']);
         }elseif (isset($option['validate'])) {
             $result = Validate::check($value, $option['validate']);
