@@ -161,7 +161,17 @@ class Requester
                 return in_array(strtolower($value), self::FALSE_VALUE) ? false : boolval(is_numeric($value) ? floatval($value) : $value);
                 break;
             case 'array':
-                return $value ? (is_array($value) ? $value : preg_split('/ *, */', $value)) : [];
+                if(is_string($value)){
+                    $arr = json_decode($value);
+                    if($arr === null){
+                        $arr = preg_split('/ *, */', $value);
+                    }
+                }elseif(is_array($value)){
+                    $arr = $value;
+                }else{
+                    $arr = [];
+                }
+                return $arr;
                 break;
             default:
                 return $value;
