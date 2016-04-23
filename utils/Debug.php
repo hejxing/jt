@@ -154,18 +154,20 @@ class Debug
     /**
      * 进入测试入口
      *
-     * @param        $root
-     * @param string $nsRoot
+     * @param string $root
+     * @param string $runtimeRoot
      */
-    public static function entrance($root, $nsRoot = '')
+    public static function entrance($root, $runtimeRoot = '')
     {
         require(__DIR__ . '/../Bootstrap.php');
+        chdir(__DIR__.'/..');
         //定义扫尾方法
         register_shutdown_function('\jt\utils\Debug::complete');
+
         Bootstrap::init([
             'runMode' => 'develop',
             'docRoot' => $root,
-            'nsRoot'  => $nsRoot
+            'runtimeRoot'  => $runtimeRoot
         ]);
         Error::directOutput();
         $_SERVER['HTTP_USER_AGENT'] = 'Cli/debug';

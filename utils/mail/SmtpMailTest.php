@@ -8,7 +8,7 @@
 namespace jt\utils\mail;
 
 
-class SmtpTest extends \PHPUnit_Framework_TestCase
+class SmtpMailTest extends \PHPUnit_Framework_TestCase
 {
     public function testSend(){
         $sender = new SmtpMail();

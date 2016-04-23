@@ -8,10 +8,10 @@
 namespace jt\utils\mail;
 
 
-class FsoTest extends \PHPUnit_Framework_TestCase
+class FsoMailTest extends \PHPUnit_Framework_TestCase
 {
     public function testSend(){
-        $sender = new Fso();
+        $sender = new FsoMail();
         $sender->addReceiver('ax@jentian.com');
         $sender->setFrom('何渐兴<noReply@csmall.com>');
         $sender->setSubject('测试邮件');

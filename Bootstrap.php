@@ -128,7 +128,7 @@ class Bootstrap
         define('PROJECT_ROOT', getcwd());
         define('MODULE', md5(PROJECT_ROOT));
         define('ERRORS_VERBOSE', RUN_MODE !== 'production');
-
+        
         $runtimeRoot = $option['runtimeRoot'];
         if(!$runtimeRoot){
             $runtimeRoot = PROJECT_ROOT;
