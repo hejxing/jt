@@ -326,14 +326,16 @@ a.hightLight{
     position: absolute;
     right: 0;
     top: 50px;
-    background:#fff;
 }
 .detail-box{
     position:absolute;
     top:0;
-    padding-top:46px;
+    padding:46px 10px 10px 10px;
     bottom:0;
-    left:0;
+    left:15px;
     right:0;
     overflow-y:auto;
+}
+.detail-box>*{
+    background:#fff;
 }
