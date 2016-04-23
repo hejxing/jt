@@ -313,7 +313,6 @@ a.hightLight{
     overflow-y:auto;
     position:absolute;
     top:50px;
-    bottom:0;
 }
 .classList .expand{
     margin-left:-5px;
@@ -321,8 +320,15 @@ a.hightLight{
 }
 .col-md-10{
     bottom: 0;
-    overflow-y: auto;
     position: absolute;
     right: 0;
     top: 50px;
+}
+.detail-box{
+    position:absolute;
+    top:0;
+    padding-top:30px;
+    bottom:0;
+    left:0;
+    right:0;
 }
