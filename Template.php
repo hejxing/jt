@@ -38,14 +38,14 @@ class Template extends \Smarty
     /**
      * 保存js的html
      *
-     * @var string
+     * @var array
      */
     private static $js = [];
 
     /**
      * 保存css的html
      *
-     * @var string
+     * @var array
      */
     private static $css = [];
 
@@ -96,8 +96,8 @@ class Template extends \Smarty
      */
     private function setConfigs($config)
     {
-        $this->setCompileDir(Config::RUNTIME_PATH_ROOT . '/smarty/compile');
-        $this->setCacheDir(Config::RUNTIME_PATH_ROOT . '/smarty/cache');
+        $this->setCompileDir(RUNTIME_PATH_ROOT . '/smarty/compile');
+        $this->setCacheDir(RUNTIME_PATH_ROOT . '/smarty/cache');
         foreach ($config as $name => $value) {
             $this->$name = $value;
         }
