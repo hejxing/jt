@@ -14,7 +14,7 @@ class Validate
     const REGEX_PHONE           = '/^\+?\d*(\([\d]+\))?([ -]{0,1}[\d]+)+$/';
     const REGEX_UNIVERSE_MOBILE = '/^(\(\+\d+\))?((?:\d+[ -]?\d+)+)$/';
     const REGEX_ID_CARD         = '/^(?:[\d -]{17}|[\d -]{14})[\dxX]{1}$/';
-    const REGEX_ZH_CN           = '/^[\x{4e00}-\x{9fa5}A-Za-z0-9_]+$/u';
+    const REGEX_ZH_CN           = '/^[\x{4e00}-\x{9fa5}]+$/u';
 
     /**
      * 检查是否是Email
