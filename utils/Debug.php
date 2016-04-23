@@ -154,19 +154,18 @@ class Debug
     /**
      * 进入测试入口
      *
-     * @param string $root
-     * @param string $runtimeRoot
+     * @param string $projectRoot 项目根目录
+     * @param string $runtimeRoot 项目运行时生成的目录
      */
-    public static function entrance($root, $runtimeRoot = '')
+    public static function entrance($projectRoot, $runtimeRoot = '')
     {
         require(__DIR__ . '/../Bootstrap.php');
-        chdir(__DIR__.'/..');
         //定义扫尾方法
         register_shutdown_function('\jt\utils\Debug::complete');
 
         Bootstrap::init([
             'runMode' => 'develop',
-            'docRoot' => $root,
+            'projectRoot' => $projectRoot,
             'runtimeRoot'  => $runtimeRoot
         ]);
         Error::directOutput();

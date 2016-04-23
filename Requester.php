@@ -123,10 +123,10 @@ class Requester
         }
 
         if (in_array($option['type'], static::LENGTH_RANGE_TYPE)) {//比较长度
-            if ($option['min'] && \mb_strlen($value) < $option['min']) {
+            if ($option['min'] && mb_strlen($value) < $option['min']) {
                 self::error('value_too_less', '值不能少于 ' . $option['min'] . ' 位字符', $name, $option);
             }
-            if ($option['max'] && \mb_strlen($value) > $option['max']) {
+            if ($option['max'] && mb_strlen($value) > $option['max']) {
                 self::error('value_too_large', '值不能多于 ' . $option['max'] . ' 位字符', $name, $option);
             }
         }

@@ -119,23 +119,26 @@ class Bootstrap
         self::$startTime = microtime(true);
         self::$now       = intval(self::$startTime);
 
+        if(substr($option['projectRoot'], 0, 1) !== '/'){
+            $option['projectRoot'] = getcwd().'/'.$option['projectRoot'];
+        }
+
+        if(!$option['runtimeRoot']){
+            $option['runtimeRoot'] = $option['projectRoot'];
+        }elseif(substr($option['runtimeRoot'], 0, 1) !== '/'){
+            $option['runtimeRoot'] = $option['projectRoot'].'/'.$option['runtimeRoot'];
+        }
+
         //定义基本常量
         define('RUN_START_TIME', self::$now);
         define('RUN_MODE', $option['runMode']);
 
         define('JT_FRAMEWORK_ROOT', substr(__DIR__, 0, -3));
 
-        define('PROJECT_ROOT', getcwd());
+        define('PROJECT_ROOT', $option['projectRoot']);
         define('MODULE', md5(PROJECT_ROOT));
         define('ERRORS_VERBOSE', RUN_MODE !== 'production');
-        
-        $runtimeRoot = $option['runtimeRoot'];
-        if(!$runtimeRoot){
-            $runtimeRoot = PROJECT_ROOT;
-        }elseif(substr($runtimeRoot, 0, 1) !== '/'){
-            $runtimeRoot = PROJECT_ROOT.'/'.$runtimeRoot;
-        }
-        define('RUNTIME_PATH_ROOT', $runtimeRoot.'/runtime');
+        define('RUNTIME_PATH_ROOT', $option['runtimeRoot'].'/runtime');
 
         //定义自动加载文件方法
         spl_autoload_register('static::autoLoad');
@@ -152,15 +155,18 @@ class Bootstrap
      * 访问入口
      *
      * @param string $runMode 运行模式
-     * @param string $runtimeRoot 存放运行时生成的文件的根目录
+     * @param array $option 选项
+     *   projectRoot 本项目所在的根目录，命名空间的根目录所在的目录为准
+     *   runtimeRoot 存放运行时生成的文件的根目录
      */
-    public static function boot($runMode = 'production', $runtimeRoot = '')
+    public static function boot($runMode = 'production', $option = [])
     {
         //定义扫尾方法
         register_shutdown_function('\jt\Bootstrap::exeComplete');
         static::init([
             'runMode'     => $runMode,
-            'runtimeRoot' => $runtimeRoot
+            'projectRoot' => $option['projectRoot']??'',
+            'runtimeRoot' => $option['runtimeRoot']??''
         ]);
         //Debug::log('$_REQUEST', [$_GET, $_POST, $_FILES]);
         //run_before
