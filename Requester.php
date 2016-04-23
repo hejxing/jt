@@ -157,20 +157,23 @@ class Requester
             case 'bool':
                 return in_array(strtolower($value), self::FALSE_VALUE) ? false : boolval(is_numeric($value) ? floatval($value) : $value);
             case 'array':
-                if(is_string($value)){
+            case 'objectList':
+            case 'object':
+            case 'list':
+                if (is_string($value)) {
                     $arr = json_decode(urldecode($value), true);
-                    if($arr === null){
+                    if ($arr === null) {
                         $arr = preg_split('/ *, */', $value);
                     }
-                }elseif(is_array($value)){
+                }elseif (is_array($value)) {
                     $arr = $value;
-                }else{
+                }else {
                     $arr = [];
                 }
+
                 return $arr;
             default:
                 return $value;
-                break;
         }
     }
 
