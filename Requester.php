@@ -150,16 +150,12 @@ class Requester
         switch ($type) {
             case 'int':
                 return intval($value);
-                break;
             case 'float':
                 return floatval($value);
-                break;
             case 'double':
                 return doubleval($value);
-                break;
             case 'bool':
                 return in_array(strtolower($value), self::FALSE_VALUE) ? false : boolval(is_numeric($value) ? floatval($value) : $value);
-                break;
             case 'array':
                 if(is_string($value)){
                     $arr = json_decode($value);
@@ -172,7 +168,6 @@ class Requester
                     $arr = [];
                 }
                 return $arr;
-                break;
             default:
                 return $value;
                 break;
