@@ -117,13 +117,11 @@ a.hightLight{
 .list-title{
     line-height:1.1em;
     padding:8px 15px;
-    background:#fff;
 }
 
 .api-list a{
     line-height:1.1em;
     padding:8px 15px;
-    background:#fff;
 }
 
 .copyright{
@@ -312,4 +310,6 @@ a.hightLight{
     border-radius:5px 5px 0 0;
     padding:0;
     margin-left:5px;
+    margin-right:-5px;
+    background:#fff;
 }
