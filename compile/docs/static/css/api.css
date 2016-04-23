@@ -312,6 +312,8 @@ a.hightLight{
     margin-left:5px;
     margin-right:-5px;
     background:#fff;
+    overflow-y:auto;
+    max-height:100%;
 }
 .classList .expand{
     margin-left:-5px;
