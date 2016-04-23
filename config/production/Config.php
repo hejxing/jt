@@ -6,10 +6,8 @@
  *
  *
  */
-use config\Config as Base;
-use config\Redis;
 
-class Config extends Base
+new class
 {
     const JSON_FORMAT = JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT;
-}
+};
