@@ -157,7 +157,7 @@ class Bootstrap
     public static function boot($runMode = 'production', $runtimeRoot = '')
     {
         //定义扫尾方法
-        //register_shutdown_function('\jt\Bootstrap::exeComplete');
+        register_shutdown_function('\jt\Bootstrap::exeComplete');
         static::init([
             'runMode'     => $runMode,
             'runtimeRoot' => $runtimeRoot
