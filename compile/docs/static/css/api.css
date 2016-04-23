@@ -23,10 +23,6 @@ blockquote{
     margin-top:20px;
 }
 
-.panel > .table{
-    border-top:5px solid #143553;
-}
-
 .table .table tr:nth-child(even){
     background:rgb(225, 255, 255);
 }
@@ -265,7 +261,9 @@ a.hightLight{
 }
 
 .panel-heading{
+    background:#337ab7;
     font-weight:bold;
+    line-height:36px;
 }
 
 .less-important .title{
