@@ -99,9 +99,12 @@ class Bootstrap
      */
     private static function loadConfig()
     {
-        $configRoot = PROJECT_ROOT . DIRECTORY_SEPARATOR . 'config/';
-        require $configRoot . 'Config.php';
-        require $configRoot . RUN_MODE . '/Config.php';
+        $file = RUNTIME_PATH_ROOT . '/config/'.MODULE.'.php';
+
+        if (RUN_MODE === 'develop' || !file_exists($file)) { //生成路由
+            compile\config\Config::general($file);
+        }
+        include($file);
     }
 
     /**
@@ -109,7 +112,7 @@ class Bootstrap
      *
      * @param array $option 环境参数
      */
-    private static function init($option)
+    public static function init($option)
     {
         umask(0);
         //记录代码执行开始时间
@@ -126,9 +129,17 @@ class Bootstrap
         define('MODULE', md5(PROJECT_ROOT));
         define('ERRORS_VERBOSE', RUN_MODE !== 'production');
 
-        self::loadConfig();
+        $runtimeRoot = $option['runtimeRoot'];
+        if(!$runtimeRoot){
+            $runtimeRoot = PROJECT_ROOT;
+        }elseif(substr($runtimeRoot, 0, 1) !== '/'){
+            $runtimeRoot = PROJECT_ROOT.'/'.$runtimeRoot;
+        }
+        define('RUNTIME_PATH_ROOT', $runtimeRoot.'/runtime');
+
         //定义自动加载文件方法
         spl_autoload_register('static::autoLoad');
+        self::loadConfig();
         //注册错误、异常入口
         ini_set('display_errors', true);
         set_error_handler('\jt\Error::errorHandler');
@@ -146,7 +157,7 @@ class Bootstrap
     public static function boot($runMode = 'production', $runtimeRoot = '')
     {
         //定义扫尾方法
-        register_shutdown_function('\jt\Bootstrap::exeComplete');
+        //register_shutdown_function('\jt\Bootstrap::exeComplete');
         static::init([
             'runMode'     => $runMode,
             'runtimeRoot' => $runtimeRoot

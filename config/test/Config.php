@@ -13,8 +13,3 @@ class Config extends Base
 {
     const JSON_FORMAT = JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT;
 }
-
-class RedisConfig extends Redis
-{
-
-}

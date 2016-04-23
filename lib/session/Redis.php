@@ -18,7 +18,7 @@ class Redis extends Session
     public function __construct()
     {
         $this->saver = new \Redis();
-        $this->saver->pconnect(\RedisConfig::HOST, \RedisConfig::PORT, \RedisConfig::TIME_OUT);
+        $this->saver->pconnect(\Config::REDIS['host'], \Config::REDIS['port'], \Config::REDIS['time_out']);
     }
 
     /**

@@ -11,11 +11,14 @@ namespace jt\lib\cache;
 class Redis extends \Redis
 {
     private static $saver = null;
-    public static function create(){
-        if(self::$saver === null){
+
+    public static function create()
+    {
+        if (self::$saver === null) {
             self::$saver = new \Redis();
-            self::$saver->pconnect(\RedisConfig::HOST, \RedisConfig::PORT, \RedisConfig::TIME_OUT);
+            self::$saver->pconnect(\Config::REDIS['host'], \Config::REDIS['port'], \Config::REDIS['time_out']);
         }
+
         return self::$saver;
     }
 }

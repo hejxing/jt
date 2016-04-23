@@ -19,8 +19,3 @@ class TPLConfig extends Template
 {
 
 }
-
-class RedisConfig extends Redis
-{
-
-}

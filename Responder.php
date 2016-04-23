@@ -68,8 +68,8 @@ class Responder
         $data = Action::getDataStore();
         if (self::$tplEngine) {
             $tpl = self::$tplEngine;
-        }elseif (class_exists('TPLConfig', false)) {
-            $tpl = new Template(\TPLConfig::getValues());
+        }elseif (defined('\Config::TEMPLATE')) {
+            $tpl = new Template(\Config::TEMPLATE);
         }else {
             return var_export($data, true);
         }

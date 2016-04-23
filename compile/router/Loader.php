@@ -101,7 +101,7 @@ abstract class Loader
         //全局生成新的解析结果
         $modules = self::collectModules();
 
-        $cacheRoot  = \Config::RUNTIME_PATH_ROOT . '/cache/parse';
+        $cacheRoot  = RUNTIME_PATH_ROOT . '/cache/parse';
         $cacheFiles = [];
         if (is_dir($cacheRoot)) {
             $hd = opendir($cacheRoot);

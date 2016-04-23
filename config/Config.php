@@ -1,89 +1,39 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: hejxing
- * Date: 2015/5/23
- * Time: 2:21
- */
-
-namespace config;
-
+//CreateTime:2016-04-23 15:15:13
 class Config
 {
-    const TIME_ZONE            = 'Asia/Chongqing';
+    const TIME_ZONE            = 'Asia/Shanghai';
     const CHARSET              = 'UTF-8';
-    const ACCEPT_MIME          = ['json', 'html'];
-    const JSON_FORMAT          = JSON_UNESCAPED_UNICODE;
-    const DEFAULT_AUTH_CHECKER = '\app\system\permission\Blocker';
-
-    const RUNTIME_PATH_ROOT = PROJECT_ROOT . '/runtime';
-
-    const NAMESPACE_PATH_MAP = [];
-
-    const MEMCACHED = [
-        'persistentId' => 'pool',
-        'serverList'   => [
-            ['127.0.0.1', 11211]
-        ]
+    const ACCEPT_MIME          = [
+        0 => 'json',
+        1 => 'html',
     ];
-
-    const SESSION = [
+    const JSON_FORMAT          = 384;
+    const DEFAULT_AUTH_CHECKER = '\\auth\\Blocker';
+    const NAMESPACE_PATH_MAP   = [
+        'sys' => '/web/developer/ax/source/silverbag/api/..',
+    ];
+    const SMS_SIGNATURE        = '金猫银猫';
+    const MAIL_FROM            = 'noreply<noreply@csmall.com>';
+    const SESSION              = [
         'handler' => 'Redis',
-        'idSaver' => 'header,url',
-        'idName' => 'ACCESS_TOKEN,token'
+        'idSaver' => 'Header,Url',
+        'idName'  => 'ACCESS_TOKEN,token',
     ];
-}
-
-class EnumList
-{
-    const MAP = [];
-
-    public static function getValues()
-    {
-        $values = [];
-        foreach (static::MAP as $key => $name) {
-            if (defined("static::{$key}")) {
-                $values[$name] = constant("static::{$key}");
-            }
-        }
-
-        return $values;
-    }
-}
-
-
-class Template extends EnumList
-{
-    const MAP           = [
-        'PATH_ROOT'       => 'pathRoot',
-        'AUTO_LOAD'       => 'autoLoad',
-        'BASE_DATA'       => 'baseData',
-        'PLUGINS'         => 'plugins',
-        'FORCE_COMPILE'   => 'force_compile',
-        'DEBUGGING'       => 'debugging',
-        'SUFFIX'          => 'suffix',
-        'CACHING'         => 'caching',
-        'CACHE_LIFETIME'  => 'cache_lifetime',
-        'LEFT_DELIMITER'  => 'left_delimiter',
-        'RIGHT_DELIMITER' => 'right_delimiter'
+    const TEMPLATE             = [
+        'pathRoot'      => '',
+        'baseData'      =>
+            [
+            ],
+        'force_compile' => true,
+        'debugging'     => false,
     ];
-    const PATH_ROOT     = '';
-    const BASE_DATA     = [];
-    const FORCE_COMPILE = true;
-    const DEBUGGING     = false;
-}
-
-class Memcache
-{
-    const PERSISTENT_ID = 'pool';
-    const SERVER_LIST   = [
-        ['127.0.0.1', 11211]
+    const REDIS                = [
+        'host'     => '127.0.0.1',
+        'port'     => '6379',
+        'time_out' => 0,
     ];
-}
-
-class Redis
-{
-    const HOST = '127.0.0.1';
-    const PORT = '6379';
-    const TIME_OUT = 0;
+    const UPLOAD_ROOT          = '/data/uploadFile/silver_bag';
+    const STATIC_HOST          = 'https://static_silver.csmall.com';
+    const IMG_HOST             = 'http://static_silver.test.csmall.com';
 }

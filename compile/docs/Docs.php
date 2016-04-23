@@ -174,7 +174,7 @@ class Docs extends Action
 
     private function loadParsed()
     {
-        $parseFile = \Config::RUNTIME_PATH_ROOT . '/cache/parse/' . MODULE . '.php';
+        $parseFile = RUNTIME_PATH_ROOT . '/cache/parse/' . MODULE . '.php';
 
         return require($parseFile);
     }
