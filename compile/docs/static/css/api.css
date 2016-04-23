@@ -126,6 +126,8 @@ a.hightLight{
     line-height:80px;
     color:#c7c7c7;
     text-shadow:2px 3px 1px #060606;
+    position:absolute;
+    bottom:0;
 }
 
 .box-wrap{
@@ -340,4 +342,8 @@ a.hightLight{
 .detail-box .content-box.highlight{
     background:#438ac7;
     color:#ffffff;
+}
+.bottom-empty{
+    height:50px;
+    width:100px;
 }
