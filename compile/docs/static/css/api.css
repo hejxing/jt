@@ -263,7 +263,12 @@ a.hightLight{
 .panel-heading{
     background:#337ab7;
     font-weight:bold;
-    line-height:36px;
+    line-height:26px;
+    color:#fff;
+    position:absolute;
+    z-index:1;
+    left:0;
+    right:19px;
 }
 
 .less-important .title{
@@ -326,7 +331,7 @@ a.hightLight{
 .detail-box{
     position:absolute;
     top:0;
-    padding-top:30px;
+    padding-top:46px;
     bottom:0;
     left:0;
     right:0;
