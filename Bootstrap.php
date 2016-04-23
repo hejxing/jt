@@ -159,7 +159,7 @@ class Bootstrap
      *   projectRoot 本项目所在的根目录，命名空间的根目录所在的目录为准
      *   runtimeRoot 存放运行时生成的文件的根目录
      */
-    public static function boot($runMode = 'production', $option = [])
+    public static function boot($runMode = 'production', array $option = [])
     {
         //定义扫尾方法
         register_shutdown_function('\jt\Bootstrap::exeComplete');
