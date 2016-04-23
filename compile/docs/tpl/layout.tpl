@@ -16,42 +16,42 @@
 </head>
 <body>
 <div class="container-fluid">
-    <div class="container-fluid">
-        <div class="navbar-header">
-            <a class="navbar-brand" href="./">{{$projectName}}<small>Beta</small></a>
-        </div>
-        <!-- <form class="form-inline pull-right" id="form" action="" method="GET">
-            <div class="form-group">
-                <label for="search"></label>
-                <input type="text" class="form-control" placeholder="api名称" ng-model="search">
-            </div>
-            <a class="btn btn-default" ng-click="find()">搜索api</a>
-        </form> -->
+    <div class="navbar-header">
+        <a class="navbar-brand" href="./">{{$projectName}}
+            <small>Beta</small>
+        </a>
     </div>
+    <!-- <form class="form-inline pull-right" id="form" action="" method="GET">
+        <div class="form-group">
+            <label for="search"></label>
+            <input type="text" class="form-control" placeholder="api名称" ng-model="search">
+        </div>
+        <a class="btn btn-default" ng-click="find()">搜索api</a>
+    </form> -->
+    <!-- 导航 -->
     <div class="row">
-        <!-- 导航 -->
         <div class="col-md-2 classList">
-            <div class="list-group api-list">
-                {{foreach $pathList as $path => $ms}}
-                    {{foreach $ms as $method => $info}}
-                        <a href="./{{$method}}{{$path}}.html" class="list-group-item">{{$info.name}}<br>{{$method}} {{$path}}</a>
+            {{foreach $pathList as $className => $methods}}
+                <div class="collect">
+                    <div class="list-title"><span class="expand disabled" title="展开">+</span>{{$classInfo.$className.title|default:$className}}</div>
+                    {{foreach $methods as $path => $ms}}
+                        {{foreach $ms as $method => $info}}
+                            <a href="./{{$method}}{{$path}}.html">{{$info.name}}<br>{{$method}} {{$path}}</a>
+                        {{/foreach}}
                     {{/foreach}}
-                {{/foreach}}
-            </div>
+                </div>
+            {{/foreach}}
         </div>
         <!-- 内容 -->
         <div class="col-md-10">
-            <div class="panel panel-primary">
+            <div class="panel-heading">{{block name="body-header"}}{{/block}}</div>
+            <div class="detail-box">
                 {{block name="body"}}{{/block}}
+                <p class="copyright">&copy;2016 csmall.com</p>
             </div>
         </div>
     </div>
 </div>
-<div style="display: none;" id="rocket-to-top">
-    <div style="opacity:0;display: block;" class="level-2"></div>
-    <div class="level-3"></div>
-</div>
-<p class="copyright">&copy;2016 csmall.com</p>
 <script>
     var localUrl = location.href;
     $('.classList a').each(function(){
