@@ -110,7 +110,7 @@ class Debug
 
         }
         $request = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'];
-        $request .= "\r\npost: " . \file_get_contents('php://input') . "\r\nget: " . $_SERVER['QUERY_STRING'];
+        $request .= "\r\n"."post: " . \file_get_contents('php://input') . "\r\n"."get: " . $_SERVER['QUERY_STRING'];
         file_put_contents($logPath . "/$file", "{$request}:\r\n$content\r\n\r\n", FILE_APPEND);
         chmod($logPath."/$file", 0777);
     }
