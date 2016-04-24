@@ -60,6 +60,7 @@
     $('.classList a').each(function(){
         if($(this).prop('href') === localUrl){
             $(this).addClass('active');
+            $(this).closest('.class-group').removeClass('collect');
             return false;
         }
     });
