@@ -31,7 +31,7 @@
 </form> -->
 <!-- 导航 -->
 <div class="body-box">
-    <div class="col-md-3 classList">
+    <div class="col-md-2 classList">
         {{foreach $pathList as $className => $methods}}
             <div class="collect class-group">
                 <div class="list-title list-group-item">
@@ -47,7 +47,7 @@
         {{/foreach}}
     </div>
     <!-- 内容 -->
-    <div class="col-md-9 main-stash">
+    <div class="col-md-10 main-stash">
         <div class="panel-heading">{{block name="body-header"}}{{/block}}</div>
         <div class="detail-box">
             {{block name="body"}}{{/block}}
