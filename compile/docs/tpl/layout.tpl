@@ -47,7 +47,7 @@
         {{/foreach}}
     </div>
     <!-- 内容 -->
-    <div class="col-md-9">
+    <div class="col-md-9 main-stash">
         <div class="panel-heading">{{block name="body-header"}}{{/block}}</div>
         <div class="detail-box">
             {{block name="body"}}{{/block}}
