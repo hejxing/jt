@@ -16,7 +16,7 @@ use jt\Exception;
  */
 abstract class Loader
 {
-    protected static $ignoreCache = false;
+    protected static $ignoreCache = true;
 
     protected static $root          = '';
     protected static $cacheFile     = '';
@@ -257,9 +257,6 @@ abstract class Loader
             if (is_dir(static::$root . $path . $file)) {
                 self::traverseFile($path . $file . '/');
             }else {
-                if(substr($file, -8) === 'Test.php'){
-                    continue;
-                }
                 $maker = new static($path, $file);
                 $maker->parseFile();
             }
