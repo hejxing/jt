@@ -110,7 +110,7 @@ class Action
      */
     private function fillData(array &$data, $key, $value, $model)
     {
-        if (\is_int($key) || $key === null) {
+        if ($key === null || (\is_int($key) && $key === count($data))) {
             $data[] = $value;
 
             return true;

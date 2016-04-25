@@ -45,15 +45,12 @@ class Csv
         }
         $handle = fopen($this->file, 'r');
 
-        $list = [];
-
         while($item = fgetcsv($handle, $this->length, $this->delimiter, $this->enclosure, $this->escape)){
-            $index = count($list);
+            $list = [];
             foreach ($this->fieldMap as $name => $key) {
-                $list[$index][$name] = $item[$key];
+                $list[$name] = $item[$key];
             }
+            yield $list;
         }
-
-        return $list;
     }
 }

@@ -8,7 +8,6 @@ namespace jt;
 
 define('MODEL_UUID_ZERO', '00000000-0000-0000-0000-000000000000');
 
-use jt\utils\Helper;
 use jt\lib\database\Connector;
 use jt\lib\database\Schema;
 use jt\lib\database\ErrorCode;
