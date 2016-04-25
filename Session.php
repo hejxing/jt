@@ -8,6 +8,7 @@
 namespace jt;
 
 use jt\lib\session\Invalid;
+use jt\lib\session\Saver;
 use jt\utils\Helper;
 use SessionHandlerInterface;
 
@@ -26,13 +27,13 @@ abstract class Session implements SessionHandlerInterface
     {
         ini_set('session.use_cookies', 0);
         $sessionId = $sessionId ?: self::getSessionId($sowing, $restart);
-        if(!self::checkStatus($restart)){
+        if (!self::checkStatus($restart)) {
             return $sessionId;
         }
 
         if ($sessionId) {
-            $handlerClass = '\jt\lib\session\\' . \Config::SESSION['handler'];
-            session_set_save_handler(new $handlerClass());
+            $handler = new Saver();
+            session_set_save_handler($handler);
             session_id($sessionId);
         }else {
             session_set_save_handler(new Invalid());
@@ -161,7 +162,7 @@ abstract class Session implements SessionHandlerInterface
             case PHP_SESSION_ACTIVE:
                 if ($restart) {
                     session_write_close();
-                }else{
+                }else {
                     return false;
                 }
                 break;

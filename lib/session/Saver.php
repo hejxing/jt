@@ -7,9 +7,10 @@
 
 namespace jt\lib\session;
 
+use jt\lib\cache\CacheFactory;
 use jt\Session;
 
-class Redis extends Session
+class Saver extends Session
 {
     /**
      * @type \Redis
@@ -17,8 +18,7 @@ class Redis extends Session
     protected $saver = null;
     public function __construct()
     {
-        $this->saver = new \Redis();
-        $this->saver->pconnect(\Config::REDIS['host'], \Config::REDIS['port'], \Config::REDIS['time_out']);
+        $this->saver = CacheFactory::create(\Config::SESSION['handler']??null);
     }
 
     /**

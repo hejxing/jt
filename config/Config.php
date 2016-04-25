@@ -28,6 +28,8 @@ class Config
         'force_compile' => true,
         'debugging'     => false,
     ];
+    
+    const CACHE_PROVIDER = 'Redis';
     const REDIS                = [
         'host'     => '127.0.0.1',
         'port'     => '6379',
