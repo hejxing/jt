@@ -56,24 +56,24 @@
     </div>
 </div>
 <script>
-    var localUrl = location.href;
-    $('.classList a').each(function(){
-        if($(this).prop('href') === localUrl){
-            $(this).addClass('active');
-            $(this).closest('.class-group').removeClass('collect').find('.expand').removeClass('disabled');
-            return false;
-        }
-    });
-    $('a[href^="http"]').each(function(){
-        $(this).attr('target', '_blank');
-    });
-
     $('.classList .expand').click(function(){
         var trigger = $(this);
         trigger.toggleClass('disabled');
         trigger.text(trigger.is('.disabled')? '+': '-');
         trigger.attr('title', trigger.is('.disabled')? '展开': '收起');
         trigger.closest('.class-group')[(trigger.is('.disabled')? 'add': 'remove')+'Class']('collect');
+    });
+
+    var localUrl = location.href;
+    $('.classList a').each(function(){
+        if($(this).prop('href') === localUrl){
+            $(this).addClass('active');
+            $(this).closest('.class-group').find('.expand').trigger('click');
+            return false;
+        }
+    });
+    $('a[href^="http"]').each(function(){
+        $(this).attr('target', '_blank');
     });
 </script>
 </body>
