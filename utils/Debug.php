@@ -110,9 +110,9 @@ class Debug
 
         }
         $request = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'];
-        $request .= "\r\n"."post: " . \file_get_contents('php://input') . "\r\n"."get: " . $_SERVER['QUERY_STRING'];
+        $request .= "\r\n" . "post: " . \file_get_contents('php://input') . "\r\n" . "get: " . $_SERVER['QUERY_STRING'];
         file_put_contents($logPath . "/$file", "{$request}:\r\n$content\r\n\r\n", FILE_APPEND);
-        chmod($logPath."/$file", 0777);
+        chmod($logPath . "/$file", 0777);
     }
 
     /**
@@ -141,8 +141,8 @@ class Debug
         $header         = Error::prepareHeader();
         $header         = array_merge($header, Action::getHeaderStore());
         $header['data'] = Action::getDataStore();
-        
-        if($header['success']){
+
+        if ($header['success']) {
             unset($header['success']);
             unset($header['msg']);
         }
@@ -157,16 +157,22 @@ class Debug
      * @param string $projectRoot 项目根目录
      * @param string $runtimeRoot 项目运行时生成的目录
      */
-    public static function entrance($projectRoot, $runtimeRoot = '')
+    public static function entrance($projectRoot = null, $runtimeRoot = '')
     {
+        if ($projectRoot === null) {
+            $testClass = $_SERVER['argv'][4];
+            $testFile  = $_SERVER['argv'][5];
+
+            $projectRoot = explode(str_replace('\\', DIRECTORY_SEPARATOR, $testClass), $testFile)[0];
+            $projectRoot = substr($projectRoot, 0, -1);
+        }
         require(__DIR__ . '/../Bootstrap.php');
         //定义扫尾方法
         register_shutdown_function('\jt\utils\Debug::complete');
-
         Bootstrap::init([
-            'runMode' => 'develop',
+            'runMode'     => 'develop',
             'projectRoot' => $projectRoot,
-            'runtimeRoot'  => $runtimeRoot
+            'runtimeRoot' => $runtimeRoot
         ]);
         Error::directOutput();
         $_SERVER['HTTP_USER_AGENT'] = 'Cli/debug';
