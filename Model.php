@@ -667,10 +667,10 @@ class Model
         }
         $list = [];
         foreach ($this->sqlCollect[$type] as $serial) {
-            $list = \array_merge($list, \preg_split('/ *, */', $serial));
+            $list = array_merge($list, \preg_split('/ *, */', $serial));
         }
 
-        return \array_unique($list);
+        return array_unique($list);
     }
 
     /**
@@ -687,7 +687,7 @@ class Model
         $fieldNameList  = $this->mergeSerial('names');
         $excludeFields  = $this->collectExclude();
 
-        if (\in_array('**', $fieldNameList)) {//强制要求列出所有,包含隐藏字段
+        if (in_array('**', $fieldNameList)) {//强制要求列出所有,包含隐藏字段
             foreach (static::$columns as $name => $v) {
                 $collectedNames[] = $name;
             }
@@ -695,7 +695,7 @@ class Model
             foreach ($fieldNameList as $n) {
                 if ($n === '*') { //如果需要映射到字段，需要在sql中使用as,则不能直接使用"*"
                     foreach (static::$columns as $name => $v) {
-                        if (isset($v['hidden']) && (!\in_array($name, $showHiddenList) && !\in_array('*', $showHiddenList))) {
+                        if (isset($v['hidden']) && (!in_array($name, $showHiddenList) && !in_array('*', $showHiddenList))) {
                             continue;
                         }
                         $collectedNames[] = $name;
@@ -1083,6 +1083,10 @@ class Model
 
         $fieldValues   = [];
         $excludeFields = $this->collectExclude();
+        $fieldNameList = $this->mergeSerial('names');
+        if(empty($fieldNameList) || in_array('*', $fieldNameList) || in_array('**', $fieldNameList)){
+            $fieldNameList = null;
+        }
 
         foreach ($excludeFields as $name) {
             if (isset($data[$name])) {
@@ -1091,7 +1095,10 @@ class Model
         }
 
         foreach ($data as $name => $value) {
-            if($value === null){
+            if ($value === null) {
+                continue;
+            }
+            if($fieldNameList && !in_array($name, $fieldNameList)){
                 continue;
             }
             //将属性名与字段名进行映射
@@ -1922,7 +1929,7 @@ class Model
     /**
      * 搜索
      *
-     * @param array $condition 搜索相关的字段
+     * @param array  $condition 搜索相关的字段
      * @param array  $keywords 关键字
      * @param string $model 查询模式
      * @param string $glue 条件间的连接方式
@@ -1932,10 +1939,11 @@ class Model
     public function search(array $condition, $keywords, $model = 'like', $glue = 'OR')
     {
         $sqlBuffer = [];
-        foreach($condition as $name){
+        foreach ($condition as $name) {
             $sqlBuffer[] = "{$name} {$model} :keywords";
         }
         $this->where(implode(" {$glue} ", $sqlBuffer), ['keywords' => $keywords]);
+
         return $this;
     }
 

@@ -531,8 +531,8 @@ class Requester
     /**
      * 获取分页参数 如果未定义，返回默认值
      *
-     * @param int $pageSize 每页条数
-     * @param int $page 当前页数
+     * @param int $pageSize 默认每页条数,当客户端未传值时起作用
+     * @param int $page 默认当前页数，当客户端未传值时起作用
      *
      * @return array
      */
