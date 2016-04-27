@@ -125,9 +125,11 @@ abstract class Sms
     }
 
     /**
+     * @param bool $strict 是否严格模式，在严格模式下遇到错误即会退出
      * 是否允许该收件人收短信发送
+     * @throws \jt\Exception
      */
-    protected function receiverFilter()
+    protected function receiverFilter($strict = true)
     {
         foreach ($this->receive as $index => $mobile) {
             if (empty($this->todayLog[$mobile])) {
@@ -135,17 +137,18 @@ abstract class Sms
             }
             if (count($this->todayLog[$mobile]) >= $this->maxCount) {
                 unset($this->receive[$index]);
-                Error::notice('moreThanMaxSendCount', "号码[{$mobile}]在发送通道[{$this->channel}]中每天最多只允许发送[{$this->maxCount}]条");
+                if ($strict || empty($this->receive)) {
+                    throw new Exception('moreThanMaxSendCount:' . "号码[{$mobile}]在发送通道[{$this->channel}]中每天最多只允许发送[{$this->maxCount}]条");
+                }
             }
             $lastLog = $this->todayLog[$mobile][0];
 
             if ((time() - strtotime($lastLog['createAt'])) < $this->minMargin) {
                 unset($this->receive[$index]);
-                Error::notice('sendSmsIntervalTooBrief', "向号码[{$mobile}]发送的短信至少要间隔[{$this->minMargin}]秒");
+                if ($strict || empty($this->receive)) {
+                    throw new Exception('sendSmsIntervalTooBrief:' . "向号码[{$mobile}]发送的短信至少要间隔[{$this->minMargin}]秒");
+                }
             }
-        }
-        if (empty($this->receive)) {
-            throw new Exception('sendSmsBlock:禁止发送');
         }
     }
 
