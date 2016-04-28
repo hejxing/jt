@@ -36,7 +36,7 @@ class Requester
     const TRUE_ITEM    = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert'];
     const INPUT_TYPE   = ['any', 'get', 'post', 'path'];
     const VALUE_TYPE   = [
-        'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json', 'uuid'],//json为字符串类型
+        'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json', 'uuid', 'datetime', 'timestamp'],//json为字符串类型
         'composite' => ['object', 'objectList', 'list', 'array']
     ];
     const INJECT_VALUE = ['instance', 'param'];
