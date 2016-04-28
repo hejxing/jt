@@ -1163,7 +1163,7 @@ class Model
     {
         $conditions = preg_split('/( +and +| +or +)/i', $sql, -1, PREG_SPLIT_DELIM_CAPTURE);
         for ($i = 0, $l = count($conditions); $i < $l; $i += 2) {
-            $conditions[$i] = preg_replace_callback('/^([\( ]*)([\w_]+)(.*?)(:?[\w_]+)([\) ]*)$/', function ($match){
+            $conditions[$i] = preg_replace_callback('/^([\( ]*)([\w_]+)(.*?)(:?[\w_,:]+)([\) ]*)$/', function ($match){
                 $bracketStart = str_replace(' ', '', $match[1]);
                 $name         = $match[2];
                 $sign         = strtoupper(trim($match[3]));
@@ -1174,11 +1174,11 @@ class Model
                 //    //TODO 记录不当的属性名
                 //}
                 $fullField = $this->nameMapField($name);
+
                 if (isset(static::$columns[$name]['lower'])) {
                     $fullField = "lower({$fullField})";
                     $value     = "lower({$value})";
                 }
-
                 return "{$bracketStart}{$fullField} {$sign} {$value}{$bracketEnd}";
             }, $conditions[$i]);
             if ($l > $i + 1) {
@@ -1206,7 +1206,8 @@ class Model
         foreach ($this->sqlCollect['where'] as $index => $where) {
             $sql = $where[0];
             foreach ($where[1] as $k => $v) {
-                $sql                              = str_replace(":{$k}", ":w_{$index}_{$k}", $sql);
+                $sql = str_replace(":{$k}", ":w_{$index}_{$k}", $sql);
+
                 $collectedData["w_{$index}_{$k}"] = $v;
             }
             $whereSql .= $whereCode[$index][1] . $whereCode[$index][0] . $sql . $whereCode[$index][2];
