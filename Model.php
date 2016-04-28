@@ -964,27 +964,32 @@ class Model
         $isClosed  = true;
         $whereCode = [];
         $index     = -1;
-        foreach ($this->sqlCollect['where'] as $index => $where) { //通观全局
-            $whereCode[$index]    = ['', '', ' '];
-            $whereCode[$index][1] = $where[2] ? 'OR ' : 'AND ';
-            if (!$where[3] && $isClosed) { //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
-                $pos                = $index >= 1 ? $index - 1 : $index;
-                $whereCode[$pos][0] = '(';
-                $isClosed           = false;
-            }
-            if ($where[3] && $isClosed === false) {
-                $whereCode[$index][2] = ')';
-                $isClosed             = true;
+        if (isset($this->sqlCollect['where'])) {
+            foreach ($this->sqlCollect['where'] as $index => $where) { //通观全局
+                $whereCode[$index]    = ['', '', ' '];
+                $whereCode[$index][1] = $where[2] ? 'OR ' : 'AND ';
+                if (!$where[3] && $isClosed) { //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
+                    $pos                = $index >= 1 ? $index - 1 : $index;
+                    $whereCode[$pos][0] = '(';
+                    $isClosed           = false;
+                }
+                if ($where[3] && $isClosed === false) {
+                    $whereCode[$index][2] = ')';
+                    $isClosed             = true;
+                }
             }
         }
+
         if (isset($this->sqlCollect['aloneWhere'])) {
             foreach ($this->sqlCollect['aloneWhere'] as $where) { //该条件将独立于其它条件（其它条件用括号括起来）
                 $index++;
-                $whereCode[$index]    = ['', '', ' '];
-                $whereCode[$index][1] = $where[2] ? 'OR ' : 'AND ';
-                $whereCode[0][0] .= '( ';
-                $whereCode[$index - 1][2] .= ') ';
+                $whereCode[$index]           = ['', '', ' '];
+                $whereCode[$index][1]        = $where[2] ? 'OR ' : 'AND ';
                 $this->sqlCollect['where'][] = $where;
+                if ($index > 0) {
+                    $whereCode[0][0] .= '( ';
+                    $whereCode[$index - 1][2] .= ') ';
+                }
             }
         }
         if ($whereCode) {
@@ -1084,7 +1089,7 @@ class Model
         $fieldValues   = [];
         $excludeFields = $this->collectExclude();
         $fieldNameList = $this->mergeSerial('names');
-        if(empty($fieldNameList) || in_array('*', $fieldNameList) || in_array('**', $fieldNameList)){
+        if (empty($fieldNameList) || in_array('*', $fieldNameList) || in_array('**', $fieldNameList)) {
             $fieldNameList = null;
         }
 
@@ -1098,7 +1103,7 @@ class Model
             if ($value === null) {
                 continue;
             }
-            if($fieldNameList && !in_array($name, $fieldNameList)){
+            if ($fieldNameList && !in_array($name, $fieldNameList)) {
                 continue;
             }
             //将属性名与字段名进行映射
@@ -1191,13 +1196,13 @@ class Model
      */
     private function genWhere()
     {
-        if (!isset($this->sqlCollect['where'])) {
+        $whereCode = $this->preParseWhere();
+        if (empty($this->sqlCollect['where'])) {
             return '';
         }
-        $whereCode     = $this->preParseWhere();
-        $collectedData = [];
 
-        $whereSql = '';
+        $collectedData = [];
+        $whereSql      = '';
         foreach ($this->sqlCollect['where'] as $index => $where) {
             $sql = $where[0];
             foreach ($where[1] as $k => $v) {
