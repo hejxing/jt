@@ -733,8 +733,20 @@ class Model
         $collectedNames = $this->collectNames();
         $quotes         = static::$quotes;
         foreach ($collectedNames as &$name) {
+            $field = $name;
+            $out   = null;
+
+            if (strpos($name, ' AS ')) {
+                list($name, $out) = preg_split('/ +AS +/', 2);
+            }
+
             if (isset(static::$columns[$name]['field'])) {
-                $name = $quotes . static::$columns[$name]['field'] . $quotes . ' AS ' . $quotes . $name . $quotes;
+                $field = static::$columns[$name]['field'];
+                $out   = $out ?: $name;
+            }
+
+            if ($out) {
+                $name = $quotes . $field . $quotes . ' AS ' . $quotes . $out . $quotes;
             }elseif ($name !== '*') {
                 $name = $quotes . $name . $quotes;
             }
@@ -1931,9 +1943,10 @@ class Model
 
     /**
      * 模糊搜索
+     *
      * @param string $name 参与搜索的属性
      * @param string $value 搜索的值
-     * @param int $model ‘%’所在的位置
+     * @param int    $model ‘%’所在的位置
      * @param string $glue 与其它条件的关系
      *
      * @return $this
@@ -1946,7 +1959,7 @@ class Model
         if ($model & MODEL_LIKE_RIGHT) {
             $value = $value . '%';
         }
-        switch($glue){
+        switch ($glue) {
             case 'AND':
                 return $this->where("{$name} like :keywords", ['keywords' => $value]);
             case 'OR':
