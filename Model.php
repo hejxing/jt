@@ -876,8 +876,8 @@ class Model
         if (isset($column['at'])) {
             return microtime(true);
         }
-        if ($column['type'] === 'uuid' && isset($column['primary'])) {
-            return self::genUuid();
+        if ($column['type'] === 'uuid') {
+            return isset($column['primary']) ? self::genUuid() : MODEL_UUID_ZERO;
         }
         if (isset($column['array']) || isset($column['object'])) {
             return [];
