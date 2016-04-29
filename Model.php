@@ -8,6 +8,10 @@ namespace jt;
 
 define('MODEL_UUID_ZERO', '00000000-0000-0000-0000-000000000000');
 
+define('MODEL_LIKE_LEFT', 1);
+define('MODEL_LIKE_RIGHT', 2);
+define('MODEL_LIKE_BOTH', 3);
+
 use jt\lib\database\Connector;
 use jt\lib\database\Schema;
 use jt\lib\database\ErrorCode;
@@ -1179,6 +1183,7 @@ class Model
                     $fullField = "lower({$fullField})";
                     $value     = "lower({$value})";
                 }
+
                 return "{$bracketStart}{$fullField} {$sign} {$value}{$bracketEnd}";
             }, $conditions[$i]);
             if ($l > $i + 1) {
@@ -1926,10 +1931,31 @@ class Model
 
     /**
      * 模糊搜索
+     * @param string $name 参与搜索的属性
+     * @param string $value 搜索的值
+     * @param int $model ‘%’所在的位置
+     * @param string $glue 与其它条件的关系
+     *
+     * @return $this
      */
-    public function like()
+    public function like($name, $value, $model = MODEL_LIKE_BOTH, $glue = 'AND')
     {
-
+        if ($model & MODEL_LIKE_LEFT) {
+            $value = '%' . $value;
+        }
+        if ($model & MODEL_LIKE_RIGHT) {
+            $value = $value . '%';
+        }
+        switch($glue){
+            case 'AND':
+                return $this->where("{$name} like :keywords", ['keywords' => $value]);
+            case 'OR':
+                return $this->orWhere("{$name} like :keywords", ['keywords' => $value]);
+            case 'ALONE':
+                return $this->aloneWhere("{$name} like :keywords", ['keywords' => $value]);
+            default:
+                self::error('likeParamterGlueIll', 'Model 中 like 方法的 glue 参数值错误,只能是 AND/OR/ALONE 之一，请检查');
+        }
     }
 
     /**
