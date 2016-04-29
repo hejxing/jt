@@ -160,12 +160,18 @@ class Debug
     public static function entrance($projectRoot = null, $runtimeRoot = '')
     {
         if ($projectRoot === null) {
-            $testClass = $_SERVER['argv'][4];
-            $testFile  = $_SERVER['argv'][5];
+            if($_SERVER['argv'][4] === '--filter'){
+                $testClass = $_SERVER['argv'][6];
+                $testFile  = $_SERVER['argv'][7];
+            }else {
+                $testClass = $_SERVER['argv'][4];
+                $testFile  = $_SERVER['argv'][5];
+            }
 
             $projectRoot = explode(str_replace('\\', DIRECTORY_SEPARATOR, $testClass), $testFile)[0];
             $projectRoot = substr($projectRoot, 0, -1);
         }
+        
         require(__DIR__ . '/../Bootstrap.php');
         //定义扫尾方法
         register_shutdown_function('\jt\utils\Debug::complete');
