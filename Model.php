@@ -47,6 +47,11 @@ abstract class Model
      */
     protected $table = '';
     /**
+     * 添加上引号的table
+     * @type string
+     */
+    protected $quotesTable = '';
+    /**
      * 数据库类型
      *
      * @type Connector
@@ -212,8 +217,8 @@ abstract class Model
         $quotes          = $this->connector->getQuotes();
         static::$quotes  = $quotes;
 
-        $table       = $this->connector->getTablePrefix() . $this->table;
-        $this->table = $quotes . str_replace('.', "{$quotes}.{$quotes}", $table) . $quotes;
+        $this->table       = $this->connector->getTablePrefix() . $this->table;
+        $this->quotesTable = $quotes . str_replace('.', "{$quotes}.{$quotes}", $this->table) . $quotes;
     }
 
     /**
@@ -465,7 +470,7 @@ abstract class Model
                 $creator->createDataBase();
             case '42P01': //表不存在
                 $creator = new Schema(PROJECT_ROOT, $this->conn);
-                $creator->createTable($this->table, static::$columns);
+                $creator->createTable($this->quotesTable, static::$columns);
                 //标记为该请求可以重试
                 Controller::current()->needRetry();
 
@@ -769,7 +774,7 @@ abstract class Model
 
         if ($this->needFullFieldName) {
             foreach ($collectedNames as &$name) {
-                $name = $this->table . '.' . $name;
+                $name = $this->quotesTable . '.' . $name;
             }
         }
 
@@ -1252,7 +1257,7 @@ abstract class Model
         }
         $name = static::$quotes . $name . static::$quotes;
         if ($this->needFullFieldName) {
-            $name = $this->table . '.' . $name;
+            $name = $this->quotesTable . '.' . $name;
         }
 
         return $name;
@@ -1359,7 +1364,7 @@ abstract class Model
         $this->needFullFieldName = isset($this->sqlCollect['relate']);
         $this->applyTrashed();
         $this->genSelectNames();
-        $this->preSql .= ' FROM ' . $this->table;
+        $this->preSql .= ' FROM ' . $this->quotesTable;
         $this->genWhere();
         $this->genGroup();
         $this->genOrder();
@@ -1467,7 +1472,7 @@ abstract class Model
         $this->needFullFieldName = isset($this->sqlCollect['relate']);
         $this->applyTrashed();
         $this->genSelectNames();
-        $this->preSql .= ' FROM ' . $this->table;
+        $this->preSql .= ' FROM ' . $this->quotesTable;
         $whereSql = $this->genWhere();
         $groupSql = $this->genGroup();
         $this->genOrder();
@@ -1483,7 +1488,7 @@ abstract class Model
                 -1,
                 $pageIndex,
                 $pageSize,
-                'COUNT(*) FROM ' . $this->table . $whereSql . $groupSql,
+                'COUNT(*) FROM ' . $this->quotesTable . $whereSql . $groupSql,
                 $this->data
             ];
         }
@@ -1596,7 +1601,7 @@ abstract class Model
     public function add(array $data = [])
     {
         $this->sqlCollect['data'][] = $data;
-        $this->preSql               = $this->table;
+        $this->preSql               = $this->quotesTable;
         $this->genInsertNames();
 
         return $this->insert($this->preSql, $this->data);
@@ -1630,7 +1635,7 @@ abstract class Model
     {
         $this->applyLimitForEdit();
         $this->sqlCollect['data'][] = $data;
-        $this->preSql               = $this->table;
+        $this->preSql               = $this->quotesTable;
         $this->genUpdateNames();
         $this->genWhere();
 
@@ -1768,7 +1773,7 @@ abstract class Model
             $this->onlyTrashed();
         }
         $this->applyTrashed();
-        $this->preSql = ' FROM ' . $this->table;
+        $this->preSql = ' FROM ' . $this->quotesTable;
         $this->genWhere();
         $this->genLimit();
 
@@ -1784,7 +1789,7 @@ abstract class Model
     {
         $this->applyTrashed();
         $this->preSql .= ' COUNT(*)';
-        $this->preSql .= ' FROM ' . $this->table;
+        $this->preSql .= ' FROM ' . $this->quotesTable;
         $this->genWhere();
         $this->genGroup();
 
