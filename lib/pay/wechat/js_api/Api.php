@@ -47,7 +47,7 @@ class Api
      *
      * @return string
      */
-    private function getUnifiedOrder($amount)
+    private function getUnifiedOrder()
     {
         $tools  = new \JsApiPay();
         $openId = $tools->GetOpenid();    //获取用户openID
@@ -74,7 +74,7 @@ class Api
         return [
             'jsApiParameters' => $jsApiParameters,
             'editAddress'     => $editAddress,
-            'amount'          => $amount,
+            'amount'          => $this->amount,
             'orderId'         => $this->data['id']
         ];
     }
@@ -95,6 +95,6 @@ class Api
         $this->data['id']   = $id;
         $this->data['memo'] = $name;
 
-        return $this->getUnifiedOrder($amount);
+        return $this->getUnifiedOrder();
     }
 }

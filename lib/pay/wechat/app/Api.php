@@ -46,7 +46,7 @@ class Api
      *
      * @return string
      */
-    private function getUnifiedOrder($amount)
+    private function getUnifiedOrder()
     {
         $outTradeNo = Helper::uuid();
         $input = new \WxPayUnifiedOrder();
@@ -89,6 +89,6 @@ class Api
         $this->data['id']   = $id;
         $this->data['memo'] = $name;
 
-        return $this->getUnifiedOrder($amount);
+        return $this->getUnifiedOrder();
     }
 }
