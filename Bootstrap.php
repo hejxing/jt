@@ -120,7 +120,7 @@ class Bootstrap
         self::$now       = intval(self::$startTime);
 
         if(substr($option['projectRoot'], 0, 1) !== '/'){
-            $option['projectRoot'] = getcwd().'/'.$option['projectRoot'];
+            $option['projectRoot'] = getcwd().($option['projectRoot']?'/'.$option['projectRoot']:'');
         }
 
         if(!$option['runtimeRoot']){
