@@ -20,6 +20,23 @@ class Config
         'idSaver' => 'Header,Url',
         'idName'  => 'ACCESS_TOKEN,token',
     ];
+
+    const WECHAT_APP_PAY = [
+        'appId' => '',
+        'mchId' => '',
+        'key' => '',
+        'appSecret' => '',
+        'sslCertPath' => ''
+    ];
+
+    const WECHAT_JS_API_PAY = [
+        'appId' => '',
+        'mchId' => '',
+        'key' => '',
+        'appSecret' => '',
+        'sslCertPath' => ''
+    ];
+
     const TEMPLATE             = [
         'pathRoot'      => '',
         'baseData'      =>

@@ -12,11 +12,23 @@ define('MODEL_LIKE_LEFT', 1);
 define('MODEL_LIKE_RIGHT', 2);
 define('MODEL_LIKE_BOTH', 3);
 
+define('MODEL_RELATE_ONE_TO_ONE', 1);
+define('MODEL_RELATE_ONE_TO_MANY', 2);
+define('MODEL_RELATE_MANY_TO_ONE', 3);
+define('MODEL_RELATE_MANY_TO_MANY', 4);
+
+define('MODEL_BOUND_AFFIX', 0);
+define('MODEL_BOUND_CELL', 1);
+define('MODEL_BOUND_ALONE', 2);
+
+define('MODEL_LINK_AND', 0);
+define('MODEL_LINK_OR', 1);
+
 use jt\lib\database\Connector;
 use jt\lib\database\Schema;
 use jt\lib\database\ErrorCode;
 
-class Model
+abstract class Model
 {
     /**
      * 连接名
@@ -94,18 +106,6 @@ class Model
      */
     protected static $fieldMap = [];
     /**
-     * 需要一并更新修改时间的表
-     *
-     * @type array
-     */
-    protected static $touch = [];
-    /**
-     * 用来更新修改字段名的字段
-     *
-     * @var string
-     */
-    protected static $updateAt = '';
-    /**
      * 字段名称所用的引号
      *
      * @type string
@@ -153,6 +153,12 @@ class Model
      * @type array
      */
     private $errMsgList = [];
+    /**
+     * 字段名是否需要限制表名
+     *
+     * @type bool
+     */
+    private $needFullFieldName = false;
     /**
      * 查询完成后是否不清空上次的数据
      *
@@ -203,8 +209,11 @@ class Model
     public function __construct()
     {
         $this->connector = new Connector(PROJECT_ROOT, $this->conn);
-        static::$quotes  = $this->connector->getQuotes();
-        $this->table     = $this->connector->getTablePrefix() . $this->table;
+        $quotes          = $this->connector->getQuotes();
+        static::$quotes  = $quotes;
+
+        $table       = $this->connector->getTablePrefix() . $this->table;
+        $this->table = $quotes . str_replace('.', "{$quotes}.{$quotes}", $table) . $quotes;
     }
 
     /**
@@ -456,7 +465,7 @@ class Model
                 $creator->createDataBase();
             case '42P01': //表不存在
                 $creator = new Schema(PROJECT_ROOT, $this->conn);
-                $creator->createTable($this->genTableName(), static::$columns);
+                $creator->createTable($this->table, static::$columns);
                 //标记为该请求可以重试
                 Controller::current()->needRetry();
 
@@ -664,6 +673,12 @@ class Model
         return new static();
     }
 
+    /**
+     * 将某一组数据反序列化并排除重复值
+     *
+     * @param $type
+     * @return array
+     */
     private function mergeSerial($type)
     {
         if (!isset($this->sqlCollect[$type])) {
@@ -751,6 +766,13 @@ class Model
                 $name = $quotes . $name . $quotes;
             }
         }
+
+        if ($this->needFullFieldName) {
+            foreach ($collectedNames as &$name) {
+                $name = $this->table . '.' . $name;
+            }
+        }
+
         $this->preSql = ' ' . implode(', ', $collectedNames);
     }
 
@@ -933,10 +955,6 @@ class Model
             //将属性名与字段名进行映射
             $field = $name;
             if (isset($column['field'])) {
-                //if(isset($data[$column['field']])){
-                //	//TODO: 仍使用了字段名，给出警告，应该使用属性
-                //	$field = $column['field'];
-                //}
                 $fields[] = $column['field'];
             }else {
                 $fields[] = $field;
@@ -977,45 +995,38 @@ class Model
      */
     private function preParseWhere()
     {
-        $isClosed  = true;
-        $whereCode = [];
-        $index     = -1;
-        if (isset($this->sqlCollect['where'])) {
-            foreach ($this->sqlCollect['where'] as $index => $where) { //通观全局
-                $whereCode[$index]    = ['', '', ' '];
-                $whereCode[$index][1] = $where[2] ? 'OR ' : 'AND ';
-                if (!$where[3] && $isClosed) { //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
-                    $pos                = $index >= 1 ? $index - 1 : $index;
-                    $whereCode[$pos][0] = '(';
-                    $isClosed           = false;
-                }
-                if ($where[3] && $isClosed === false) {
-                    $whereCode[$index][2] = ')';
-                    $isClosed             = true;
-                }
+        $isClosed = true;
+        $symbol   = [];
+        $index    = 0;
+        foreach ($this->sqlCollect['where'] as $index => &$where) { //通观全局
+            $symbol[$index]    = ['', '', ' '];
+            $symbol[$index][1] = $where[2] ? 'OR ' : 'AND ';
+            if ($where[3] === 0 && $isClosed) { //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
+                $pos             = $index >= 1 ? $index - 1 : $index;
+                $symbol[$pos][0] = '(';
+                $isClosed        = false;
+            }
+            if ($where[3] === 1 && $isClosed === false) { //括号关闭 当前括号未关闭时关闭
+                $symbol[$index][2] = ')';
+                $isClosed          = true;
+            }
+            if ($where[3] === 2 && $index > 0) { //需要将自身独立出来，将前面where用括号括起来
+                $symbol[0][0] .= '( ';
+                $symbol[$index - 1][2] .= ') ';
+            }
+            if ($where[4]) {
+                $where[0] = $this->applyAsMapForWhere($where[0]);
             }
         }
 
-        if (isset($this->sqlCollect['aloneWhere'])) {
-            foreach ($this->sqlCollect['aloneWhere'] as $where) { //该条件将独立于其它条件（其它条件用括号括起来）
-                $index++;
-                $whereCode[$index]           = ['', '', ' '];
-                $whereCode[$index][1]        = $where[2] ? 'OR ' : 'AND ';
-                $this->sqlCollect['where'][] = $where;
-                if ($index > 0) {
-                    $whereCode[0][0] .= '( ';
-                    $whereCode[$index - 1][2] .= ') ';
-                }
-            }
-        }
-        if ($whereCode) {
-            $whereCode[0][1] = '';
+        if ($symbol) {
+            $symbol[0][1] = '';
         }
         if (!$isClosed) {
-            $whereCode[$index][2] = ')';
+            $symbol[$index][2] = ')';
         }
 
-        return $whereCode;
+        return $symbol;
     }
 
     /**
@@ -1075,18 +1086,6 @@ class Model
                 }
             }
         }
-    }
-
-    /**
-     * 生成表名
-     *
-     * @return string
-     */
-    private function genTableName()
-    {
-        $quotes = static::$quotes;
-
-        return $quotes . str_replace('.', "{$quotes}.{$quotes}", $this->table) . $quotes;
     }
 
     /**
@@ -1179,18 +1178,14 @@ class Model
     {
         $conditions = preg_split('/( +and +| +or +)/i', $sql, -1, PREG_SPLIT_DELIM_CAPTURE);
         for ($i = 0, $l = count($conditions); $i < $l; $i += 2) {
-            $conditions[$i] = preg_replace_callback('/^([\( ]*)([\w_]+)(.*?)(:?[\w_,:]+)([\) ]*)$/', function ($match){
+            $conditions[$i] = preg_replace_callback('/^([\( ]*)([\w_]+)(.*?)(:?[\w_,: ]+)([\) ]*)$/', function ($match){
                 $bracketStart = str_replace(' ', '', $match[1]);
                 $name         = $match[2];
                 $sign         = strtoupper(trim($match[3]));
                 $value        = $match[4];
                 $bracketEnd   = str_replace(' ', '', $match[5]);
 
-                //if (!isset(static::$columns[$name])) {
-                //    //TODO 记录不当的属性名
-                //}
                 $fullField = $this->nameMapField($name);
-
                 if (isset(static::$columns[$name]['lower'])) {
                     $fullField = "lower({$fullField})";
                     $value     = "lower({$value})";
@@ -1202,7 +1197,7 @@ class Model
                 $conditions[$i + 1] = trim($conditions[$i + 1]);
             }
         }
-
+        
         return implode(' ', $conditions);
     }
 
@@ -1213,10 +1208,10 @@ class Model
      */
     private function genWhere()
     {
-        $whereCode = $this->preParseWhere();
         if (empty($this->sqlCollect['where'])) {
             return '';
         }
+        $symbol = $this->preParseWhere();
 
         $collectedData = [];
         $whereSql      = '';
@@ -1227,9 +1222,9 @@ class Model
 
                 $collectedData["w_{$index}_{$k}"] = $v;
             }
-            $whereSql .= $whereCode[$index][1] . $whereCode[$index][0] . $sql . $whereCode[$index][2];
+            $whereSql .= $symbol[$index][1] . $symbol[$index][0] . $sql . $symbol[$index][2];
         }
-        $whereSql = $this->applyAsMapForWhere($whereSql);
+        //$whereSql = $this->applyAsMapForWhere($whereSql);
 
         if (isset($this->sqlCollect['subCondition'])) {
             foreach ($this->sqlCollect['subCondition'] as $id => $condition) {
@@ -1255,8 +1250,12 @@ class Model
         if (isset(static::$columns[$name]['field'])) {
             $name = static::$columns[$name]['field'];
         }
+        $name = static::$quotes . $name . static::$quotes;
+        if ($this->needFullFieldName) {
+            $name = $this->table . '.' . $name;
+        }
 
-        return static::$quotes . $name . static::$quotes;
+        return $name;
     }
 
     /**
@@ -1288,7 +1287,6 @@ class Model
         }
         $sqlBuffer = [];
         foreach ($this->sqlCollect['order'] as $oa) {
-            //$sqlBuffer[] = $this->transfilerAsMap($oa[0]) . ' ' . strtoupper($oa[1]);
             $sqlBuffer[] = $this->nameMapField($oa[0]) . ' ' . strtoupper($oa[1]);
         }
 
@@ -1303,13 +1301,11 @@ class Model
     private function applyLimitForEdit()
     {
         if (isset($this->sqlCollect['limit']) && $this->sqlCollect['limit'][0]) {
-            $model                                          = new static();
-            $model->sqlCollect                              = $this->sqlCollect;
-            $model->sqlCollect['names'][]                   = static::$primary;
-            $conditionId                                    = '_sc_79f19ede5b_';
-            $this->sqlCollect['subCondition'][$conditionId] = $model->getSelectSql();
-            $this->aloneWhere(static::$primary . ' IN (SELECT' . $conditionId . ')');
-            $this->data = array_merge($this->data, $model->data);
+            $model             = new static();
+            $model->sqlCollect = $this->sqlCollect;
+            $model->field(static::$primary, true);
+
+            $this->in(static::$primary, $model);
         }
     }
 
@@ -1344,9 +1340,9 @@ class Model
         foreach (static::$columns as $name => $column) {
             if (isset($column['del'])) {
                 if ($sign === 'only') {
-                    $this->aloneWhere("$name=true");
+                    $this->where("$name=true");
                 }else {
-                    $this->aloneWhere("$name=false");
+                    $this->where("$name=false");
                 }
                 break;
             }
@@ -1360,9 +1356,10 @@ class Model
      */
     private function getSelectSql()
     {
+        $this->needFullFieldName = isset($this->sqlCollect['relate']);
         $this->applyTrashed();
         $this->genSelectNames();
-        $this->preSql .= ' FROM ' . $this->genTableName();
+        $this->preSql .= ' FROM ' . $this->table;
         $this->genWhere();
         $this->genGroup();
         $this->genOrder();
@@ -1451,6 +1448,8 @@ class Model
      * @param int    $length
      * @param string $names 要列出的字段
      *
+     * TODO: 保持Where条件的顺序，以达到能让开发人员优化查询条件的目的
+     *
      * @return array
      */
     public function take($length, $names = '*')
@@ -1460,18 +1459,21 @@ class Model
         return $this->fetch($names);
     }
 
+    /**
+     * 生成Select语句
+     */
     private function parseSelectSql()
     {
-        $table = $this->genTableName();
+        $this->needFullFieldName = isset($this->sqlCollect['relate']);
         $this->applyTrashed();
         $this->genSelectNames();
-        $this->preSql .= ' FROM ' . $table;
+        $this->preSql .= ' FROM ' . $this->table;
         $whereSql = $this->genWhere();
         $groupSql = $this->genGroup();
         $this->genOrder();
         $this->genLimit();
 
-        $this->lastPageInfo = [];
+        $this->lastPageInfo = null;
 
         if (isset($this->sqlCollect['needTotal']) && $this->sqlCollect['needTotal'] && isset($this->sqlCollect['limit'])) {
             $pageSize  = $this->sqlCollect['limit'][0];
@@ -1481,7 +1483,7 @@ class Model
                 -1,
                 $pageIndex,
                 $pageSize,
-                'COUNT(*) FROM ' . $table . $whereSql . $groupSql,
+                'COUNT(*) FROM ' . $this->table . $whereSql . $groupSql,
                 $this->data
             ];
         }
@@ -1594,7 +1596,7 @@ class Model
     public function add(array $data = [])
     {
         $this->sqlCollect['data'][] = $data;
-        $this->preSql               = $this->genTableName();
+        $this->preSql               = $this->table;
         $this->genInsertNames();
 
         return $this->insert($this->preSql, $this->data);
@@ -1628,7 +1630,7 @@ class Model
     {
         $this->applyLimitForEdit();
         $this->sqlCollect['data'][] = $data;
-        $this->preSql               = $this->genTableName();
+        $this->preSql               = $this->table;
         $this->genUpdateNames();
         $this->genWhere();
 
@@ -1720,7 +1722,7 @@ class Model
         foreach (static::$columns as $name => $column) {
             if (isset($column['del'])) {
                 $data[$name] = true;
-                $this->aloneWhere("{$name}=false");
+                $this->where("{$name}=false", [], MODEL_BOUND_CELL);
             }
         }
         if (!count($data)) {
@@ -1741,7 +1743,7 @@ class Model
         foreach (static::$columns as $name => $column) {
             if (isset($column['del'])) {
                 $data[$name] = false;
-                $this->aloneWhere("{$name}=true");
+                $this->where("{$name}=true", [], MODEL_BOUND_CELL);
             }
         }
         if (!count($data)) {
@@ -1766,39 +1768,11 @@ class Model
             $this->onlyTrashed();
         }
         $this->applyTrashed();
-        $this->preSql = ' FROM ' . $this->genTableName();
+        $this->preSql = ' FROM ' . $this->table;
         $this->genWhere();
         $this->genLimit();
 
         return $this->delete($this->preSql, $this->data);
-    }
-
-    /**
-     * 获取一条相关数据
-     *
-     * @param $model
-     * @param $foreignKey
-     * @param $localKey
-     *
-     * @return array
-     */
-    public function hasOne($model, $foreignKey = null, $localKey = null)
-    {
-        return [];
-    }
-
-    /**
-     * 获取多条相关的数据
-     *
-     * @param      $model
-     * @param null $foreignKey
-     * @param null $localKey
-     *
-     * @return array
-     */
-    public function hasMany($model, $foreignKey = null, $localKey = null)
-    {
-        return [];
     }
 
     /**
@@ -1810,7 +1784,7 @@ class Model
     {
         $this->applyTrashed();
         $this->preSql .= ' COUNT(*)';
-        $this->preSql .= ' FROM ' . $this->genTableName();
+        $this->preSql .= ' FROM ' . $this->table;
         $this->genWhere();
         $this->genGroup();
 
@@ -1851,12 +1825,13 @@ class Model
      *
      * @param string $sql
      * @param array  $data
+     * @param int    $bound 与前后条件的边界化分
      *
      * @return $this
      */
-    public function where($sql, array $data = [])
+    public function where($sql, array $data = [], $bound = MODEL_BOUND_CELL)
     {
-        $this->sqlCollect['where'][] = [$sql, $data, 0, 1];
+        $this->sqlCollect['where'][] = [$sql, $data, 0, $bound, 1];
 
         return $this;
     }
@@ -1866,44 +1841,13 @@ class Model
      *
      * @param string $sql
      * @param array  $data
+     * @param int    $bound 与前后条件的边界化分
      *
      * @return $this
      */
-    public function orWhere($sql, array $data = [])
+    public function orWhere($sql, array $data = [], $bound = MODEL_BOUND_CELL)
     {
-        $this->sqlCollect['where'][] = [$sql, $data, 1, 1];
-
-        return $this;
-    }
-
-    /**
-     * 其余语句需要括起来
-     *
-     * @param string $sql
-     * @param array  $data
-     * @param string $link
-     *
-     * @return $this
-     */
-    public function aloneWhere($sql, array $data = [], $link = 'and')
-    {
-        $this->sqlCollect['aloneWhere'][] = [$sql, $data, $link === 'and' ? 0 : 1];
-
-        return $this;
-    }
-
-    /**
-     * 附着在前一个Where子句内的条件
-     *
-     * @param string $sql
-     * @param array  $data
-     * @param string $link 与前方条件的结合方式
-     *
-     * @return $this
-     */
-    public function affixWhere($sql, array $data = [], $link = 'and')
-    {
-        $this->sqlCollect['where'][] = [$sql, $data, $link === 'and' ? 0 : 1, 0];
+        $this->sqlCollect['where'][] = [$sql, $data, 1, $bound, 1];
 
         return $this;
     }
@@ -1926,7 +1870,8 @@ class Model
     /**
      * 相等条件
      *
-     * @param array $list
+     * @param array  $list
+     * @param string $glue
      *
      * @return $this
      */
@@ -1942,85 +1887,107 @@ class Model
     }
 
     /**
-     * 模糊搜索
+     * 准备模糊匹配所需的参数
      *
-     * @param string $name 参与搜索的属性
-     * @param string $value 搜索的值
-     * @param int    $model ‘%’所在的位置
-     * @param string $glue 与其它条件的关系
-     *
-     * @return $this
-     */
-    public function like($name, $value, $model = MODEL_LIKE_BOTH, $glue = 'AND')
+     * @param string|array $name 参与搜索的属性
+     * @param string       $keyword 搜索的值
+     * @param int          $model ‘%’所在的位置
+     * @param int          $glue 条件间的连接关系
+     * @return array
+     **/
+    public function preParseLike($name, $keyword, $model, $glue)
     {
         if ($model & MODEL_LIKE_LEFT) {
-            $value = '%' . $value;
+            $keyword = '%' . $keyword;
         }
         if ($model & MODEL_LIKE_RIGHT) {
-            $value = $value . '%';
+            $keyword = $keyword . '%';
         }
-        switch ($glue) {
-            case 'AND':
-                return $this->where("{$name} like :keywords", ['keywords' => $value]);
-            case 'OR':
-                return $this->orWhere("{$name} like :keywords", ['keywords' => $value]);
-            case 'ALONE':
-                return $this->aloneWhere("{$name} like :keywords", ['keywords' => $value]);
-            default:
-                self::error('likeParamterGlueIll', 'Model 中 like 方法的 glue 参数值错误,只能是 AND/OR/ALONE 之一，请检查');
+
+        $data = ['keywords' => $keyword];
+
+        $sqlBuilder = [];
+
+        if (is_array($name)) {
+            foreach ($name as $n) {
+                $sqlBuilder[] = "{$n} like :keywords";
+            }
+        }else {
+            $sqlBuilder[] = "{$name} like :keywords";
         }
+
+        $glue = $glue === 1 ? 'or' : 'and';
+
+        $sql = implode(" {$glue} ", $sqlBuilder);
+
+        return [$sql, $data];
     }
 
     /**
-     * 搜索
+     * 模糊搜索 与其条件用AND连接
      *
-     * @param array  $condition 搜索相关的字段
-     * @param array  $keywords 关键字
-     * @param string $model 查询模式
-     * @param string $glue 条件间的连接方式
+     * @param string|array $name 参与搜索的属性
+     * @param string       $keyword 搜索的值
+     * @param int          $model ‘%’所在的位置
+     * @param int          $glue 条件间的连接关系
+     * @param int          $bound 与前后条件的边界化分
      *
      * @return $this
      */
-    public function search(array $condition, $keywords, $model = 'like', $glue = 'OR')
+    public function like($name, $keyword, $model = MODEL_LIKE_BOTH, $glue = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
     {
-        $sqlBuffer = [];
-        foreach ($condition as $name) {
-            $sqlBuffer[] = "{$name} {$model} :keywords";
-        }
-        $this->where(implode(" {$glue} ", $sqlBuffer), ['keywords' => $keywords]);
+        list($sql, $data) = $this->preParseLike($name, $keyword, $model, $glue);
+
+        return $this->where($sql, $data, $bound);
+    }
+
+    /**
+     * 模糊搜索 与其条件用OR连接
+     *
+     * @param string|array $name 参与搜索的属性
+     * @param string       $keyword 搜索的值
+     * @param int          $model ‘%’所在的位置
+     * @param int          $glue 条件间的连接关系
+     * @param int          $bound 与前后条件的边界化分
+     *
+     * @return $this
+     */
+    public function orLike($name, $keyword, $model = MODEL_LIKE_BOTH, $glue = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
+    {
+        list($sql, $data) = $this->preParseLike($name, $keyword, $model, $glue);
+
+        return $this->orWhere($sql, $data, $bound);
+    }
+
+    /**
+     * 全文本搜索
+     *
+     * @param array $condition 搜索相关的字段
+     * @param array $keyword 关键字
+     * @param int   $glue 条件间的连接方式
+     * @param int   $bound 与前后条件的边界化分
+     *
+     * @return $this
+     */
+    public function search(array $condition, $keyword, $glue = MODEL_LINK_OR, $bound = MODEL_BOUND_CELL)
+    {
 
         return $this;
     }
 
-
     /**
-     * 搜索条件与之前条件间用OR连接
+     * 全文本搜索
      *
-     * @param string $condition 搜索条件 ['name', 'like', '%:name%', 'or']
-     * @param array  $data 搜索用的值
+     * @param array $condition 搜索相关的字段
+     * @param array $keyword 关键字
+     * @param int   $glue 条件间的连接方式
+     * @param int   $bound 与前后条件的边界化分
      *
      * @return $this
      */
-    public function orSearch($condition, $data)
+    public function orSearch(array $condition, $keyword, $glue = MODEL_LINK_OR, $bound = MODEL_BOUND_CELL)
     {
-        //TODO:转换成where语句
-        //$this->sqlCollect['page'] = [$length, $page];
-        return $this;
-    }
 
-    /**
-     * 嵌入到之前条件内
-     *
-     * @param string $condition 搜索条件 ['name', 'like', '%:name%', 'or']
-     * @param array  $data 搜索用的值
-     * @param string $link 与前方条件的结合方式
-     *
-     * @return $this
-     */
-    public function affixSearch($condition, $data, $link = 'and')
-    {
-        //TODO:转换成where语句
-        //$this->sqlCollect['page'] = [$length, $page];
         return $this;
     }
 
@@ -2127,6 +2094,8 @@ class Model
     /**
      * 显示隐藏字段
      *
+     * @param string $field 要查询的字段
+     *
      * @return $this
      */
     public function withHidden($field = '*')
@@ -2137,52 +2106,17 @@ class Model
     }
 
     /**
-     * 关联查询
+     * 关联查询,要获取的字段可以在model上通过field设值
      *
-     * @param string $model
-     * @param string $on
-     * @param array  $data
-     * @param string $names
-     *
-     * @return $this
-     */
-    public function innerJoin($model, $on, array $data = [], $names = '*')
-    {
-        $this->sqlCollect['innerJoin'][] = [$model, $on, $data, $names];
-
-        return $this;
-    }
-
-    /**
-     * 关联查询
-     *
-     * @param string $model
-     * @param string $on
-     * @param array  $data
-     * @param string $names
+     * @param \jt\Model $model 关联模型
+     * @param array     $foreignShip 外键关系
+     * @param int       $glue
      *
      * @return $this
      */
-    public function leftJoin($model, $on, array $data = [], $names = '*')
+    public function relate(Model $model, $foreignShip = [], $glue = MODEL_RELATE_ONE_TO_ONE)
     {
-        $this->sqlCollect['leftJoin'][] = [$model, $on, $data, $names];
-
-        return $this;
-    }
-
-    /**
-     * 关联查询
-     *
-     * @param string $model
-     * @param string $on
-     * @param array  $data
-     * @param string $names
-     *
-     * @return $this
-     */
-    public function rightJoin($model, $on, array $data = [], $names = '*')
-    {
-        $this->sqlCollect['rightJoin'][] = [$model, $on, $data, $names];
+        $this->sqlCollect['where']['relate'][] = [$model, $foreignShip, $glue];
 
         return $this;
     }
@@ -2190,50 +2124,148 @@ class Model
     /**
      * exists查询
      *
-     * @param string $model
-     * @param string $where
-     * @param array  $data
-     * @param string $names
+     * @param \jt\Model $model 关联的模型
+     * @param int       $link 与其它条件的关系
+     * @param int       $bound 与前后条件的边界化分
      *
      * @return $this
      */
-    public function exists($model, $where, array $data = [], $names = '*')
+    public function exists(Model $model, $link = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
     {
-        $this->sqlCollect['exists'][] = [$model, $where, $data, $names];
+        $this->applyExists($model, $link, $bound, false);
 
         return $this;
+    }
+
+    /**
+     * not exists查询
+     *
+     * @param \jt\Model $model 关联的模型
+     * @param int       $link 与其它条件的关系
+     * @param int       $bound 与前后条件的边界化分
+     *
+     * @return $this
+     */
+    public function notExists(Model $model, $link = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
+    {
+        $this->applyExists($model, $link, $bound, true);
+
+        return $this;
+    }
+
+    /**
+     * 处理exists查询
+     *
+     * @param \jt\Model $model 关联的模型
+     * @param int       $link 与其它条件的关系
+     * @param int       $bound 与前后条件的边界化分
+     * @param bool      $not 是否是not exists
+     *
+     * @return $this
+     */
+    private function applyExists($model, $link, $bound, $not)
+    {
+        $model->needFullFieldName = true;
+        if (empty($model->sqlCollect['names'])) {
+            $model->field($model::$primary);
+        }
+        $sql = ($not ? 'NOT ' : '') . 'EXISTS (SELECT ' . $model->getSelectSql() . ')';
+
+        $this->sqlCollect['where'][] = [$sql, $model->data, $link, $bound, 0];
     }
 
     /**
      * in 查询
      *
-     * @param string $field 要查的字段
-     * @param array  $list 值列表 可以是索引数组
+     * @param string      $field 要查的字段
+     * @param array|Model $list 值列表 可以是索引数组
+     * @param int         $link 与其它条件的关系
+     * @param int         $bound 与前后条件的边界化分
      *
      * @return $this
      */
-    public function in($field, array $list)
+    public function in($field, $list, $link = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
     {
-        $keys = [];
-        foreach ($list as $k => $v) {
-            $keys[] = ":{$k}";
+        if (is_array($list)) {
+            $this->inList($field, $list, $link, $bound, false);
+        }elseif ($list instanceof Model) {
+            $this->inSubQuery($field, $list, $link, $bound, false);
         }
-        $instr = implode(',', $keys);
-        $this->aloneWhere("$field in ({$instr})", $list);
 
         return $this;
     }
 
     /**
-     * 设置GROUP
+     * not in 查询
      *
-     * @param $field
+     * @param string      $name 要查的字段
+     * @param array|Model $list 值列表 可以是索引数组
+     * @param int         $link 与其它条件的关系
+     * @param int         $bound 与前后条件的边界化分
      *
      * @return $this
      */
-    public function group($field)
+    public function notIn($name, $list, $link = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
     {
-        $this->sqlCollect['group'][] = $field;
+        if (is_array($list)) {
+            $this->inList($name, $list, $link, $bound, true);
+        }elseif ($list instanceof Model) {
+            $this->inSubQuery($name, $list, $link, $bound, true);
+        }
+
+        return $this;
+    }
+
+    /**
+     * in 列表
+     *
+     * @param string $name
+     * @param array  $list
+     * @param int    $link 与其它条件的关系 AND/OR/ALONE/AFFIX
+     * @param int    $bound 与前后条件的边界化分
+     * @param bool   $not
+     */
+    private function inList($name, array $list, $link, $bound, $not)
+    {
+        $keys = [];
+        foreach ($list as $k => $v) {
+            $keys[] = ":{$k}";
+        }
+        $instr   = implode(',', $keys);
+        $notSign = $not ? 'not ' : '';
+
+        $sql = "$name {$notSign}in ({$instr})";
+
+        $this->sqlCollect['where'][] = [$sql, $list, $link, $bound, 1];
+    }
+
+    /**
+     * in 子查询
+     *
+     * @param string    $name
+     * @param \jt\Model $model
+     * @param int       $link 与其它条件的关系 AND/OR/ALONE/AFFIX
+     * @param int       $bound 与前后条件的边界化分
+     * @param bool      $not
+     */
+    private function inSubQuery($name, $model, $link, $bound, $not)
+    {
+        $model->field($model::$primary, true);
+        $sql = $this->nameMapField($name) . ' ' . ($not ? 'NOT ' : '') . 'IN (SELECT ' . $model->getSelectSql() . ')';
+
+        $this->sqlCollect['where'][] = [$sql, $model->data, $link, $bound, 0];
+    }
+
+    /**
+     * 设置GROUP
+     *
+     * @param $name
+     *
+     * @return $this
+     */
+    public function group($name)
+    {
+        $this->sqlCollect['group'][] = $name;
 
         return $this;
     }
@@ -2243,13 +2275,13 @@ class Model
      *
      * @param string $attr 排序的属性(将自动映射为字段)
      * @param string $order asc | desc
-     * @param null   $model 以指定的模块的属性排序
+     * @param string $model 以指定的模块的属性排序
      *
      * @return $this
      */
     public function order($attr, $order = 'asc', $model = null)
     {
-        $fields = \preg_split('/ *, */', $attr);
+        $fields = preg_split('/ *, */', $attr);
         foreach ($fields as $field) {
             $this->sqlCollect['order'][] = [$field, $order, $model];
         }

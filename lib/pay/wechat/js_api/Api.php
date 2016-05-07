@@ -7,13 +7,14 @@
  *
  */
 
-namespace jt\lib\pay\wechatJs;
+namespace jt\lib\pay\wechat\js_api;
 
 use jt\utils\Helper;
 use jt\utils\Url;
 
-require(__DIR__ . '/WxPay.Api.php');
-require(__DIR__ . '/WxPay.JsApiPay.php');
+
+require('../WxPay.Api.php');
+require('../WxPay.JsApiPay.php');
 
 class Api
 {
@@ -35,6 +36,8 @@ class Api
         $this->notify_url = $notify_url;
 
         $this->data = array_merge($this->data, $data);
+        
+        \WxPayConfig::setConfig(\Config::WECHAT_JS_API_PAY);
     }
 
     /**

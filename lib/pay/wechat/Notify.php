@@ -5,7 +5,7 @@
  * Create: 2015/12/8 14:12
  */
 
-namespace jt\lib\pay\wechatJs;
+namespace jt\lib\pay\wechat;
 
 require __DIR__ . '/WxPay.Api.php';
 require __DIR__ . '/WxPay.Notify.php';

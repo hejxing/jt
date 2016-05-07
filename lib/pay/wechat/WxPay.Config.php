@@ -5,6 +5,7 @@
  */
 class WxPayConfig
 {
+    public static $NOTIFY_URL = '';
     //=======【基本信息设置】=====================================
     //
     /**
@@ -16,29 +17,28 @@ class WxPayConfig
      * MCHID：商户号（必须配置，开户邮件中可查看）
      *
      * KEY：商户支付密钥，参考开户邮件设置（必须配置，登录商户平台自行设置）
-     * 设置地址：https://pay.weixin.qq.com/index.php/account/api_cert
+     * 设置地址：https://pay.weixin.qq.com/act.php/account/api_cert
      *
      * APPSECRET：公众帐号secert（仅JSAPI支付的时候需要配置， 登录公众平台，进入开发者中心可设置），
      * 获取地址：https://mp.weixin.qq.com/advanced/advanced?action=dev&t=advanced/dev&token=2005451881&lang=zh_CN
      *
      * @var string
      */
-
-    const APPID     = \Config::WE_CHAT_PAY_APP_ID;
-    const MCHID     = \Config::WE_CHAT_PAY_MCH_ID;
-    const KEY       = \Config::WE_CHAT_PAY_KEY;
-    const APPSECRET = \Config::WE_CHAT_PAY_SECRET;
+    public static $APPID     = '';
+    public static $MCHID     = '';
+    public static $KEY       = '';
+    public static $APPSECRET = '';
 
     //=======【证书路径设置】=====================================
     /**
      * TODO：设置商户证书路径
      * 证书路径,注意应该填写绝对路径（仅退款、撤销订单时需要，可登录商户平台下载，
-     * API证书下载地址：https://pay.weixin.qq.com/index.php/account/api_cert，下载之前需要安装商户操作证书）
+     * API证书下载地址：https://pay.weixin.qq.com/act.php/account/api_cert，下载之前需要安装商户操作证书）
      *
      * @var path
      */
-    const SSLCERT_PATH = PROJECT_ROOT . '/cert/wechat_pay/' . self::MCHID . '/apiclient_cert.pem';
-    const SSLKEY_PATH  = PROJECT_ROOT . '/cert/wechat_pay/' . self::MCHID . '/apiclient_key.pem';
+    public static $SSLCERT_PATH = '';
+    public static $SSLKEY_PATH  = '';
 
     //=======【curl代理设置】===================================
     /**
@@ -61,4 +61,14 @@ class WxPayConfig
      * @var int
      */
     const REPORT_LEVENL = 1;
+
+    public static function setConfig($config){
+        self::$APPID = $config['appId'];
+        self::$MCHID = $config['mchId'];
+        self::$KEY = $config['key'];
+        self::$APPSECRET = $config['appSecret'];
+
+        self::$SSLCERT_PATH = $config['sslCertPath'].'/apiclient_cert.pem';
+        self::$SSLKEY_PATH = $config['sslCertPath'].'/apiclient_key.pem';
+    }
 }
