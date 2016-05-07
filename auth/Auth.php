@@ -8,6 +8,12 @@
 
 namespace jt\auth;
 
+define('JT_LOGIN_SUCCESS', 1);
+define('JT_LOGIN_PASSWORD_ILL', 2);
+define('JT_LOGIN_BLOCK', 3);
+define('JT_LOGIN_FAIL', 4);
+define('JT_LOGIN_OUT', 5); //退出登录
+
 use jt\Controller;
 use jt\Session;
 use jt\Action;
