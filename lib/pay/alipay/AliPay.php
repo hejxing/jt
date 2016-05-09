@@ -135,6 +135,13 @@ class AliPay
             'it_b_pay'       => '30m',
             'return_url'     => $this->returnUrl
         ];
+
+        $gateWay = $this->genGateWay($param);
+
+        return ['pay_url' => $gateWay];
+    }
+
+    protected function genGateWay($param){
         $buffer = [];
         ksort($param);
         foreach ($param as $key => $value) {
@@ -151,7 +158,7 @@ class AliPay
         openssl_free_key($res);
         $sign = urlencode(base64_encode($sign));
 
-        return ['pay_url' => $this->alipayGateWay . $queryString . '&sign="' . $sign.'"&sign_type="'.$this->signType.'"'];
+        return $this->alipayGateWay . $queryString . '&sign="' . $sign.'"&sign_type="'.$this->signType.'"';
     }
 
     /**
