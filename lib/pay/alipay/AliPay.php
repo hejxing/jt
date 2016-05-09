@@ -152,7 +152,7 @@ class AliPay
         openssl_free_key($res);
         $sign = base64_encode($sign);
 
-        return ['pay_url' => $this->alipayGateWay . $queryString . '&sign="' . $sign.'""&sign_type="'.$this->signType.'"'];
+        return ['pay_url' => $this->alipayGateWay . $queryString . '&sign="' . $sign.'"&sign_type="'.$this->signType.'"'];
     }
 
     /**
