@@ -21,7 +21,7 @@ class Config
         'idName'  => 'ACCESS_TOKEN,token',
     ];
 
-    const WECHAT_APP_PAY = [
+    const PAY_WECHAT_APP = [
         'appId' => '',
         'mchId' => '',
         'key' => '',
@@ -29,12 +29,16 @@ class Config
         'sslCertPath' => ''
     ];
 
-    const WECHAT_JS_API_PAY = [
+    const PAY_WECHAT_JS_API = [
         'appId' => '',
         'mchId' => '',
         'key' => '',
         'appSecret' => '',
         'sslCertPath' => ''
+    ];
+
+    const PAY_ALIPAY_APP = [
+        
     ];
 
     const TEMPLATE             = [
