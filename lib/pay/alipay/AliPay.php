@@ -85,7 +85,7 @@ class AliPay
     ];
 
     protected $config = [];
-    protected $data = [];
+    protected $data   = [];
 
     public function __construct(array $config, $targetType, $notify_url)
     {
@@ -96,8 +96,8 @@ class AliPay
 
         $this->notify_url = $notify_url;
 
-        $this->config = $config;
-        $this->config['private_key_path'] = $this->config['key_path'].'/rsa_private_key.pem';
+        $this->config                     = $config;
+        $this->config['private_key_path'] = $this->config['key_path'] . '/rsa_private_key.pem';
     }
 
     private function payInit($amount, $id, $name, $memo)
@@ -110,34 +110,49 @@ class AliPay
 
     /**
      * APP支付
-     * @param float $amount 支付金额
+     *
+     * @param float  $amount 支付金额
      * @param string $id 支付对象ID
      * @param string $name 在支付平台显示的支付内容
      * @param string $memo 支付备注
      * @return array
      */
-    public function appPay($amount, $id, $name, $memo){
+    public function appPay($amount, $id, $name, $memo)
+    {
         $this->payInit($amount, $id, $name, $memo);
 
-        $param = [
-            'partner' => $this->config['pid'],
-            'seller_id' => $this->config['seller_email'],
-            'out_trade_no' => $this->data['id'],
-            'subject' => $this->data['name'],
-            'body' => '',//商品详情,
-            'total_fee' => $this->amount,
-            'notify_url' => $this->notify_url,
-            'service' => 'mobile.securitypay.pay',
-            'payment_type' => '1',
+        $param  = [
+            'partner'        => $this->config['pid'],
+            'seller_id'      => $this->config['seller_email'],
+            'out_trade_no'   => $this->data['id'],
+            'subject'        => $this->data['name'],
+            'body'           => '',//商品详情,
+            'total_fee'      => $this->amount,
+            'notify_url'     => $this->notify_url,
+            'service'        => 'mobile.securitypay.pay',
+            'payment_type'   => '1',
             '_input_charset' => $this->inputCharset,
-            'it_b_pay' => '30m',
-            'return_url' => $this->returnUrl,
-            'paymethod' => 'expressGateway',
-            'sign_type'  => $this->signType,
-            'private_key_path' => $this->config['private_key_path']
+            'it_b_pay'       => '30m',
+            'return_url'     => $this->returnUrl,
+            'paymethod'      => 'expressGateway'
         ];
+        $buffer = [];
+        ksort($param);
+        foreach ($param as $key => $value) {
+            if ($value === '' || $value === null) {
+                continue;
+            }
+            $buffer[] = $key . '="' . $value.'"';
+        }
+        $queryString = implode('&', $buffer);
 
-        return ['pay_url' => $this->alipay($param)];
+        $priKey = file_get_contents($this->config['private_key_path']);
+        $res = openssl_get_privatekey($priKey);
+        openssl_sign($queryString, $sign, $res);
+        openssl_free_key($res);
+        $sign = base64_encode($sign);
+
+        return ['pay_url' => $this->alipayGateWay . $queryString . '&sign="' . $sign.'""&sign_type="'.$this->signType.'"'];
     }
 
     /**
@@ -236,7 +251,7 @@ class AliPay
         $para      = $alipaySubmit->buildRequestPara($this->packagePayServiceConfig());
         $urlBuffer = [];
         foreach ($para as $key => $val) {
-            $urlBuffer[] = ($key . '=' . \urlencode($val));
+            $urlBuffer[] = $key . '=' . $val;
         }
 
         return $this->alipayGateWay . implode('&', $urlBuffer);
@@ -267,33 +282,38 @@ class AliPay
 
     /**
      * 获取支付宝主配置
+     *
      * @return array
      */
-    protected function packageServiceConfig(){
-        return array(
-            'partner' => $this->config['pid'],
-            'key' => $this->config['key'],
-            'seller_email' => $this->config['seller_email'],
-            'sign_type'  => $this->signType,
-            "input_charset" => $this->inputCharset,
-            "transport" => $this->transport
-        );
+    protected function packageServiceConfig()
+    {
+        return [
+            'partner'          => $this->config['pid'],
+            'key'              => $this->config['key'],
+            'seller_email'     => $this->config['seller_email'],
+            'sign_type'        => $this->signType,
+            'private_key_path' => $this->config['private_key_path'],
+            "input_charset"    => $this->inputCharset,
+            "transport"        => $this->transport
+        ];
     }
 
     /**
      * 获取支付配置
+     *
      * @return array
      */
-    protected function packageConfig(){
-        return array(
-            'partner' => $this->config['pid'],
-            'seller_email' => $this->config['seller_email'],
-            'sign_type'  => $this->signType,
+    protected function packageConfig()
+    {
+        return [
+            'partner'          => $this->config['pid'],
+            'seller_email'     => $this->config['seller_email'],
+            'sign_type'        => $this->signType,
             'private_key_path' => $this->config['private_key_path'],
-            '_input_charset' => $this->inputCharset,
-            "return_url" => $this->returnUrl,
-            "notify_url" => $this->notifyUrl
-        );
+            '_input_charset'   => $this->inputCharset,
+            "return_url"       => $this->returnUrl,
+            "notify_url"       => $this->notifyUrl
+        ];
     }
 
     /**
