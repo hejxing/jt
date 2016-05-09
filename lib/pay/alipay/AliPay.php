@@ -133,8 +133,7 @@ class AliPay
             'payment_type'   => '1',
             '_input_charset' => $this->inputCharset,
             'it_b_pay'       => '30m',
-            'return_url'     => $this->returnUrl,
-            'paymethod'      => 'expressGateway'
+            'return_url'     => $this->returnUrl
         ];
         $buffer = [];
         ksort($param);
@@ -150,7 +149,7 @@ class AliPay
         $res = openssl_get_privatekey($priKey);
         openssl_sign($queryString, $sign, $res);
         openssl_free_key($res);
-        $sign = base64_encode($sign);
+        $sign = urlencode(base64_encode($sign));
 
         return ['pay_url' => $this->alipayGateWay . $queryString . '&sign="' . $sign.'"&sign_type="'.$this->signType.'"'];
     }
