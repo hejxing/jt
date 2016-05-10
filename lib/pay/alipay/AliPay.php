@@ -95,9 +95,7 @@ class AliPay
         }
 
         $this->notify_url = $notify_url;
-
-        $this->config                     = $config;
-        $this->config['private_key_path'] = $this->config['key_path'] . '/rsa_private_key.pem';
+        $this->config     = $config;
     }
 
     private function payInit($amount, $id, $name, $memo)
@@ -121,12 +119,12 @@ class AliPay
     {
         $this->payInit($amount, $id, $name, $memo);
 
-        $param  = [
+        $param = [
             'partner'        => $this->config['pid'],
             'seller_id'      => $this->config['seller_email'],
             'out_trade_no'   => $this->data['id'],
             'subject'        => $this->data['name'],
-            'body'           => '支付订单:'.$this->data['id'],//商品详情,
+            'body'           => '支付订单:' . $this->data['id'],//商品详情,
             'total_fee'      => $this->amount,
             'notify_url'     => $this->notify_url,
             'service'        => 'mobile.securitypay.pay',
@@ -141,23 +139,24 @@ class AliPay
         return ['pay_url' => $gateWay];
     }
 
-    protected function genGateWay($param){
+    protected function genGateWay($param)
+    {
         $buffer = [];
         foreach ($param as $key => $value) {
             if ($value === '' || $value === null) {
                 continue;
             }
-            $buffer[] = $key . '="' . $value.'"';
+            $buffer[] = $key . '="' . $value . '"';
         }
         $queryString = implode('&', $buffer);
 
-        $priKey = file_get_contents($this->config['private_key_path']);
-        $res = openssl_get_privatekey($priKey);
+        $priKey = file_get_contents($this->config['key_path'] . '/rsa_private_key.pem');
+        $res    = openssl_get_privatekey($priKey);
         openssl_sign($queryString, $sign, $res);
         openssl_free_key($res);
         $sign = urlencode(base64_encode($sign));
 
-        return $queryString . '&sign="' . $sign.'"&sign_type="'.$this->signType.'"';
+        return $queryString . '&sign="' . $sign . '"&sign_type="RSA"';
     }
 
     /**
@@ -370,14 +369,30 @@ class AliPay
     /**
      * 验证支付成功反馈的真实性
      *
-     * @return bool
+     * @param callable $callback 验证支付成功后所做的处理
      */
-    public function notify()
+    public function appNotify(callable $callback)
     {
-        require_once(__DIR__ . '/alipay_notify.class.php');
-        $alipayNotify = new \AlipayNotify($this->packagePayServiceConfig());
+        if (!class_exists('\AlipayNotify', false)) {
+            require(__DIR__ . '/alipay_notify.class.php');
+        }
+        $alipayNotify = new \AlipayNotify([
+            'partner'             => $this->config['pid'],
+            'ali_public_key_path' => $this->config['key_path'] . '/alipay_public_key.pem',
+            'sign_type'           => 'RSA',
+            'input_charset'       => $this->inputCharset,
+            'cacert'              => __DIR__ . '/cacert.pem',
+            'transport'           => $this->config['transport']
+        ]);
 
-        return $alipayNotify->verifyNotify();
+        if ($alipayNotify->verifyNotify() === true) {
+            if ($callback() === true) {
+                echo 'SUCCESS';
+
+                return;
+            }
+        }
+        echo 'FAIL';
     }
 
     ///**

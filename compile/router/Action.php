@@ -16,7 +16,7 @@ abstract class Action extends Loader
     const REQUESTER_CLASS = '\jt\Requester';
     const MODEL_ACTION    = '\jt\ModelAction';
 
-    const RULER_ORDER          = ['method', 'uri', 'tpl', 'auth', 'mime', 'affix'];
+    const RULER_ORDER          = ['method', 'uri', 'tpl', 'auth', 'mime', 'affix'];//affix:doc_hidden,output_quiet
     const METHODS              = ['get', 'post', 'put', 'delete', 'head', 'option'];//支持的动作
     const ANY_AS_METHODS       = ['get', 'post', 'put', 'delete'];//any 所代表的动作
     const REQUEST_PARAM        = ['body', 'query', 'request', 'header', 'cookie', 'session'];
