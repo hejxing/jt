@@ -102,7 +102,7 @@ class AliPay
 
     private function payInit($amount, $id, $name, $memo)
     {
-        $this->amount       = ceil($amount * 100);//单位为分,所以要乘100
+        $this->amount       = floatval($amount);//单位为分,所以要乘100
         $this->data['id']   = $id;
         $this->data['name'] = $name;
         $this->data['memo'] = $memo;
