@@ -143,7 +143,6 @@ class AliPay
 
     protected function genGateWay($param){
         $buffer = [];
-        //ksort($param);
         foreach ($param as $key => $value) {
             if ($value === '' || $value === null) {
                 continue;
