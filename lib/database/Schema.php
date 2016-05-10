@@ -46,6 +46,12 @@ class Schema extends Connector
                     $type .= "({$option['length']})";
                 }
                 break;
+            case 'bit':
+            case 'varbit':
+                if(isset($option['length'])){
+                    $type .= "({$option['length']})";
+                }
+                break;
         }
 
         return $type;

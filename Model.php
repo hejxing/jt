@@ -189,7 +189,7 @@ abstract class Model
      */
     protected static $parseDict = [
         'bool'    => ['require', 'increment', 'primary', 'hidden', 'lower', 'del', 'array', 'object'],
-        'type'    => ['uuid', 'bit', 'timestamp', 'date'],
+        'type'    => ['uuid', 'timestamp', 'date', 'bit', 'varbit'],
         'string'  => ['char', 'varchar', 'text'],
         'numeric' => ['int2', 'int4', 'int8', 'float4', 'float8', 'decimal', 'numeric'],
         'serial'  => ['serial2', 'serial4', 'serial8'],
@@ -307,6 +307,7 @@ abstract class Model
                 break;
             case in_array($key, self::$parseDict['type']):
                 $result['type'] = $key;
+                $result['length']    = intval($value);
                 break;
             case in_array($key, self::$parseDict['string']):
                 $result['fieldType'] = $key;
