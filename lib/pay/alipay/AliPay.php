@@ -126,7 +126,7 @@ class AliPay
             'seller_id'      => $this->config['seller_email'],
             'out_trade_no'   => $this->data['id'],
             'subject'        => $this->data['name'],
-            'body'           => '',//商品详情,
+            'body'           => '支付订单:'.$this->data['id'],//商品详情,
             'total_fee'      => $this->amount,
             'notify_url'     => $this->notify_url,
             'service'        => 'mobile.securitypay.pay',
@@ -143,7 +143,7 @@ class AliPay
 
     protected function genGateWay($param){
         $buffer = [];
-        ksort($param);
+        //ksort($param);
         foreach ($param as $key => $value) {
             if ($value === '' || $value === null) {
                 continue;
