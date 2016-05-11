@@ -1,11 +1,13 @@
 <?php
 /**
  * @Copyright jentian.com
- * Auth: hejxi
+ * Auth: ax@jentian.com
  * Create: 2015/12/8 14:12
  */
 
 namespace jt\lib\pay\wechat;
+
+use jt\utils\Url;
 
 require __DIR__ . '/WxPay.Api.php';
 require __DIR__ . '/WxPay.Notify.php';
@@ -17,29 +19,21 @@ require __DIR__ . '/WxPay.Notify.php';
  */
 class Notify extends \WxPayNotify
 {
-    protected $result = [];
-    protected $task   = [];
+    protected $targetType = '';
+    protected $notify_url = '';
+    protected $data       = ['memo' => 'CSMALL', 'id' => ''];
+    protected $task   = null;
 
-    /**
-     * 获取支付结果
-     *
-     * @return array
-     */
-    public function isSuccess()
+    public function __construct(array $config, $targetType, $notify_url)
     {
-        $result = $this->values;
+        $this->targetType = $targetType;
+        if (!preg_match('/^http[s]?:\/\//i', $notify_url)) {
+            $notify_url = Url::host() . $notify_url;
+        }
 
-        return isset($result['return_code']) && isset($result['return_msg']) && $result["return_code"] == "SUCCESS" && $result["return_msg"] == "OK";
-    }
+        $this->notify_url = $notify_url;
 
-    /**
-     * 设置处理成功时的回调任务
-     *
-     * @param $task
-     */
-    public function setProcess($task)
-    {
-        $this->task = $task;
+        \WxPayConfig::setConfig($config);
     }
 
     /**
@@ -55,11 +49,20 @@ class Notify extends \WxPayNotify
         try{
             $result = call_user_func($this->task, $data);
 
-            return $result ? true : false;
+            return boolval($result);
         }catch (\WxPayException $e){
             $msg = $e->errorMessage();
         }
 
         return false;
+    }
+
+    /**
+     * app支付回调
+     * @param callable $callback
+     */
+    public function app(callable $callback){
+        $this->task = $callback;
+        $this->Handle();
     }
 }

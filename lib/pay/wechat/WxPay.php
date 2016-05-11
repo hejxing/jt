@@ -9,7 +9,6 @@
 
 namespace jt\lib\pay\wechat;
 
-use jt\utils\Helper;
 use jt\utils\Url;
 
 
