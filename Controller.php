@@ -199,19 +199,19 @@ class Controller
             return;
         }
 
-        if (\call_user_func_array([$this->action, 'before'], [$this->method, $this->param]) === false) {
+        if (call_user_func_array([$this->action, 'before'], [$this->method, $this->param]) === false) {
             return;
         }
 
-        $result = \call_user_func_array([$this->action, $this->method], $this->param);
-        if (\is_array($result)) {
-            if (isset($result[0]) && \is_int($result[0])) {
+        $result = call_user_func_array([$this->action, $this->method], $this->param);
+        if (is_array($result)) {
+            if (isset($result[0]) && is_int($result[0])) {
                 $this->action->status($result[0], array_slice($result, 1));
             }
             $this->action->outMass($result);
         }
 
-        if (\call_user_func_array([$this->action, 'after'], [$this->method, $this->param]) === false) {
+        if (call_user_func_array([$this->action, 'after'], [$this->method, $this->param]) === false) {
             return;
         }
 

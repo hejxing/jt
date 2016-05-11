@@ -117,17 +117,17 @@ class Action
         }
 
         $parts = explode('.', $key);
-        $key = array_pop($parts);
+        $key   = array_pop($parts);
         foreach ($parts as $p) {
-            if(!$p){
+            if (!$p) {
                 $p = count($data);
             }
-            if(!isset($data[$p])){
+            if (!isset($data[$p])) {
                 $data[$p] = [];
             }
             $data = &$data[$p];
         }
-        if(!$key){
+        if (!$key) {
             $key = count($data);
         }
         switch ($model) {
@@ -207,7 +207,21 @@ class Action
      */
     public static function getDataStore()
     {
-        return self::$dataStore;
+        return empty(self::$dataStore) ? static::fillEmpty() : self::$dataStore;
+    }
+
+    protected static function fillEmpty()
+    {
+        $data        = [];
+        $returnRuler = Controller::current()->getRuler()[6];
+        if(empty($returnRuler)){
+            return $data;
+        }
+        if (in_array($returnRuler[0]['type'], ['objectList', 'list'])) {
+            return $data;
+        }
+
+        return Requester::fillEmpty($returnRuler[2]);
     }
 
     /**
@@ -275,8 +289,8 @@ class Action
     public static function cleanData()
     {
         Controller::current()->getAction()->valueStore = [];
-        self::$dataStore = [];
-        self::$headerStore = [];
+        self::$dataStore                               = [];
+        self::$headerStore                             = [];
     }
 
     /**
@@ -627,9 +641,11 @@ class Action
 
     /**
      * 获取当前Action实例
+     *
      * @return \jt\Action
      */
-    public static function current(){
+    public static function current()
+    {
         return Controller::current()->getAction();
     }
 }

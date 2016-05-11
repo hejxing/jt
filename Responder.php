@@ -51,6 +51,7 @@ class Responder
         $header         = Error::prepareHeader();
         $header         = array_merge($header, Action::getHeaderStore());
         $header['data'] = Action::getDataStore();
+        if(Controller::current()->getRuler())
 
         $content = json_encode($header, \Config::JSON_FORMAT);
 
