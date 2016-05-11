@@ -20,7 +20,7 @@ class Responder
      *
      * @type null
      */
-    protected static $tplEngine = null;
+    protected static $tplEngine    = null;
     protected static $startObClean = false;
 
     /**
@@ -39,6 +39,7 @@ class Responder
             case 'xml':
                 return self::xml();
         }
+
         return '';
     }
 
@@ -48,10 +49,10 @@ class Responder
     protected static function json()
     {
         header('Content-type: application/json; charset=' . \Config::CHARSET, true);
+        $data           = Action::getDataStore();
         $header         = Error::prepareHeader();
         $header         = array_merge($header, Action::getHeaderStore());
-        $header['data'] = Action::getDataStore();
-        if(Controller::current()->getRuler())
+        $header['data'] = $data;
 
         $content = json_encode($header, \Config::JSON_FORMAT);
 
@@ -74,7 +75,7 @@ class Responder
         }else {
             return var_export($data, true);
         }
-        
+
         $content = $tpl->render(Controller::current()->getTemplate(), $data);
         if (RUN_MODE !== 'production') {
             //Debug::output($content);
@@ -91,6 +92,7 @@ class Responder
             }
         }
         self::$startObClean = false;
+
         return $content;
     }
 
@@ -138,7 +140,7 @@ class Responder
      */
     public static function write()
     {
-        if(self::$startObClean){
+        if (self::$startObClean) {
             \ob_clean();
         }
         $content = static::render();
