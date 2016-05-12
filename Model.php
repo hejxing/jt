@@ -1338,7 +1338,7 @@ abstract class Model
      */
     private function genLock(){
         if (isset($this->sqlCollect['lock'])) {
-            $this->preSql .= ' ROR UPDATE';
+            $this->preSql .= ' FOR UPDATE';
         }
     }
 
