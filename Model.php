@@ -48,6 +48,7 @@ abstract class Model
     protected $table = '';
     /**
      * 添加上引号的table
+     *
      * @type string
      */
     protected $quotesTable = '';
@@ -306,8 +307,8 @@ abstract class Model
                 $result[$key] = true;
                 break;
             case in_array($key, self::$parseDict['type']):
-                $result['type'] = $key;
-                $result['length']    = intval($value);
+                $result['type']   = $key;
+                $result['length'] = intval($value);
                 break;
             case in_array($key, self::$parseDict['string']):
                 $result['fieldType'] = $key;
@@ -916,6 +917,7 @@ abstract class Model
             case 'numeric':
             case 'bool':
             case 'bit':
+            case 'timestamp':
                 return 0;
             default:
                 return '';
@@ -1203,7 +1205,7 @@ abstract class Model
                 $conditions[$i + 1] = trim($conditions[$i + 1]);
             }
         }
-        
+
         return implode(' ', $conditions);
     }
 
