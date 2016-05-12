@@ -24,14 +24,9 @@ class Notify extends \WxPayNotify
     protected $data       = ['memo' => 'CSMALL', 'id' => ''];
     protected $task   = null;
 
-    public function __construct(array $config, $targetType, $notify_url)
+    public function __construct(array $config, $targetType)
     {
         $this->targetType = $targetType;
-        if (!preg_match('/^http[s]?:\/\//i', $notify_url)) {
-            $notify_url = Url::host() . $notify_url;
-        }
-
-        $this->notify_url = $notify_url;
 
         \WxPayConfig::setConfig($config);
     }

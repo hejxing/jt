@@ -87,7 +87,7 @@ class AliPay
     protected $config = [];
     protected $data   = [];
 
-    public function __construct(array $config, $targetType, $notify_url)
+    public function __construct(array $config, $targetType, $notify_url = '')
     {
         $this->targetType = $targetType;
         if (!preg_match('/^http[s]?:\/\//i', $notify_url)) {
