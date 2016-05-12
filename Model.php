@@ -1334,6 +1334,15 @@ abstract class Model
     }
 
     /**
+     * 生成锁定语句
+     */
+    private function genLock(){
+        if (isset($this->sqlCollect['lock'])) {
+            $this->preSql .= ' ROR UPDATE';
+        }
+    }
+
+    /**
      * 应用删除标记
      */
     private function applyTrashed()
@@ -1480,6 +1489,7 @@ abstract class Model
         $groupSql = $this->genGroup();
         $this->genOrder();
         $this->genLimit();
+        $this->genLock();
 
         $this->lastPageInfo = null;
 
@@ -2293,6 +2303,20 @@ abstract class Model
         foreach ($fields as $field) {
             $this->sqlCollect['order'][] = [$field, $order, $model];
         }
+
+        return $this;
+    }
+
+    /**
+     * 锁定某行记录
+     *
+     * @param bool   $skip 是否跳过锁定的行
+     * @param string $table 指定锁定的表（当联合查询时才有用）
+     * @return $this
+     */
+    public function lock($skip = false, $table = null)
+    {
+        $this->sqlCollect['lock'] = true;
 
         return $this;
     }
