@@ -446,15 +446,20 @@ class Requester
     /**
      * 批量获取值
      *
-     * @param array ...$names
+     * @param string $names
+     *
      * @return array
      */
-    public function fetch(...$names)
+    public function fetch($names = '*')
     {
         $data = [];
-        foreach ($names as $name) {
-            $ns = preg_split('/ *, */', $name);
-            foreach ($ns as $n) {
+        $ns = preg_split('/ *, */', $names);
+        foreach ($ns as $n) {
+            if($n === '*'){
+                foreach($this->validate as $n => $r){
+                    $data[$n] = $this->__get($n);
+                }
+            }else{
                 $data[$n] = $this->__get($n);
             }
         }
