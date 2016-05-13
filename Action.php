@@ -207,12 +207,16 @@ class Action
      */
     public static function getDataStore()
     {
-        $returnRuler = Controller::current()->getRuler()[6];
+        $ruler = Controller::current()->getRuler();
+        $returnRuler = $ruler[6]??[];
+        if(empty($returnRuler)){
+            return self::$dataStore;
+        }
         if (empty(self::$dataStore)) {
             return static::fillEmpty($returnRuler);
         }
         
-        return self::$dataStore;//Requester::revisionData($returnRuler, self::$dataStore);
+        return Requester::revisionData($returnRuler, self::$dataStore);
     }
 
     protected static function fillEmpty($returnRuler)

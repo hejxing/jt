@@ -101,7 +101,7 @@ class Requester
             self::error('value_over', '只能从 [' . implode(', ', $option['enum']) . '] 中取值', $name, $option);
         }
         if (in_array($option['type'], self::CONVERT_TYPE) || in_array($option['type'], self::VALUE_TYPE['composite'])) { //转换类型
-            $value = self::convert($value, $option['type'], $option['value']);
+            $value = self::convert($value, $option['type'], $option['format']);
         }elseif (isset($option['validate'])) {
             $result = Validate::check($value, $option['validate']);
             if ($result === false) {
@@ -140,11 +140,11 @@ class Requester
      *
      * @param $value
      * @param $type
-     * @param $affix
+     * @param $format
      *
      * @return mixed
      */
-    static public function convert($value, $type, $affix)
+    static public function convert($value, $type, $format)
     {
         if ($value === null) {
             return null;
@@ -183,7 +183,7 @@ class Requester
             case 'datetime':
                 $time = is_numeric($value) ? $value : strtotime($value);
 
-                return date($affix ?: 'Y-m-d H:i:s', $time);
+                return date($format ?: 'Y-m-d H:i:s', $time);
             default:
                 return $value;
         }
@@ -243,8 +243,8 @@ class Requester
             $lined['raw']  = trim('string ' . $lined['raw']);
         }
 
-        if (!isset($lined['value'])) {
-            $lined['value'] = '';
+        if (!isset($lined['format'])) {
+            $lined['format'] = null;
         }
 
         if (in_array($lined['type'], self::VALUE_RANGE_TYPE)
@@ -278,7 +278,7 @@ class Requester
         }else {
             list($key, $value) = [$a, null];
         }
-        $result = ['value' => $value ?: ''];
+        $result = [];
         switch (true) {
             case in_array($key, self::TRUE_ITEM):
             case in_array($key, self::INPUT_TYPE):
@@ -771,13 +771,13 @@ class Requester
                 $buffer = [];
                 if (is_array($data)) {
                     foreach ($data as $d) {
-                        $buffer[] = isset($ruler[1]['inType']) ? self::convert($d, $ruler[1]['inType'], $ruler[1]['type']) : $d;
+                        $buffer[] = isset($ruler[1]['inType']) ? self::convert($d, $ruler[1]['inType'], $ruler[1]['format']) : $d;
                     }
                 }
 
                 return $buffer;
             default:
-                return self::convert($data, $ruler[1]['type'], $ruler[1]['value']);
+                return self::convert($data, $ruler[1]['type'], $ruler[1]['format']);
         }
 
     }
