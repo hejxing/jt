@@ -3,6 +3,7 @@
  * Created by ax@jentian.com.
  * Date: 2015/6/12 13:19
  *
+ * 控制请求的输入输出
  *
  */
 
