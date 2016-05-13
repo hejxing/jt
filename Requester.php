@@ -571,7 +571,7 @@ class Requester
      */
     public function fetchPage($pageSize = 10, $page = 1)
     {
-        $option             = $this->fetch('page', 'pageSize');
+        $option             = $this->fetch('page, pageSize');
         $option['pageSize'] = $option['pageSize'] ? intval($option['pageSize']) : $pageSize;
         $option['page']     = $option['page'] ? intval($option['page']) : $page;
 
