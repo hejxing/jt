@@ -402,30 +402,30 @@ abstract class Action extends Loader
         }
         preg_match('/([^ ]*) *(?:\[(.*)\])? *(.*)/', $return, $match);
         array_shift($match);
-
-        $ruler = $match[1];
-        $nodes = [];
-        if (in_array($match[0], Requester::VALUE_TYPE['single']) || in_array($match[0], Requester::VALUE_TYPE['composite'])) {
-            $ruler = $match[0] . ' ' . $ruler;
-            $lines = $this->getValueList(['string']);
-            $nodes = $this->parseParam($lines);
-        }
         $parsed = [
             'name' => '',
             'desc' => $match[2],
             'line' => $this->line
         ];
+
+        $ruler = ($match[0] === 'array'?'object':$match[0]).' '.$match[1];
         try{
             $parsed['ruler'] = Requester::parseValidate($ruler, 'return:' . $ruler);
         }catch (Exception $e){
             $this->throwError($e);
         }
-        if ($parsed['ruler']['type'] === 'array') {
+
+        if ($parsed['ruler']['type'] === 'string') {
             $parsed['ruler']['type'] = 'object';
         }
-        if ($nodes) {
-            $parsed['nodes'] = $nodes;
+
+        $lines = $this->getValueList(['string']);
+
+        $type = $parsed['ruler']['type'];
+        if (in_array($type, Requester::VALUE_TYPE['single']) || in_array($type, Requester::VALUE_TYPE['composite'])) {
+            $parsed['nodes'] = $this->parseParam($lines);
         }
+
         $this->parsed['return'] = $parsed;
     }
 
@@ -602,11 +602,11 @@ abstract class Action extends Loader
     private function parseRouterRuler($ruler)
     {
         $res = [];
-        $as  = \preg_split('/ +/', $ruler);
+        $as  = preg_split('/ +/', $ruler);
         foreach ($as as $index => $a) {
-            if (\strpos($a, ':')) {
+            if (strpos($a, ':')) {
                 list($type, $name) = \explode(':', $a, 2);
-                if (\in_array($type, self::RULER_ORDER)) {
+                if (in_array($type, self::RULER_ORDER)) {
                     $res[$type] = $name;
                 }elseif ($index === 1) {
                     $res['uri'] = $a;
@@ -614,7 +614,7 @@ abstract class Action extends Loader
                     $this->error('routerRulerNameError', 'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 的规则名 [' . $type . '] 不正确，请检查');
                 }
             }else {
-                if ($a && \count(self::RULER_ORDER) > $index) {
+                if ($a && count(self::RULER_ORDER) > $index) {
                     $res[self::RULER_ORDER[$index]] = $a;
                 }else {
                     $this->error('routerRulerOverflow', 'Action [' . $this->class . '] 中的规则 [' . $ruler . '] 数量太多，请检查');

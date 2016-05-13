@@ -37,7 +37,7 @@ class Requester
     const INPUT_TYPE   = ['any', 'get', 'post', 'path'];
     const VALUE_TYPE   = [
         'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json', 'uuid', 'datetime', 'timestamp'],//json为字符串类型
-        'composite' => ['object', 'objectList', 'list', 'array']
+        'composite' => ['object', 'objectList', 'list']
     ];
     const INJECT_VALUE = ['instance', 'param'];
     const VALUE_RULE   = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max'];
@@ -100,7 +100,7 @@ class Requester
             self::error('value_over', '只能从 [' . implode(', ', $option['enum']) . '] 中取值', $name, $option);
         }
         if (in_array($option['type'], self::CONVERT_TYPE) || in_array($option['type'], self::VALUE_TYPE['composite'])) { //转换类型
-            $value = self::convert($value, $option['type']);
+            $value = self::convert($value, $option['type'], $option['value']);
         }elseif (isset($option['validate'])) {
             $result = Validate::check($value, $option['validate']);
             if ($result === false) {
@@ -139,10 +139,11 @@ class Requester
      *
      * @param $value
      * @param $type
+     * @param $affix
      *
      * @return mixed
      */
-    static public function convert($value, $type)
+    static public function convert($value, $type, $affix)
     {
         if ($value === null) {
             return null;
@@ -172,6 +173,16 @@ class Requester
                 }
 
                 return $arr;
+            case 'timestamp':
+                if (is_numeric($value)) {
+                    return intval($value);
+                }
+
+                return strtotime($value);
+            case 'datetime':
+                $time = is_numeric($value) ? $value : strtotime($value);
+
+                return date($affix ?: 'Y-m-d H:i:s', $time);
             default:
                 return $value;
         }
@@ -214,7 +225,15 @@ class Requester
         $parts = preg_split('/ +/', $strRuler);
         foreach ($parts as $a) {
             if ($a) {
-                $lined = \array_merge($lined, self::attr($a, $name));
+                $res = self::attr($a, $name);
+                if (isset($res['type']) && in_array($res['type'], self::VALUE_TYPE['composite']) && $lined['type'] !== 'undefined') {
+                    $lined['inType'] = $lined['type'];
+                }
+                if (in_array($lined['type'], self::VALUE_TYPE['composite']) && isset($res['type'])) {
+                    $lined['inType'] = $res['type'];
+                    unset($res['type']);
+                }
+                $lined = \array_merge($lined, $res);
             }
         }
 
@@ -223,7 +242,15 @@ class Requester
             $lined['raw']  = trim('string ' . $lined['raw']);
         }
 
-        if (in_array($lined['type'], self::VALUE_RANGE_TYPE) || in_array($lined['type'], self::LENGTH_RANGE_TYPE)) {
+        if (!isset($lined['value'])) {
+            $lined['value'] = '';
+        }
+
+        if (in_array($lined['type'], self::VALUE_RANGE_TYPE)
+            || in_array($lined['type'], self::LENGTH_RANGE_TYPE)
+            || (isset($lined['inType']) && (in_array($lined['inType'], self::VALUE_RANGE_TYPE)
+                    || in_array($lined['inType'], self::LENGTH_RANGE_TYPE)))
+        ) {
             if (!isset($lined['min'])) {
                 $lined['min'] = 0;
             }
@@ -250,7 +277,7 @@ class Requester
         }else {
             list($key, $value) = [$a, null];
         }
-        $result = [];
+        $result = ['value' => $value ?: ''];
         switch (true) {
             case in_array($key, self::TRUE_ITEM):
             case in_array($key, self::INPUT_TYPE):
@@ -706,10 +733,55 @@ class Requester
     public static function fillEmpty($ruler)
     {
         $data = [];
-        foreach($ruler as $item){
+        foreach ($ruler as $item) {
             $data[$item[0]] = self::emptyValue($item[1]);
         }
 
         return $data;
+    }
+
+    /**
+     * 自动根据接口声明的内容和类型换回数据
+     *
+     * @param array $ruler
+     * @param array $data
+     *
+     * @return array
+     */
+    public static function revisionData($ruler, $data)
+    {
+        switch ($ruler[1]['type']) {
+            case 'object':
+                $buffer = [];
+                if (is_array($data)) {
+                    foreach ($ruler[3] as $r) {
+                        $buffer[$r[0]] = self::revisionData($r, $data[$r[0]]);
+                    }
+                }
+
+                return $buffer;
+            case 'objectList':
+                $buffer           = [];
+                $ruler[1]['type'] = 'object';
+                if (is_array($data)) {
+                    foreach ($data as $d) {
+                        $buffer[$ruler[0]][] = self::revisionData($ruler, $d);
+                    }
+                }
+
+                return $buffer;
+            case 'list':
+                $buffer = [];
+                if (is_array($data)) {
+                    foreach ($data as $d) {
+                        $buffer[] = isset($ruler[1]['inType']) ? self::convert($d, $ruler[1]['inType'], $ruler[1]['type']) : $d;
+                    }
+                }
+
+                return $buffer;
+            default:
+                return self::convert($data, $ruler[1]['type'], $ruler[1]['value']);
+        }
+
     }
 }

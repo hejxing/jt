@@ -82,6 +82,7 @@ class Router extends Action
     private function clearReturn(array $value)
     {
         $clean = [
+            '',
             $value['ruler'],
             $value['line']
         ];

@@ -207,28 +207,30 @@ class Action
      */
     public static function getDataStore()
     {
-        if(empty(self::$dataStore)){
-            return static::fillEmpty();
+        $returnRuler = Controller::current()->getRuler()[6];
+        if (empty(self::$dataStore)) {
+            return static::fillEmpty($returnRuler);
         }
+
         //TODO:检查内容是否齐全，类型是否正确 遵守接口承诺
-        return self::$dataStore;
+        return Requester::revisionData($returnRuler, self::$dataStore);
     }
 
-    protected static function fillEmpty()
+    protected static function fillEmpty($returnRuler)
     {
         $data        = [];
-        $returnRuler = Controller::current()->getRuler()[6];
         if (empty($returnRuler)) {
             return $data;
         }
-        if (in_array($returnRuler[0]['type'], ['objectList', 'list'])) {
+        if (in_array($returnRuler[1]['type'], ['objectList', 'list'])) {
             return $data;
         }
-        if(self::$runComplete && self::$taskSuccess){
+        if (self::$runComplete && self::$taskSuccess) {
             (new self())->header('empty', true);
 
-            return Requester::fillEmpty($returnRuler[2]);
+            return Requester::fillEmpty($returnRuler[3]);
         }
+
         return new \stdClass();
     }
 
