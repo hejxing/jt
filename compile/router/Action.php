@@ -408,7 +408,8 @@ abstract class Action extends Loader
             'line' => $this->line
         ];
 
-        $ruler = ($match[0] === 'array'?'object':$match[0]).' '.$match[1];
+        $ruler = $match[0] === 'array'?'':$match[0].' ';
+        $ruler .= $match[1];
         try{
             $parsed['ruler'] = Requester::parseValidate($ruler, 'return:' . $ruler);
         }catch (Exception $e){
