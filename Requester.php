@@ -755,7 +755,7 @@ class Requester
                 $buffer = [];
                 if (is_array($data)) {
                     foreach ($ruler[3] as $r) {
-                        $buffer[$r[0]] = self::revisionData($r, $data[$r[0]]);
+                        $buffer[$r[0]] = self::revisionData($r, $data[$r[0]]??null);
                     }
                 }
 
