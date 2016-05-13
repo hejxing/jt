@@ -216,7 +216,7 @@ class Action
             return static::fillEmpty($returnRuler);
         }
         
-        return Requester::revisionData($returnRuler, self::$dataStore);
+        return self::$dataStore;//Requester::revisionData($returnRuler, self::$dataStore);
     }
 
     protected static function fillEmpty($returnRuler)
