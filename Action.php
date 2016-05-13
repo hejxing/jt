@@ -208,9 +208,6 @@ class Action
     public static function getDataStore()
     {
         $returnRuler = Controller::current()->getRuler()[6];
-        if (empty(self::$dataStore)) {
-            return static::fillEmpty($returnRuler);
-        }
 
         //TODO:检查内容是否齐全，类型是否正确 遵守接口承诺
         return Requester::revisionData($returnRuler, self::$dataStore);

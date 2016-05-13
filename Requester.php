@@ -702,29 +702,6 @@ class Requester
     }
 
     /**
-     * 获取默认的空值
-     *
-     * @param $ruler
-     * @return mixed
-     */
-    public static function emptyValue($ruler)
-    {
-        switch ($ruler['type']) {
-            case 'string':
-                return '';
-            case 'bool':
-                return false;
-            case 'object':
-                return self::fillEmpty($ruler);
-            case 'objectList':
-            case 'list':
-                return [];
-            default:
-                return 0;
-        }
-    }
-
-    /**
      * 填充默认值
      *
      * @param $ruler
@@ -732,12 +709,23 @@ class Requester
      */
     public static function fillEmpty($ruler)
     {
-        $data = [];
-        foreach ($ruler as $item) {
-            $data[$item[0]] = self::emptyValue($item[1]);
+        switch ($ruler['type']) {
+            case 'string':
+                return '';
+            case 'bool':
+                return false;
+            case 'object':
+                $buffer = [];
+                foreach($ruler[2] as $r){
+                    $buffer[$r[0]] = self::fillEmpty($r);
+                }
+                return $buffer;
+            case 'objectList':
+            case 'list':
+                return [];
+            default:
+                return 0;
         }
-
-        return $data;
     }
 
     /**
@@ -750,6 +738,9 @@ class Requester
      */
     public static function revisionData($ruler, $data)
     {
+        if (empty($data)) {
+            return self::fillEmpty($ruler);
+        }
         switch ($ruler[1]['type']) {
             case 'object':
                 $buffer = [];
