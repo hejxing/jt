@@ -63,6 +63,12 @@ class WxPay
         $input = $this->genInput();
         $input->SetTrade_type("APP");
         $result = \WxPayApi::getPayRequestParam($input);
+        if (isset($result['package'])) {
+            $result['packages']  = $result['package'];
+            $result['nonce_str'] = $result['noncestr'];
+            unset($result['package']);
+            unset($result['noncestr']);
+        }
         $result['notify_url'] = $this->notify_url;
         $result['key']        = \WxPayConfig::$KEY;
 

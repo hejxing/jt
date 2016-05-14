@@ -652,9 +652,9 @@ class WxPayApi
                 'appid' => \WxPayConfig::$APPID,
                 'partnerid' => \WxPayConfig::$MCHID,
                 'prepayid' => $unifiedOrder['prepay_id'],
-                'packages' => 'Sign=WXPay',
+                'package' => 'Sign=WXPay',
                 'timestamp' => time(),
-                'nonce_str' => $unifiedOrder['nonce_str']
+                'noncestr' => $unifiedOrder['nonce_str']
             );
             $payOrderInput = new \WxPayUnifiedOrder();
             $payOrderInput->setValues($values);
