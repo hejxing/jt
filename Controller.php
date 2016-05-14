@@ -95,6 +95,11 @@ class Controller
      * @type bool
      */
     private $isNeedRetry = false;
+    private $hookQueue   = [
+        'auth'    => [],
+        'execute' => [],
+        'render'  => []
+    ];
 
     /**
      * 匹配访问入口
@@ -183,6 +188,33 @@ class Controller
     }
 
     /**
+     * 触发钩子
+     *
+     * @param $on
+     * @return bool
+     */
+    private function trigger($on)
+    {
+        foreach ($this->hookQueue[$on] as $task) {
+            if (call_user_func_array($task[0], $task[1]) === false) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * 设置构子
+     *
+     * @param string   $on 运行时机
+     * @param callable $callable
+     * @param array    $param
+     */
+    public function hook($on, $callable, array $param = [])
+    {
+        $this->hookQueue[$on][] = [$callable, $param];
+    }
+
+    /**
      * 执行接口
      */
     private function execute()
@@ -195,11 +227,19 @@ class Controller
             $this->action->quiet();
         }
 
+        if ($this->trigger('auth') === false) {
+            return;
+        }
+
         if ($this->checkAuthority($this->ruler[4]) === false) {
             return;
         }
 
         if (call_user_func_array([$this->action, 'before'], [$this->method, $this->param]) === false) {
+            return;
+        }
+
+        if ($this->trigger('execute') === false) {
             return;
         }
 
@@ -217,6 +257,10 @@ class Controller
 
 
         if ($this->applyFilter() === false) {
+            return;
+        }
+
+        if ($this->trigger('render') === false) {
             return;
         }
         Action::setIsRunComplete(true);

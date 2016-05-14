@@ -23,7 +23,6 @@ class Context
      * @type array
      */
     private static $threadPool = [];
-
     /**
      * 切换到指定线程
      *
@@ -60,7 +59,12 @@ class Context
         switch($name){
             case 'Controller':
                 return Controller::current();
-                break;
+            case 'action':
+                return Controller::current()->getAction();
         }
+    }
+
+    public static function push($name, $data){
+
     }
 }
