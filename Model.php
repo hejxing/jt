@@ -6,30 +6,26 @@
  */
 namespace jt;
 
-define('MODEL_UUID_ZERO', '00000000-0000-0000-0000-000000000000');
-
-define('MODEL_LIKE_LEFT', 1);
-define('MODEL_LIKE_RIGHT', 2);
-define('MODEL_LIKE_BOTH', 3);
-
-define('MODEL_RELATE_ONE_TO_ONE', 1);
-define('MODEL_RELATE_ONE_TO_MANY', 2);
-define('MODEL_RELATE_MANY_TO_ONE', 3);
-define('MODEL_RELATE_MANY_TO_MANY', 4);
-
-define('MODEL_BOUND_AFFIX', 0);
-define('MODEL_BOUND_CELL', 1);
-define('MODEL_BOUND_ALONE', 2);
-
-define('MODEL_LINK_AND', 0);
-define('MODEL_LINK_OR', 1);
-
 use jt\lib\database\Connector;
 use jt\lib\database\Schema;
 use jt\lib\database\ErrorCode;
 
 abstract class Model
 {
+    const UUID_ZERO           = '00000000-0000-0000-0000-000000000000';
+    const LIKE_LEFT           = 1;
+    const LIKE_RIGHT          = 2;
+    const LIKE_BOTH           = 3;
+    const RELATE_ONE_TO_ONE   = 1;
+    const RELATE_ONE_TO_MANY  = 2;
+    const RELATE_MANY_TO_ONE  = 3;
+    const RELATE_MANY_TO_MANY = 4;
+    const BOUND_AFFIX         = 0;
+    const BOUND_CELL          = 1;
+    const BOUND_ALONE         = 2;
+    const LINK_AND            = 0;
+    const LINK_OR             = 1;
+    
     /**
      * 连接名
      *
@@ -906,7 +902,7 @@ abstract class Model
             return microtime(true);
         }
         if ($column['type'] === 'uuid') {
-            return isset($column['primary']) ? self::genUuid() : MODEL_UUID_ZERO;
+            return isset($column['primary']) ? self::genUuid() : self::UUID_ZERO;
         }
         if (isset($column['array']) || isset($column['object'])) {
             return [];
@@ -1336,7 +1332,8 @@ abstract class Model
     /**
      * 生成锁定语句
      */
-    private function genLock(){
+    private function genLock()
+    {
         if (isset($this->sqlCollect['lock'])) {
             $this->preSql .= ' FOR UPDATE';
         }
@@ -1740,7 +1737,7 @@ abstract class Model
         foreach (static::$columns as $name => $column) {
             if (isset($column['del'])) {
                 $data[$name] = true;
-                $this->where("{$name}=false", [], MODEL_BOUND_CELL);
+                $this->where("{$name}=false", [], self::BOUND_CELL);
             }
         }
         if (!count($data)) {
@@ -1761,7 +1758,7 @@ abstract class Model
         foreach (static::$columns as $name => $column) {
             if (isset($column['del'])) {
                 $data[$name] = false;
-                $this->where("{$name}=true", [], MODEL_BOUND_CELL);
+                $this->where("{$name}=true", [], self::BOUND_CELL);
             }
         }
         if (!count($data)) {
@@ -1847,7 +1844,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function where($sql, array $data = [], $bound = MODEL_BOUND_CELL)
+    public function where($sql, array $data = [], $bound = self::BOUND_CELL)
     {
         $this->sqlCollect['where'][] = [$sql, $data, 0, $bound, 1];
 
@@ -1863,7 +1860,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function orWhere($sql, array $data = [], $bound = MODEL_BOUND_CELL)
+    public function orWhere($sql, array $data = [], $bound = self::BOUND_CELL)
     {
         $this->sqlCollect['where'][] = [$sql, $data, 1, $bound, 1];
 
@@ -1915,10 +1912,10 @@ abstract class Model
      **/
     public function preParseLike($name, $keyword, $model, $glue)
     {
-        if ($model & MODEL_LIKE_LEFT) {
+        if ($model & self::LIKE_LEFT) {
             $keyword = '%' . $keyword;
         }
-        if ($model & MODEL_LIKE_RIGHT) {
+        if ($model & self::LIKE_RIGHT) {
             $keyword = $keyword . '%';
         }
 
@@ -1952,7 +1949,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function like($name, $keyword, $model = MODEL_LIKE_BOTH, $glue = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
+    public function like($name, $keyword, $model = self::LIKE_BOTH, $glue = self::LINK_AND, $bound = self::BOUND_CELL)
     {
         list($sql, $data) = $this->preParseLike($name, $keyword, $model, $glue);
 
@@ -1970,7 +1967,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function orLike($name, $keyword, $model = MODEL_LIKE_BOTH, $glue = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
+    public function orLike($name, $keyword, $model = self::LIKE_BOTH, $glue = self::LINK_AND, $bound = self::BOUND_CELL)
     {
         list($sql, $data) = $this->preParseLike($name, $keyword, $model, $glue);
 
@@ -1987,7 +1984,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function search(array $condition, $keyword, $glue = MODEL_LINK_OR, $bound = MODEL_BOUND_CELL)
+    public function search(array $condition, $keyword, $glue = self::LINK_OR, $bound = self::BOUND_CELL)
     {
 
         return $this;
@@ -2003,7 +2000,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function orSearch(array $condition, $keyword, $glue = MODEL_LINK_OR, $bound = MODEL_BOUND_CELL)
+    public function orSearch(array $condition, $keyword, $glue = self::LINK_OR, $bound = self::BOUND_CELL)
     {
 
         return $this;
@@ -2132,7 +2129,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function relate(Model $model, $foreignShip = [], $glue = MODEL_RELATE_ONE_TO_ONE)
+    public function relate(Model $model, $foreignShip = [], $glue = self::RELATE_ONE_TO_ONE)
     {
         $this->sqlCollect['where']['relate'][] = [$model, $foreignShip, $glue];
 
@@ -2148,7 +2145,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function exists(Model $model, $link = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
+    public function exists(Model $model, $link = self::LINK_AND, $bound = self::BOUND_CELL)
     {
         $this->applyExists($model, $link, $bound, false);
 
@@ -2164,7 +2161,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function notExists(Model $model, $link = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
+    public function notExists(Model $model, $link = self::LINK_AND, $bound = self::BOUND_CELL)
     {
         $this->applyExists($model, $link, $bound, true);
 
@@ -2202,7 +2199,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function in($field, $list, $link = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
+    public function in($field, $list, $link = self::LINK_AND, $bound = self::BOUND_CELL)
     {
         if (is_array($list)) {
             $this->inList($field, $list, $link, $bound, false);
@@ -2223,7 +2220,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function notIn($name, $list, $link = MODEL_LINK_AND, $bound = MODEL_BOUND_CELL)
+    public function notIn($name, $list, $link = self::LINK_AND, $bound = self::BOUND_CELL)
     {
         if (is_array($list)) {
             $this->inList($name, $list, $link, $bound, true);
