@@ -114,7 +114,6 @@ class Bootstrap
      */
     public static function init($option)
     {
-        umask(0);
         //记录代码执行开始时间
         self::$startTime = microtime(true);
         self::$now       = intval(self::$startTime);
