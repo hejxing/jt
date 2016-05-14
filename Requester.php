@@ -722,7 +722,7 @@ class Requester
                 return false;
             case 'object':
                 $buffer = [];
-                foreach($ruler[2] as $r){
+                foreach($ruler[3] as $r){
                     $buffer[$r[0]] = self::fillEmpty($r);
                 }
                 return $buffer;
