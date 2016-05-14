@@ -723,7 +723,7 @@ class Requester
             case 'object':
                 $buffer = [];
                 foreach($ruler[2] as $r){
-                    $buffer[$r[0]] = self::fillEmpty($r);
+                    $buffer[$r[0]] = self::fillEmpty($r[1]);
                 }
                 return $buffer;
             case 'objectList':
@@ -745,7 +745,7 @@ class Requester
     public static function revisionData($ruler, $data)
     {
         if (empty($data)) {
-            return self::fillEmpty($ruler);
+            return self::fillEmpty($ruler[1]);
         }
         switch ($ruler[1]['type']) {
             case 'object':
