@@ -209,18 +209,14 @@ class Action
     {
         $ruler       = Controller::current()->getRuler();
         $returnRuler = $ruler[6]??[];
-        if (empty($returnRuler)) {
+        if (empty($returnRuler) || !self::$runComplete || !self::$taskSuccess) {
             return self::$dataStore;
         }
-        if (self::$runComplete && self::$taskSuccess) {
-            if (empty(self::$dataStore)) {
-                (new self())->header('empty', true);
-            }
+        if (empty(self::$dataStore)) {
+            (new self())->header('empty', true);
+        }
 
-            return Requester::revisionData($returnRuler, self::$dataStore);
-        }else {
-            return self::$dataStore;
-        }
+        return Requester::revisionData($returnRuler, self::$dataStore);
     }
 
     /**
