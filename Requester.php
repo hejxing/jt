@@ -222,7 +222,7 @@ class Requester
      */
     public static function parseValidate($strRuler, $name)
     {
-        $lined = ['raw' => $strRuler, 'type' => 'undefined'];
+        $lined = ['rule' => $strRuler, 'type' => 'undefined'];
         $parts = preg_split('/ +/', $strRuler);
         foreach ($parts as $a) {
             if ($a) {
@@ -240,7 +240,7 @@ class Requester
 
         if ($lined['type'] === 'undefined') {
             $lined['type'] = 'string';
-            $lined['raw']  = trim('string ' . $lined['raw']);
+            $lined['rule']  = trim('string ' . $lined['rule']);
         }
 
         if (!isset($lined['format'])) {
