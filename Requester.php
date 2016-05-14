@@ -150,6 +150,8 @@ class Requester
             return null;
         }
         switch ($type) {
+            case 'string':
+                return (string)$value;
             case 'int':
                 return intval($value);
             case 'float':
