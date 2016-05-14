@@ -34,7 +34,7 @@ class Requester
 
     const FALSE_VALUE = ['n', 'f', 'no', 'false'];
 
-    const TRUE_ITEM    = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert'];
+    const TRUE_ITEM    = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw'];
     const INPUT_TYPE   = ['any', 'get', 'post', 'path'];
     const VALUE_TYPE   = [
         'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json', 'uuid', 'datetime', 'timestamp'],//json为字符串类型
@@ -744,6 +744,9 @@ class Requester
      */
     public static function revisionData($ruler, $data)
     {
+        if(isset($ruler[1]['raw'])){
+            return $data;
+        }
         if (empty($data)) {
             return self::fillEmpty($ruler);
         }
