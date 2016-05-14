@@ -38,7 +38,7 @@
             {{foreach $param.nodes as $node}}
                 <li class="list-item">
                 <span class="name" style="padding-left:{{$level * 32 + 58}}px;">{{$node.name}}:</span>
-                <span class="desc">[{{$node.ruler.raw}}] {{$node.desc}}</span>
+                <span class="desc">[{{$node.ruler.rule}}] {{$node.desc}}</span>
                 {{if $node.nodes}}
                     <span class="expand" title="收起" style="margin-left:{{$node.level * 32 + 30}}px;">-</span>
                     {{drawLine param=$node level=$level+1}}
