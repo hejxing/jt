@@ -542,7 +542,11 @@ class Controller
                     }
                     break;
                 default:
-                    $this->param[] = Requester::doProcess($p[$option[4]], $option[2], 'path:' . $name);
+                    $v = $p[$option[4]];
+                    if ($v === 'index' && isset($option[2]['require'])) {
+                        $v = null;
+                    }
+                    $this->param[] = Requester::doProcess($v, $option[2], 'path:' . $name);
                     break;
             }
         }
