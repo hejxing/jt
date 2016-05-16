@@ -102,12 +102,16 @@ class Validate
 
     public static function number($value)
     {
-        return \preg_match('/^\d+$/', $value) > 0;
+        return preg_match('/^\d+$/', $value) > 0;
     }
 
     public static function zh_cn($value)
     {
-        return \preg_match(self::REGEX_ZH_CN, $value) > 0;
+        return preg_match(self::REGEX_ZH_CN, $value) > 0;
+    }
+
+    public static function uuid($value){
+        return preg_match('/[0-9abcdef]{8}-?[0-9abcdef]{4}-?[0-9abcdef]{4}-?[0-9abcdef]{4}-?[0-9abcdef]{12}/i', $value) > 0;
     }
 
     /**
@@ -121,8 +125,8 @@ class Validate
     {
         if (method_exists(__CLASS__, $type)) {
             return self::$type($value);
-        }elseif (\preg_match('/\/.*\/\w*/', $type)) {//正则表达式
-            return \preg_match($type, $value);
+        }elseif (preg_match('/\/.*\/\w*/', $type)) {//正则表达式
+            return preg_match($type, $value);
         }else {//错误的类型
             return null;
         }

@@ -27,7 +27,7 @@ class Requester
     protected $method = '';
 
     const CONVERT_TYPE  = ['int', 'float', 'double', 'bool'];
-    const VALIDATE_TYPE = ['email', 'mobile', 'phone', 'identityCard', 'number', 'zn_ch'];
+    const VALIDATE_TYPE = ['email', 'mobile', 'phone', 'identityCard', 'number', 'zn_ch', 'uuid'];
 
     const VALUE_RANGE_TYPE  = ['int', 'float', 'numeric', 'double'];
     const LENGTH_RANGE_TYPE = ['string'];
@@ -37,7 +37,7 @@ class Requester
     const TRUE_ITEM    = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw'];
     const INPUT_TYPE   = ['any', 'get', 'post', 'path'];
     const VALUE_TYPE   = [
-        'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json', 'uuid', 'datetime', 'timestamp'],//json为字符串类型
+        'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json', 'datetime', 'timestamp'],//json为字符串类型
         'composite' => ['object', 'objectList', 'list']
     ];
     const INJECT_VALUE = ['instance', 'param'];
