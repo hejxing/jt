@@ -57,7 +57,7 @@ class Docs extends Action
         $list      = [];
         $classInfo = [];
         foreach ($this->parsed['action'] as $className => $class) {
-            $className = explode('action\\', $className, 2)[1];
+            $className             = explode('action\\', $className, 2)[1];
             $classInfo[$className] = $this->map(['title', 'Auth', 'Create', 'version', 'notice', 'desc'], $class);
             foreach ($class['methods'] as $method) {
                 if (strpos($method['affix'], 'doc_hidden') !== false) {
@@ -110,6 +110,7 @@ class Docs extends Action
                         $mime = \Config::ACCEPT_MIME;
                     }
                     $this->collectAssetsInfo($classAssets);
+                    $this->clearField($method['return']);
                     $this->outMass([
                         'classAssets' => $classAssets,
                         'class'       => $class,
@@ -137,6 +138,16 @@ class Docs extends Action
                 ]);
 
                 return;
+            }
+        }
+    }
+
+    private function clearField(&$method)
+    {
+        if (isset($method['nodes'])) {
+            foreach ($method['nodes'] as &$node) {
+                $this->clearField($node);
+                $node['ruler']['rule'] = preg_replace('/ field:[^ ]*/', '', $node['ruler']['rule']);
             }
         }
     }
