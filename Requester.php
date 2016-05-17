@@ -396,9 +396,9 @@ class Requester
      */
     private static function parseInput($string)
     {
-        $data = \json_decode($string, true);
+        $data = json_decode($string, true);
         if ($data === null) {
-            \parse_str($string, $data);
+            parse_str($string, $data);
             $data = self::extractJson($data);
         }
 
@@ -436,7 +436,7 @@ class Requester
         $ruler = [];
         if ($name && isset($this->validate[$name])) {
             $ruler = $this->validate[$name];
-            if (\is_string($ruler)) {
+            if (is_string($ruler)) {
                 $ruler                 = self::parseValidate($ruler, $name);
                 $this->validate[$name] = $ruler;
             }

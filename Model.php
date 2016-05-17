@@ -25,7 +25,7 @@ abstract class Model
     const BOUND_ALONE         = 2;
     const LINK_AND            = 0;
     const LINK_OR             = 1;
-    
+
     /**
      * 连接名
      *
@@ -188,7 +188,7 @@ abstract class Model
         'bool'    => ['require', 'increment', 'primary', 'hidden', 'lower', 'del', 'array', 'object'],
         'type'    => ['uuid', 'timestamp', 'date', 'bit', 'varbit'],
         'string'  => ['char', 'varchar', 'text'],
-        'numeric' => ['int2', 'int4', 'int8', 'float4', 'float8', 'decimal', 'numeric'],
+        'numeric' => ['int2', 'int4', 'int8', 'float4', 'float8', 'decimal', 'numeric', 'money'],
         'serial'  => ['serial2', 'serial4', 'serial8'],
         'boolean' => ['bool'],
         'object'  => ['json', 'jsonb'],
@@ -1582,7 +1582,7 @@ abstract class Model
     }
 
     /**
-     * 将查询结果难叠代器的形式返回
+     * 将查询结果用叠代器的形式返回
      *
      * @param string $field 获取的字段列表
      *
@@ -1878,6 +1878,21 @@ abstract class Model
     public function equals($name, $value)
     {
         $this->where("$name=:$name", [$name => $value]);
+
+        return $this;
+    }
+
+    /**
+     * 不相等条件
+     *
+     * @param string $name
+     * @param string $value
+     *
+     * @return $this
+     */
+    public function notEquals($name, $value)
+    {
+        $this->where("$name!=:$name", [$name => $value]);
 
         return $this;
     }
