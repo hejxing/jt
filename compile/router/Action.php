@@ -213,12 +213,12 @@ abstract class Action extends Loader
         }
         $type = $match[1];
         if (strpos($match[0], '+') === 0) {
-            $list = preg_split('/ *, */', $match[2]?:'*');
+            $list     = preg_split('/ *, */', $match[2] ?: '*');
             $match[0] = substr($match[0], 1);
             $match[2] = [
                 'origin' => $match[1],
-                'list' => $list,
-                'rule' => 'in'
+                'list'   => $list,
+                'rule'   => 'in'
             ];
             $match[1] = '__reference';
         }else {
@@ -408,7 +408,7 @@ abstract class Action extends Loader
             'line' => $this->line
         ];
 
-        $ruler = $match[0] === 'array'?'':$match[0].' ';
+        $ruler = $match[0] === 'array' ? '' : $match[0] . ' ';
         $ruler .= $match[1];
         try{
             $parsed['ruler'] = Requester::parseValidate($ruler, 'return:' . $ruler);
@@ -423,11 +423,60 @@ abstract class Action extends Loader
         $lines = $this->getValueList(['string']);
 
         $type = $parsed['ruler']['type'];
-        if (in_array($type, Requester::VALUE_TYPE['single']) || in_array($type, Requester::VALUE_TYPE['composite'])) {
+        if (in_array($type, Requester::VALUE_TYPE['composite'])) {
             $parsed['nodes'] = $this->parseParam($lines);
         }
 
+        $this->applyPage($parsed);
+
         $this->parsed['return'] = $parsed;
+    }
+
+    private function fillPageItem($name, $desc, $line)
+    {
+        return [
+            'name'  => $name,
+            'desc'  => $desc,
+            'line'  => $line,
+            'ruler' => [
+                'rule'   => 'int',
+                'type'   => 'int',
+                'format' => null,
+            ]
+        ];
+    }
+
+    /**
+     * 快速返回分页格式
+     *
+     * @param array $parsed 解析结果
+     */
+    private function applyPage(&$parsed)
+    {
+        if (isset($parsed['ruler']['page'])) {
+            $parsed['ruler']['rule'] = preg_replace('/(?:^| )page(?: |$)/', ' ', $parsed['ruler']['rule']);
+            $parsed['nodes']         = [
+                [
+                    'name'  => 'list',
+                    'desc'  => '列表',
+                    'line'  => $parsed['line'],
+                    'ruler' => $parsed['ruler'],
+                    'nodes' => $parsed['nodes']
+                ],
+                $this->fillPageItem('size', '每页记录数', $parsed['line']),
+                $this->fillPageItem('page', '当前页数', $parsed['line']),
+                $this->fillPageItem('total', '总记录数', $parsed['line'])
+            ];
+            $parsed['ruler']['type'] = 'object';
+            $nodes                   = &$parsed['nodes'][0]['nodes'];
+        }else {
+            $nodes = &$parsed['nodes'];
+        }
+        if (is_array($nodes)) {
+            foreach ($nodes as &$node) {
+                $this->applyPage($node);
+            }
+        }
     }
 
     /**

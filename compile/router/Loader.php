@@ -439,9 +439,17 @@ abstract class Loader
      *
      * @param $code
      * @param $msg
+     * @param int $line
+     * @param string $file
      */
-    protected function error($code, $msg)
+    protected function error($code, $msg, $line = null, $file = null)
     {
+        if($line){
+            $this->line = $line;
+        }
+        if($file){
+            $this->file = $file;
+        }
         $this->throwError(new Exception($code . ':' . $msg));
     }
 

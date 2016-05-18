@@ -34,14 +34,15 @@ class Requester
 
     const FALSE_VALUE = ['n', 'f', 'no', 'false'];
 
-    const TRUE_ITEM    = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw'];
-    const INPUT_TYPE   = ['any', 'get', 'post', 'path'];
-    const VALUE_TYPE   = [
+    const TRUE_ITEM     = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw', 'page'];
+    const INPUT_TYPE    = ['any', 'get', 'post', 'path'];
+    const VALUE_TYPE    = [
         'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json', 'datetime', 'timestamp'],//json为字符串类型
         'composite' => ['object', 'objectList', 'list']
     ];
-    const INJECT_VALUE = ['instance', 'param'];
-    const VALUE_RULE   = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max'];
+    const INJECT_VALUE  = ['instance', 'param'];
+    const VALUE_RULE    = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max', 'field'];
+    const FORMAT_ENABLE = ['datetime', 'float', 'string'];
 
     /**
      * 获取参数
@@ -151,6 +152,16 @@ class Requester
         }
         switch ($type) {
             case 'string':
+                switch ($format) {
+                    case 'money':
+                        $value = money_format('%.2n', $value);
+                        break;
+                    default:
+                        if ($format) {
+
+                        }
+                        break;
+                }
                 return (string)$value;
             case 'int':
                 return intval($value);
@@ -183,6 +194,9 @@ class Requester
                 return strtotime($value);
             case 'datetime':
                 $time = is_numeric($value) ? $value : strtotime($value);
+                if ($time === 0) {
+                    return '';
+                }
 
                 return date($format ?: 'Y-m-d H:i:s', $time);
             default:
@@ -241,7 +255,7 @@ class Requester
 
         if ($lined['type'] === 'undefined') {
             $lined['type'] = 'string';
-            $lined['rule']  = trim('string ' . $lined['rule']);
+            $lined['rule'] = trim('string ' . $lined['rule']);
         }
 
         if (!isset($lined['format'])) {
@@ -291,9 +305,12 @@ class Requester
                     $result[$key] = preg_split('/ *, */', $value);
                 }else {
                     $result['type'] = $key;
+                    if (in_array($key, self::FORMAT_ENABLE) && $value) {
+                        $result['format'] = $value;
+                    }
                 }
                 break;
-            case 'type' === $key:
+            case $key === 'type':
                 $value = $value ?: 'string';
                 if (in_array($value, self::VALUE_TYPE['single']) || in_array($value, self::VALUE_TYPE['composite'])) {
                     $result['type'] = $value;
@@ -455,13 +472,13 @@ class Requester
     public function fetch($names = '*')
     {
         $data = [];
-        $ns = preg_split('/ *, */', $names);
+        $ns   = preg_split('/ *, */', $names);
         foreach ($ns as $n) {
-            if($n === '*'){
-                foreach($this->validate as $n => $r){
+            if ($n === '*') {
+                foreach ($this->validate as $n => $r) {
                     $data[$n] = $this->__get($n);
                 }
-            }else{
+            }else {
                 $data[$n] = $this->__get($n);
             }
         }
@@ -723,9 +740,10 @@ class Requester
                 return false;
             case 'object':
                 $buffer = [];
-                foreach($ruler[3] as $r){
+                foreach ($ruler[3] as $r) {
                     $buffer[$r[0]] = self::fillEmpty($r);
                 }
+
                 return $buffer;
             case 'objectList':
             case 'list':
@@ -733,6 +751,23 @@ class Requester
             default:
                 return 0;
         }
+    }
+
+    public static function fieldMap($data, $rule)
+    {
+        if (empty($rule[1]['field'])) {
+            return $data[$rule[0]]??null;
+        }
+
+        $field = $rule[1]['field'];
+        $ns    = explode('.', $field);
+        foreach ($ns as $n) {
+            if (isset($data[$n])) {
+                $data = $data[$n];
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -745,19 +780,18 @@ class Requester
      */
     public static function revisionData($ruler, $data)
     {
-        if(isset($ruler[1]['raw'])){
+        if (isset($ruler[1]['raw'])) {
             return $data;
         }
+
         if (empty($data)) {
             return self::fillEmpty($ruler);
         }
         switch ($ruler[1]['type']) {
             case 'object':
                 $buffer = [];
-                if (is_array($data)) {
-                    foreach ($ruler[3] as $r) {
-                        $buffer[$r[0]] = self::revisionData($r, $data[$r[0]]??null);
-                    }
+                foreach ($ruler[3] as $r) {
+                    $buffer[$r[0]] = self::revisionData($r, self::fieldMap($data, $r));
                 }
 
                 return $buffer;
@@ -766,7 +800,7 @@ class Requester
                 $ruler[1]['type'] = 'object';
                 if (is_array($data)) {
                     foreach ($data as $d) {
-                        $buffer[] = self::revisionData($ruler, $d);
+                        $buffer[] = self::revisionData($ruler, self::fieldMap([$ruler[0] => $d], $ruler));
                     }
                 }
 
