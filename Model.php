@@ -1691,9 +1691,8 @@ abstract class Model
             $symbol = '-';
             $value  = abs($value);
         }
-        $column = $this->findColumnByName($name);
-        if ($column) {
-            $field                      = isset($column['field']) ? $column['field'] : $name;
+        $field = $this->nameMapField($name);
+        if ($field) {
             $this->sqlCollect['data'][] = [$name => "`{$field}{$symbol}{$value}`"];
         }
 
