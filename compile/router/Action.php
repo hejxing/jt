@@ -1,7 +1,6 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: hejxing
+ * User: ax@jentian.com
  * Date: 2015/5/31
  * Time: 14:04
  */
