@@ -52,6 +52,7 @@ class Responder
         $data           = Action::getDataStore();
         $header         = Error::prepareHeader();
         $header         = array_merge($header, Action::getHeaderStore());
+        $header['code'] = (string)$header['code'];
         $header['data'] = $data;
 
         $content = json_encode($header, \Config::JSON_FORMAT);
