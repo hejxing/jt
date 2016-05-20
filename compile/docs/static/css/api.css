@@ -318,7 +318,6 @@ a.hightLight{
 }
 .classList .expand{
     margin-left:-5px;
-    margin-right:5px;
 }
 .detail-box .content-box{
     background:#fff;
@@ -330,6 +329,9 @@ a.hightLight{
 }
 .panel{
     border-radius:0 0 5px 5px;
+}
+.class-group .list-group-item{
+    padding:10px 5px 5px 36px;
 }
 
 @media (min-width:992px){
