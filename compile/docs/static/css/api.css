@@ -110,9 +110,14 @@ a.hightLight{
     width:147px;
     z-index:11;
 }
+
+.list-group-item{
+    padding:10px 5px 5px 36px;
+}
+
 .list-title{
     line-height:1.1em;
-    padding:8px 15px;
+    padding:8px 5px;
 }
 
 .api-list a{
@@ -329,9 +334,6 @@ a.hightLight{
 }
 .panel{
     border-radius:0 0 5px 5px;
-}
-.class-group .list-group-item{
-    padding:10px 5px 5px 36px;
 }
 
 @media (min-width:992px){
