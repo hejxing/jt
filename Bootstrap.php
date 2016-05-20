@@ -121,7 +121,6 @@ class Bootstrap
         if(substr($option['projectRoot'], 0, 1) !== '/'){
             $option['projectRoot'] = getcwd().($option['projectRoot']?'/'.$option['projectRoot']:'');
         }
-
         if(!$option['runtimeRoot']){
             $option['runtimeRoot'] = $option['projectRoot'];
         }elseif(substr($option['runtimeRoot'], 0, 1) !== '/'){
@@ -137,7 +136,7 @@ class Bootstrap
         define('PROJECT_ROOT', $option['projectRoot']);
         define('MODULE', md5(PROJECT_ROOT));
         define('ERRORS_VERBOSE', RUN_MODE !== 'production');
-        define('RUNTIME_PATH_ROOT', $option['runtimeRoot'].'/runtime');
+        define('RUNTIME_PATH_ROOT', realpath($option['runtimeRoot'].'/runtime'));
 
         //定义自动加载文件方法
         spl_autoload_register('static::autoLoad');

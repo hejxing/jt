@@ -34,6 +34,9 @@ class Config
     protected static function parse($file)
     {
         //读取Config
+        if(!file_exists($file)){
+            return [];
+        }
         $tokens = token_get_all(file_get_contents($file));
 
         $names  = [];

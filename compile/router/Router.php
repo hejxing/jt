@@ -172,7 +172,7 @@ class Router extends Action
             $dir      = new \RecursiveDirectoryIterator(RUNTIME_PATH_ROOT);
             $iterator = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::SELF_FIRST);
             foreach ($iterator as $item) {
-                if (substr($item, -1) !== '.') {
+                if (substr($item, -1) !== '.' && !(fileperms($item) & 0x0002)) {
                     chmod($item, 0777);
                 }
             }
