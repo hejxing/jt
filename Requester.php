@@ -350,11 +350,11 @@ class Requester
     public static function createFromRequest(array $validate, $source)
     {
         $data = [];
-        if ($source === 'query' || $source === 'any') {
+        if ($source === 'query' || $source === 'request') {
             $data = self::parseInput(urldecode($_SERVER['QUERY_STRING']));
         }
 
-        if ($source === 'body' || $source === 'any') {
+        if ($source === 'body' || $source === 'request') {
             if (\strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === 0) {
                 $input = self::extractJson($_POST);
             }else {
