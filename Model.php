@@ -736,9 +736,9 @@ abstract class Model
         if (!empty($this->filterCollect['fillEmpty'])) { //留着备用
             $this->filterCollect['lastCollectedNames'] = $collectedNames;
         }
-        if (count($collectedNames) === count(static::$columns)) {
-            $collectedNames = ['*'];
-        }
+        //if (count($collectedNames) === count(static::$columns)) {
+        //    //$collectedNames = ['*'];
+        //}
 
         return $collectedNames;
     }
