@@ -68,7 +68,7 @@ class Responder
         ob_end_flush();
         self::$startObClean = true;
         header('Content-type: text/html; charset=' . \Config::CHARSET, true);
-        $data = Action::getDataStore();
+        $data = Action::getDataStore(false);
         if (self::$tplEngine) {
             $tpl = self::$tplEngine;
         }elseif (defined('\Config::TEMPLATE')) {
@@ -76,6 +76,7 @@ class Responder
         }else {
             return var_export($data, true);
         }
+
 
         $content = $tpl->render(Controller::current()->getTemplate(), $data);
         if (RUN_MODE !== 'production') {

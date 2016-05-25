@@ -202,11 +202,15 @@ class Action
 
     /**
      * 获取数据
+     * @param bool $filter 是否过滤结果
      *
      * @return array
      */
-    public static function getDataStore()
+    public static function getDataStore($filter = true)
     {
+        if($filter === false){
+            return self::$dataStore;
+        }
         $ruler       = Controller::current()->getRuler();
         $returnRuler = $ruler[6]??[];
         if (empty($returnRuler) || !self::$runComplete || !self::$taskSuccess) {

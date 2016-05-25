@@ -213,7 +213,7 @@ abstract class Model
      */
     public static function __init($class)
     {
-        if (__CLASS__ !== $class) {
+        if (static::$columns) {
             //解析表结构和属性
             self::parseColumns();
         }
@@ -727,7 +727,7 @@ abstract class Model
     private function collectNames()
     {
         if (!isset($this->sqlCollect['names'])) {
-            return [];
+            return;
         }
         $collectedNames = [];
 
