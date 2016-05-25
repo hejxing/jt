@@ -211,7 +211,7 @@ abstract class Model
     /**
      * 类加载后自动执行的方法
      */
-    public static function __init($class)
+    public static function __init()
     {
         if (static::$columns) {
             //解析表结构和属性
