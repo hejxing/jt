@@ -217,6 +217,7 @@ abstract class Model
         if (static::$columns) {
             //解析表结构和属性
             self::parseColumns();
+            var_export(static::$columns);
         }
     }
 
@@ -353,9 +354,6 @@ abstract class Model
                 break;
             case in_array($key, self::$parseDict['object']):
                 $result['type'] = $key;
-                if ($key === 'array') {
-                    $result['fieldType'] = 'text';
-                }
                 break;
             case in_array($key, self::$parseDict['value']):
                 if ($key === 'field') {
@@ -827,7 +825,7 @@ abstract class Model
                 $value = str_replace('-', '', $value);
             }
         }
-        if (isset($columns['array'])) {
+        if ($columns['type'] === 'array') {
             if (is_array($value)) {
                 $value = json_encode($value, JSON_UNESCAPED_UNICODE);
             }else {
