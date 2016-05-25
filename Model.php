@@ -156,6 +156,12 @@ abstract class Model
      */
     private $needFullFieldName = false;
     /**
+     * 查询时要取出的字段
+     *
+     * @type array
+     */
+    private $queryNames = [];
+    /**
      * 查询完成后是否不清空上次的数据
      *
      * @type bool
@@ -584,18 +590,15 @@ abstract class Model
         return $list;
     }
 
-    private function genCombStack($list)
+    private function genCombStack()
     {
         if ($this->currentFetchStyle === \PDO::FETCH_NUM) {
             return [];
         }
-        list(, $item) = each($list);
         $stack = [];
+        foreach ($this->queryNames as $name) {
+            $column = static::$columns[$name];
 
-        foreach (static::$columns as $name => $column) {
-            if (!isset($item[$name])) {
-                continue;
-            }
             if (isset($column['type']) !== 'string') {
                 $type           = $column['type'];
                 $stack[$name][] = function ($value) use ($type){
@@ -609,6 +612,7 @@ abstract class Model
                 };
             }
         }
+        $this->queryNames = [];
 
         return $stack;
     }
@@ -626,7 +630,7 @@ abstract class Model
         $sth  = $this->query('SELECT ' . $preSql, $data);
         $list = $sth->fetchAll();
 
-        return $this->combQueryResult($list, $this->genCombStack($list));
+        return $this->combQueryResult($list, $this->genCombStack());
     }
 
     /**
@@ -759,7 +763,7 @@ abstract class Model
         //    //$collectedNames = ['*'];
         //}
 
-        return $collectedNames;
+        $this->queryNames = $collectedNames;
     }
 
     /**
@@ -767,9 +771,10 @@ abstract class Model
      */
     private function genSelectNames()
     {
-        $collectedNames = $this->collectNames();
-        $quotes         = static::$quotes;
-        foreach ($collectedNames as &$name) {
+        $this->collectNames();
+        $names = $this->queryNames;
+        $quotes = static::$quotes;
+        foreach ($names as &$name) {
             $field = $name;
             $out   = null;
 
@@ -790,12 +795,12 @@ abstract class Model
         }
 
         if ($this->needFullFieldName) {
-            foreach ($collectedNames as &$name) {
+            foreach ($names as &$name) {
                 $name = $this->quotesTable . '.' . $name;
             }
         }
 
-        $this->preSql = ' ' . implode(', ', $collectedNames);
+        $this->preSql = ' ' . implode(', ', $names);
     }
 
     /**
@@ -1611,11 +1616,12 @@ abstract class Model
         $this->field($field);
         $this->parseSelectSql();
 
-        $sth = $this->query('SELECT ' . $this->preSql, $this->data);
+        $sth   = $this->query('SELECT ' . $this->preSql, $this->data);
+        $stack = $this->genCombStack();
 
         while ($item = $sth->fetch()) {
             $list = [$item];
-            yield $this->combQueryResult($list)[0];
+            yield $this->combQueryResult($list, $stack)[0];
         }
     }
 
