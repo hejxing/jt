@@ -71,7 +71,7 @@ abstract class Model
      *
      * @var string
      */
-    protected static $primary = '';
+    protected static $primary = 'id';
     /**
      * 主键类型
      *
