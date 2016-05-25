@@ -200,7 +200,8 @@ abstract class Model
         'bool'    => ['require', 'increment', 'primary', 'hidden', 'lower', 'del'],
         'type'    => ['uuid', 'timestamp', 'date', 'bit', 'varbit'],
         'string'  => ['char', 'varchar', 'text'],
-        'numeric' => ['int2', 'int4', 'int8', 'float4', 'float8', 'decimal', 'numeric'],
+        'float'   => ['float4', 'float8', 'decimal', 'numeric'],
+        'int'     => ['int2', 'int4', 'int8'],
         'serial'  => ['serial2', 'serial4', 'serial8'],
         'boolean' => ['bool'],
         'object'  => ['json', 'jsonb', 'array'],
@@ -335,13 +336,17 @@ abstract class Model
                 $result['length']    = intval($value);
                 break;
             case in_array($key, self::$parseDict['serial']):
-                $result['fieldType'] = $key;
-                $result['type']      = 'numeric';
+                $result['fieldType'] = 'int'.str_replace('serial', '', $key);
+                $result['type']      = 'int';
                 $result['increment'] = true;
                 break;
-            case in_array($key, self::$parseDict['numeric']):
+            case in_array($key, self::$parseDict['int']):
                 $result['fieldType'] = $key;
-                $result['type']      = 'numeric';
+                $result['type']      = 'int';
+                break;
+            case in_array($key, self::$parseDict['float']):
+                $result['fieldType'] = $key;
+                $result['type']      = 'float';
                 break;
             case in_array($key, self::$parseDict['boolean']):
                 $result['type'] = 'bool';
@@ -772,7 +777,7 @@ abstract class Model
     private function genSelectNames()
     {
         $this->collectNames();
-        $names = $this->queryNames;
+        $names  = $this->queryNames;
         $quotes = static::$quotes;
         foreach ($names as &$name) {
             $field = $name;
@@ -879,8 +884,10 @@ abstract class Model
                 return strtotime($value);
             case 'bool':
                 return (bool)$value;
-            case 'numeric':
+            case 'float':
                 return floatval($value);
+            case 'int':
+                return intval($value);
             case 'array':
                 return json_decode($value, true);
             default:
@@ -958,9 +965,11 @@ abstract class Model
 
         $type = isset($column['type']) ? $column['type'] : '';
         switch ($type) {
-            case 'numeric':
+            case 'float':
+            case 'int':
             case 'bool':
             case 'bit':
+            case 'varbit':
             case 'timestamp':
                 return 0;
             default:
@@ -1159,7 +1168,7 @@ abstract class Model
             $fields[] = $quotes . $field . $quotes;
             if (is_string($value) && substr($value, 0, 1) === '`' && substr($value, -1, 1) === '`') {//值为可执行代码
                 $value = trim($value, '` ');
-                if (in_array($column['type'], self::$parseDict['numeric']) && preg_match('/^=([\+\-]) *(\d) *$/', $value, $match)) {
+                if (in_array($column['type'], ['int', 'float']) && preg_match('/^=([\+\-]) *(\d) *$/', $value, $match)) {
                     $fieldValues[] = "{$quotes}$field{$quotes} {$match[1]} {$match[2]}";
                 }else {
                     preg_match_all('/(\\\\*)\:(\w+[a-z0-9_\-]*)/i', $value, $matches, PREG_SET_ORDER);
