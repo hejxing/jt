@@ -217,7 +217,6 @@ abstract class Model
         if (static::$columns) {
             //解析表结构和属性
             self::parseColumns();
-            var_export(static::$columns);
         }
     }
 
