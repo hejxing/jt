@@ -271,6 +271,12 @@ abstract class Model
      */
     private static function tidyParsedLine(&$lined)
     {
+        if (!isset($columns['type']) && (isset($columns['createAt']) || isset($columns['updateAt']))) {
+            $columns['type'] = 'timestamp';
+        }
+        if ($columns['type'] === 'array' && empty($columns['typeField'])) {
+            $columns['typeField'] = 'text';
+        }
         //fieldType不允许为空
         if (empty($lined['type'])) {
             self::error('typeEmpty', '未指定字段类型');
@@ -833,9 +839,6 @@ abstract class Model
             }
         }
 
-        if (!isset($columns['type']) && (isset($columns['createAt']) || isset($columns['updateAt']))) {
-            $columns['type'] = 'timestamp';
-        } //edit,remove,restore的create_at,update_at没有设置type属性
         $value = $this->inType($value, $columns['type']);
 
         return $value;
