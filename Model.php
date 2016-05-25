@@ -71,7 +71,7 @@ abstract class Model
      *
      * @var string
      */
-    protected static $primary = 'id';
+    protected static $primary = '';
     /**
      * 主键类型
      *
@@ -126,12 +126,6 @@ abstract class Model
      */
     private $sqlCollect = [];
     /**
-     * 查询完成后对结果的处一办法
-     *
-     * @type array
-     */
-    private $filterCollect = [];
-    /**
      * 生成的PreSql
      *
      * @type string
@@ -168,6 +162,18 @@ abstract class Model
      */
     protected $isCleanSqlCollect = true;
     /**
+     * 查询结果返回形式
+     *
+     * @type int
+     */
+    protected $fetch_style = \PDO::FETCH_ASSOC;
+    /**
+     * 当前查询结果返回形式
+     *
+     * @type int
+     */
+    private $currentFetchStyle = 0;
+    /**
      * 控制是否输出sql
      *
      * @type bool
@@ -185,13 +191,13 @@ abstract class Model
      * @type array
      */
     protected static $parseDict = [
-        'bool'    => ['require', 'increment', 'primary', 'hidden', 'lower', 'del', 'array', 'object'],
+        'bool'    => ['require', 'increment', 'primary', 'hidden', 'lower', 'del'],
         'type'    => ['uuid', 'timestamp', 'date', 'bit', 'varbit'],
         'string'  => ['char', 'varchar', 'text'],
-        'numeric' => ['int2', 'int4', 'int8', 'float4', 'float8', 'decimal', 'numeric', 'money'],
+        'numeric' => ['int2', 'int4', 'int8', 'float4', 'float8', 'decimal', 'numeric'],
         'serial'  => ['serial2', 'serial4', 'serial8'],
         'boolean' => ['bool'],
-        'object'  => ['json', 'jsonb'],
+        'object'  => ['json', 'jsonb', 'array'],
         'value'   => ['format', 'touch', 'foreign', 'field', 'default', 'validate', 'at', 'filter', 'stuffer'],
         'compare' => ['=', '>', '<', '>=', '<=', '<>', ' like ', ' between ', ' in ']
     ];
@@ -199,10 +205,12 @@ abstract class Model
     /**
      * 类加载后自动执行的方法
      */
-    public static function __init()
+    public static function __init($class)
     {
-        //解析表结构和属性
-        self::parseColumns();
+        if (__CLASS__ !== $class) {
+            //解析表结构和属性
+            self::parseColumns();
+        }
     }
 
     /**
@@ -238,7 +246,10 @@ abstract class Model
      */
     private static function tidyParsed($parsed)
     {
-        if (static::$primary && isset($parsed[static::$primary]['increment'])) {
+        if (!static::$primary) {
+            self::error('primaryEmpty', '未指定主键');
+        }
+        if (isset($parsed[static::$primary]['increment'])) {
             static::$primaryType = 'increment';
         }
 
@@ -252,6 +263,12 @@ abstract class Model
      */
     private static function tidyParsedLine(&$lined)
     {
+        //fieldType不允许为空
+        if (empty($lined['type'])) {
+            self::error('typeEmpty', '未指定字段类型');
+        }
+
+        //将del行默认设为hidden
         if (!empty($lined['del']) && !isset($lined['hidden'])) {
             $lined['hidden'] = true;
         }
@@ -324,23 +341,25 @@ abstract class Model
                 $result['type'] = 'bool';
                 break;
             case in_array($key, self::$parseDict['object']):
-                $result['type'] = 'object';
+                $result['type'] = $key;
+                if ($key === 'array') {
+                    $result['fieldType'] = 'text';
+                }
                 break;
             case in_array($key, self::$parseDict['value']):
                 if ($key === 'field') {
                     self::$fieldMap[$value] = $name;
                 }
                 if ($key === 'filter' && !method_exists(get_called_class(), $value)) {
-                    self::error('filterNotExists', "数据库模型类 [" . get_called_class() . "] 配置表中 filter 方法[{$value}]不存在，请检查");
+                    self::error('filterNotExists', "配置表中 filter 方法[{$value}]不存在，请检查");
                 }
                 if ($key === 'stuffer' && !method_exists(get_called_class(), $value)) {
-                    self::error('stufferNotExists', "数据库模型类 [" . get_called_class() . "] 配置表中 stuffer 方法[{$value}]不存在，请检查");
+                    self::error('stufferNotExists', "配置表中 stuffer 方法[{$value}]不存在，请检查");
                 }
                 $result[$key] = $value;
                 break;
             default:
-                $class = get_called_class();
-                self::error('tableColumnsRulerError', "数据库模型类 [{$class}] 配置表中 [{$name}] 项值 [{$key}] 有误，请检查");
+                self::error('tableColumnsRulerError', "配置表中 [{$name}] 项值 [{$key}] 有误，请检查");
         }
 
         return $result;
@@ -445,8 +464,9 @@ abstract class Model
      */
     private function prepare($preSql)
     {
-        $sth = $this->pdo->prepare($preSql, [\PDO::ATTR_CURSOR => \PDO::CURSOR_FWDONLY]);
-        $sth->setFetchMode(\PDO::FETCH_ASSOC);
+        $sth                     = $this->pdo->prepare($preSql, [\PDO::ATTR_CURSOR => \PDO::CURSOR_FWDONLY]);
+        $this->currentFetchStyle = $this->sqlCollect['fetch_style']??$this->fetch_style;
+        $sth->setFetchMode($this->currentFetchStyle);
 
         return $sth;
     }
@@ -544,51 +564,53 @@ abstract class Model
      * 整理查询结果
      *
      * @param array $list
+     * @param array $stack
      * @return array
      */
-    private function combQueryResult(array &$list)
+    private function combQueryResult(array &$list, array $stack)
     {
-        if (empty($list)) {
-            if (!empty($this->filterCollect['fillEmpty'])) {//填充默认的空数据
-                foreach ($this->filterCollect['lastCollectedNames'] as $name) {
-                    $list[$name] = $this->genEmptyValue($name);
-                }
-            }
-
+        if (empty($stack) || empty($list)) {
             return $list;
         }
 
+        foreach ($list as &$item) {
+            foreach ($stack as $name => $process) {
+                foreach ($process as $p) {
+                    $item[$name] = $p($item[$name]);
+                }
+            }
+        }
+
+        return $list;
+    }
+
+    private function genCombStack($list)
+    {
+        if ($this->currentFetchStyle === \PDO::FETCH_NUM) {
+            return [];
+        }
         list(, $item) = each($list);
-        $convertStack = [];
-        $filterStack  = [];
+        $stack = [];
+
         foreach (static::$columns as $name => $column) {
             if (!isset($item[$name])) {
                 continue;
             }
-            if (isset($column['array']) || isset($column['object'])) {
-                $convertStack[] = $name;
+            if (isset($column['type']) !== 'string') {
+                $type           = $column['type'];
+                $stack[$name][] = function ($value) use ($type){
+                    return $this->outType($value, $type);
+                };
             }
             if (isset($column['filter'])) {
-                $filterStack[$column['filter']] = $name;
+                $m              = $column['filter'];
+                $stack[$name][] = function ($value) use ($m){
+                    return $this->$m($value);
+                };
             }
         }
 
-        if (!$convertStack && !$filterStack) {
-            return $list;
-        }
-        foreach ($list as &$item) {
-            foreach ($convertStack as $name) {
-                $item[$name] = json_decode($item[$name], true);
-            }
-
-            foreach ($filterStack as $filter => $name) {
-                $item[$name] = $this->$filter($item[$name]);
-            }
-        }
-
-        $this->filterCollect = [];
-
-        return $list;
+        return $stack;
     }
 
     /**
@@ -604,7 +626,7 @@ abstract class Model
         $sth  = $this->query('SELECT ' . $preSql, $data);
         $list = $sth->fetchAll();
 
-        return $this->combQueryResult($list);
+        return $this->combQueryResult($list, $this->genCombStack($list));
     }
 
     /**
@@ -733,9 +755,6 @@ abstract class Model
             $index = array_search($name, $collectedNames);
             unset($collectedNames[$index]);
         }
-        if (!empty($this->filterCollect['fillEmpty'])) { //留着备用
-            $this->filterCollect['lastCollectedNames'] = $collectedNames;
-        }
         //if (count($collectedNames) === count(static::$columns)) {
         //    //$collectedNames = ['*'];
         //}
@@ -798,7 +817,7 @@ abstract class Model
                 $value = str_replace('-', '', $value);
             }
         }
-        if (isset($columns['array']) || isset($columns['object'])) {
+        if (isset($columns['array'])) {
             if (is_array($value)) {
                 $value = json_encode($value, JSON_UNESCAPED_UNICODE);
             }else {
@@ -809,20 +828,20 @@ abstract class Model
         if (!isset($columns['type']) && (isset($columns['createAt']) || isset($columns['updateAt']))) {
             $columns['type'] = 'timestamp';
         } //edit,remove,restore的create_at,update_at没有设置type属性
-        $value = $this->convertType($value, $columns['type']);
+        $value = $this->inType($value, $columns['type']);
 
         return $value;
     }
 
     /**
-     * 转换值类型
+     * 转换输入值类型
      *
      * @param $value
      * @param $type
      *
      * @return mixed
      */
-    private function convertType($value, $type)
+    private function inType($value, $type)
     {
         switch ($type) {
             case 'timestamp':
@@ -831,13 +850,37 @@ abstract class Model
                     $date->setTimestamp($value);
                     $value = $date->format('Y-m-d\TH:i:s.uP');
                 }
-                break;
+
+                return $value;
             case 'bool':
                 return $value ? 1 : 0;
-                break;
         }
 
         return $value;
+    }
+
+    /**
+     * 转换输出值类型
+     *
+     * @param $value
+     * @param $type
+     *
+     * @return mixed
+     */
+    private function outType($value, $type)
+    {
+        switch ($type) {
+            case 'timestamp':
+                return strtotime($value);
+            case 'bool':
+                return (bool)$value;
+            case 'numeric':
+                return floatval($value);
+            case 'array':
+                return json_decode($value, true);
+            default:
+                return $value;
+        }
     }
 
     /**
@@ -904,7 +947,7 @@ abstract class Model
         if ($column['type'] === 'uuid') {
             return isset($column['primary']) ? self::genUuid() : self::UUID_ZERO;
         }
-        if (isset($column['array']) || isset($column['object'])) {
+        if (isset($column['array'])) {
             return [];
         }
 
@@ -915,30 +958,6 @@ abstract class Model
             case 'bit':
             case 'timestamp':
                 return 0;
-            default:
-                return '';
-        }
-    }
-
-    /**
-     * 生成空值
-     *
-     * @param $name
-     * @return mixed
-     */
-    private function genEmptyValue($name)
-    {
-        $type = static::$columns[$name]['type']??'string';
-        switch ($type) {
-            case 'timestamp':
-            case 'numeric':
-                return 0;
-            case 'bool':
-                return false;
-            case 'object':
-                return [];
-            //case 'date':
-            //    return '';
             default:
                 return '';
         }
@@ -1425,14 +1444,13 @@ abstract class Model
     }
 
     /**
-     * 当未查询到记录时是否返回一条空记录
+     * 返回数字索引数组
      *
-     * @param bool $is
      * @return $this
      */
-    public function fillEmpty($is = true)
+    public function index()
     {
-        $this->filterCollect['fillEmpty'] = $is;
+        $this->sqlCollect['fetch_style'] = \PDO::FETCH_NUM;
 
         return $this;
     }
@@ -2381,7 +2399,7 @@ abstract class Model
      */
     public static function error($code, $msg)
     {
-        $te = new Exception($code . ':' . $msg);
+        $te = new Exception($code . ':' . $msg . ' Model:[' . get_called_class() . ']');
         $te->setIgnoreTraceLine(3);
         throw $te;
     }

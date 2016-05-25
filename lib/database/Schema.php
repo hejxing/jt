@@ -33,19 +33,19 @@ class Schema extends Connector
         $this->executeDDL($sql);
     }
 
+    /**
+     * 生成表字段类型
+     * @param array $option
+     * @return mixed|string
+     */
     private function genType(array $option)
     {
-        $type = $option['type'];
-        switch ($type) {
-            case 'numeric':
-                $type = $option['fieldType'];
-                break;
+        $type = $option['fieldType']??$option['type'];
+        switch ($option['type']) {
             case 'string':
-                $type = $option['fieldType'];
-                if ($type !== 'text') {
-                    $type .= "({$option['length']})";
+                if ($type === 'text') {
+                    break;
                 }
-                break;
             case 'bit':
             case 'varbit':
                 $length = $option['length']?:1;

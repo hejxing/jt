@@ -608,6 +608,7 @@ class Action
             self::$taskSuccess = false;
 
             $e = new Exception($status . ':');
+            $e->setType('taskFail');
             $e->setParam($param);
             throw $e;
         }
