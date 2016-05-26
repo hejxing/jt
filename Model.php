@@ -959,7 +959,7 @@ abstract class Model
         if ($column['type'] === 'uuid') {
             return isset($column['primary']) ? self::genUuid() : self::UUID_ZERO;
         }
-        if (isset($column['array'])) {
+        if ($column['type'] === 'array') {
             return [];
         }
 
