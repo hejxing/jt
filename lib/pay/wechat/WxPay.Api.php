@@ -662,12 +662,6 @@ class WxPayApi
             $payOrderInput->setValues($values);
             $payOrderInput->SetSign();
             $result = $payOrderInput->GetValues();
-            if (isset($result['package'])) {
-                $result['packages']  = $result['package'];
-                $result['nonce_str'] = $result['noncestr'];
-                unset($result['package']);
-                unset($result['noncestr']);
-            }
 
             return $result;
         }else {
