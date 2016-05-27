@@ -270,11 +270,11 @@ abstract class Model
      */
     private static function tidyParsedLine(&$lined)
     {
-        if (!isset($columns['type']) && (isset($columns['createAt']) || isset($columns['updateAt']))) {
-            $columns['type'] = 'timestamp';
+        if (!isset($lined['type']) && (isset($lined['createAt']) || isset($lined['updateAt']))) {
+            $lined['type'] = 'timestamp';
         }
-        if ($columns['type'] === 'array' && empty($columns['typeField'])) {
-            $columns['typeField'] = 'text';
+        if ($lined['type'] === 'array' && empty($lined['typeField'])) {
+            $lined['typeField'] = 'text';
         }
         //fieldType不允许为空
         if (empty($lined['type'])) {
