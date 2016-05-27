@@ -62,13 +62,14 @@ class WxPayConfig
      */
     const REPORT_LEVENL = 1;
 
-    public static function setConfig($config){
-        self::$APPID = $config['appId'];
-        self::$MCHID = $config['mchId'];
-        self::$KEY = $config['key'];
+    public static function setConfig($config)
+    {
+        self::$APPID     = $config['appId'];
+        self::$MCHID     = $config['mchId'];
+        self::$KEY       = $config['key'];
         self::$APPSECRET = $config['appSecret'];
 
-        self::$SSLCERT_PATH = $config['sslCertPath'].'/apiclient_cert.pem';
-        self::$SSLKEY_PATH = $config['sslCertPath'].'/apiclient_key.pem';
+        self::$SSLCERT_PATH = $config['sslCertPath'] . '/apiclient_cert.pem';
+        self::$SSLKEY_PATH  = $config['sslCertPath'] . '/apiclient_key.pem';
     }
 }

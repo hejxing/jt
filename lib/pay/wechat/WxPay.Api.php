@@ -642,26 +642,35 @@ class WxPayApi
 
     /**
      * 获取支付请求参数
+     *
      * @param \WxPayUnifiedOrder $input
      * @return array
      */
-    public static function getPayRequestParam($input){
+    public static function getPayRequestParam($input)
+    {
         $unifiedOrder = \WxPayApi::unifiedOrder($input);
-        if($unifiedOrder['return_code'] == 'SUCCESS' && $unifiedOrder['result_code'] == 'SUCCESS'){
-            $values = array(
-                'appid' => \WxPayConfig::$APPID,
+        if ($unifiedOrder['return_code'] == 'SUCCESS' && $unifiedOrder['result_code'] == 'SUCCESS') {
+            $values        = [
+                'appid'     => \WxPayConfig::$APPID,
                 'partnerid' => \WxPayConfig::$MCHID,
-                'prepayid' => $unifiedOrder['prepay_id'],
-                'packages' => 'Sign=WXPay',
+                'prepayid'  => $unifiedOrder['prepay_id'],
+                'package'   => 'Sign=WXPay',
                 'timestamp' => time(),
-                'nonce_str' => $unifiedOrder['nonce_str']
-            );
+                'noncestr'  => $unifiedOrder['nonce_str']
+            ];
             $payOrderInput = new \WxPayUnifiedOrder();
             $payOrderInput->setValues($values);
             $payOrderInput->SetSign();
             $result = $payOrderInput->GetValues();
+            if (isset($result['package'])) {
+                $result['packages']  = $result['package'];
+                $result['nonce_str'] = $result['noncestr'];
+                unset($result['package']);
+                unset($result['noncestr']);
+            }
+
             return $result;
-        }else{
+        }else {
             return $unifiedOrder;
         }
     }
