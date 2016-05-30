@@ -1307,7 +1307,7 @@ abstract class Model
         }
         $groupSql = '';
         foreach ($this->sqlCollect['group'] as $field) {
-            $groupSql .= ' GROUP BY ' . $this->nameMapField($field);
+            $groupSql .= ' GROUP BY ' . $field;
         }
         $this->preSql .= $groupSql;
 
