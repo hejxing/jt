@@ -8,12 +8,6 @@
 
 namespace jt\auth;
 
-define('JT_LOGIN_SUCCESS', 1);
-define('JT_LOGIN_PASSWORD_ILL', 2);
-define('JT_LOGIN_BLOCK', 3);
-define('JT_LOGIN_FAIL', 4);
-define('JT_LOGIN_OUT', 5); //退出登录
-
 use jt\Controller;
 use jt\Session;
 use jt\Action;
@@ -25,6 +19,11 @@ use jt\Action;
  */
 abstract class Auth
 {
+    const LOGIN_SUCCESS      = 1;
+    const LOGIN_PASSWORD_ILL = 2;
+    const LOGIN_BLOCK        = 3;
+    const LOGIN_FAIL         = 4;
+    const LOGIN_OUT          = 5; //退出登录
     /**
      * @type \jt\Action
      */
@@ -45,6 +44,7 @@ abstract class Auth
     protected $loginUrl = '/login';
     /**
      * 操作员
+     *
      * @type null
      */
     private $operator = null;
@@ -58,34 +58,40 @@ abstract class Auth
 
     /**
      * 访问结果过滤
+     *
      * @return int
      */
     abstract public function filter();
 
     /**
      * 初始化操作员信息
+     *
      * @return \jt\auth\Operator
      */
-    protected function createOperator(){
+    protected function createOperator()
+    {
         return new Operator('undefined', '', '');
     }
 
     /**
      * 写未授权访问的空接口
      */
-    public function writeInExceedLog(){
+    public function writeInExceedLog()
+    {
     }
 
     /**
      * 写未授权访问的空接口
      */
-    public function writeOutExceedLog(){
+    public function writeOutExceedLog()
+    {
     }
 
     /**
      * 写访问成功日志的空接口
      */
-    public function writeSuccessLog(){
+    public function writeSuccessLog()
+    {
     }
 
     /**
@@ -104,7 +110,7 @@ abstract class Auth
      */
     protected function notLogin()
     {
-        $this->action->out('loginUrl', $this->loginUrl.'?ref='.$_SERVER['REQUEST_URI']);
+        $this->action->out('loginUrl', $this->loginUrl . '?ref=' . $_SERVER['REQUEST_URI']);
         $this->action->fail('未登录或登录失败，请重登录', 401);
     }
 
@@ -152,13 +158,16 @@ abstract class Auth
 
     /**
      * 访问完成时做的检查
+     *
      * @return mixed
      */
-    final public function outCheck(){
+    final public function outCheck()
+    {
         $code = $this->filter();
         switch ($code) {
             case 200:
                 $this->writeSuccessLog();
+
                 return true;
                 break;
             case 403:
@@ -178,9 +187,9 @@ abstract class Auth
      */
     protected static function hold($data)
     {
-        $token = Session::start(true);
+        $token         = Session::start(true);
         $data['token'] = $token;
-        $_SESSION = $data;
+        $_SESSION      = $data;
         (new Action())->header('token', $token);
 
         return $token;
@@ -188,12 +197,15 @@ abstract class Auth
 
     /**
      * 获取操作员
+     *
      * @return \jt\auth\Operator
      */
-    public function getOperator(){
-        if($this->operator === null){
+    public function getOperator()
+    {
+        if ($this->operator === null) {
             $this->operator = $this->createOperator();
         }
+
         return $this->operator;
     }
 }
