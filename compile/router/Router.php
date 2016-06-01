@@ -84,10 +84,11 @@ class Router extends Action
         $clean = [
             '',
             $value['ruler'],
-            $value['line']
+            $value['line'],
+            []
         ];
         if (isset($value['nodes']) && $value['nodes']) {
-            $clean[] = $this->clearReturnNode($value['nodes']);
+            $clean[3] = $this->clearReturnNode($value['nodes']);
         }
 
         return $clean;
