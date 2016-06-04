@@ -154,10 +154,10 @@ class Debug
     /**
      * 进入测试入口
      *
-     * @param string $projectRoot 项目根目录
      * @param string $runtimeRoot 项目运行时生成的目录
+     * @param string $projectRoot 项目根目录
      */
-    public static function entrance($projectRoot = null, $runtimeRoot = '')
+    public static function entrance($runtimeRoot = '', $projectRoot = null)
     {
         if ($projectRoot === null) {
             if($_SERVER['argv'][4] === '--filter'){
