@@ -111,9 +111,6 @@ class Validate
     }
 
     public static function uuid($value){
-        if($value === '0'){
-            return '00000000000000000000000000000000';
-        }
         return preg_match('/[0-9abcdef]{8}-?[0-9abcdef]{4}-?[0-9abcdef]{4}-?[0-9abcdef]{4}-?[0-9abcdef]{12}/i', $value) > 0;
     }
 

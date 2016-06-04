@@ -106,7 +106,11 @@ class Requester
         }elseif (isset($option['validate'])) {
             $result = Validate::check($value, $option['validate']);
             if ($result === false) {
-                self::error('value_validate_invalid', '值只允许是 [' . $option['validate'] . ']', $name, $option);
+                if($option['validate'] === 'uuid' && $value === '0'){
+                    $value =  '00000000000000000000000000000000';
+                }else{
+                    self::error('value_validate_invalid', '值只允许是 [' . $option['validate'] . ']', $name, $option);
+                }
             }elseif ($result === null) {
                 self::error('value_validate_type_invalid', '验证规则无效 [' . $option['validate'] . '],需要有效的规则或正则表达式', $name, $option);
             }
