@@ -12,6 +12,7 @@ class Error extends Action
 {
     /**
      * 是否直接输出错误
+     *
      * @type bool
      */
     static protected $isDirectOutput = false;
@@ -63,7 +64,7 @@ class Error extends Action
         $data = [];
 
         if ($e instanceof Exception) {
-            switch($e->getType()){
+            switch ($e->getType()) {
                 case 'taskEnd':
                     return;
                 case 'taskFail':
@@ -78,7 +79,7 @@ class Error extends Action
                 //    Controller::current()->retry();
                 //    return;
             }
-            
+
             $data = array_merge($data, $e->getData());
             self::error($code, $msg, false, $e->getParam(), $data);
         }else {
@@ -116,11 +117,13 @@ class Error extends Action
 
     /**
      * 执行致命错误
+     *
      * @param        $code
      * @param string $msg
      * @param array  $param
      */
-    private static function exeFatal($code, $msg, $param){
+    private static function exeFatal($code, $msg, $param)
+    {
         $p = [];
         $d = [];
         foreach ($param as $k => $v) {
@@ -148,8 +151,9 @@ class Error extends Action
      */
     protected static function error($code, $msg, $fatal, $param = [], $data = [])
     {
-        if(self::$isDirectOutput){
-            echo $code.': '.$msg, PHP_EOL;
+        if (self::$isDirectOutput) {
+            echo $code . ': ' . $msg, PHP_EOL;
+
             return;
         }
         $method = '_' . $code;
@@ -230,8 +234,8 @@ class Error extends Action
             'code' => $code,
             'msg'  => $msg
         ];
-        if(self::$isDirectOutput){
-            echo $code.': '.$msg, PHP_EOL;
+        if (self::$isDirectOutput) {
+            echo $code . ': ' . $msg, PHP_EOL;
         }
     }
 
@@ -247,8 +251,8 @@ class Error extends Action
             'code' => $code,
             'msg'  => $msg
         ];
-        if(self::$isDirectOutput){
-            echo $code.': '.$msg, PHP_EOL;
+        if (self::$isDirectOutput) {
+            echo $code . ': ' . $msg, PHP_EOL;
         }
     }
 
@@ -262,7 +266,8 @@ class Error extends Action
         $success = Action::isSuccess() && Action::isRunComplete();
         $header  = [
             'success' => $success,
-            'msg'     => $success ? '请求成功' : '请求失败'
+            'msg'     => $success ? '请求成功' : '请求失败',
+            'code'    => ''
         ];
         if (isset(self::$collected['fatal'])) {
             $header = array_merge($header, self::$collected['fatal']);

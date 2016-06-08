@@ -768,9 +768,10 @@ class Requester
         foreach ($ns as $n) {
             if (isset($data[$n])) {
                 $data = $data[$n];
+            }else{
+                return null;
             }
         }
-
         return $data;
     }
 
@@ -787,10 +788,10 @@ class Requester
         if (isset($ruler[1]['raw'])) {
             return $data;
         }
-
-        if (empty($data)) {
+        if ($data === null || $data === []) {
             return self::fillEmpty($ruler);
         }
+
         switch ($ruler[1]['type']) {
             case 'object':
                 $buffer = [];

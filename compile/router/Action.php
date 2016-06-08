@@ -249,6 +249,9 @@ abstract class Action extends Loader
         $parsedList = [];
         $parsed     = [];
         while (($item = array_shift($lines))) {
+            if(substr(trim($item[1]), 0, 1) === '#'){
+                continue;
+            }
             $line          = $item[1];
             $lineNo        = $item[2];
             $currentIndent = $this->countIndent($line);//缩进数量
@@ -440,7 +443,7 @@ abstract class Action extends Loader
             'ruler' => [
                 'rule'   => 'int',
                 'type'   => 'int',
-                'format' => null,
+                'format' => null
             ]
         ];
     }
