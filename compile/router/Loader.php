@@ -505,7 +505,7 @@ abstract class Loader
         }
         while (list(, $item) = each($this->commentLines)) {
             if (in_array($item[0], $use)) {
-                if ($item[1]) {
+                if ($item[1] && substr(trim($item[1]), 0, 1) !== '#') {
                     $list[] = $item;
                 }
                 $this->line = $item[2];
@@ -569,6 +569,7 @@ abstract class Loader
 
     /**
      * 初始工作
+     * @param string $cn
      */
     public static function __init($cn)
     {
