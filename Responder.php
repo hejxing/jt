@@ -77,7 +77,7 @@ class Responder
         }
 
 
-        $content = $tpl->render(Controller::current()->getTemplate(), $data);
+        $content = $tpl->render(Controller::current()->getTemplate(), array_merge_recursive(\Config::WEB_COMMON_DATA, $data));
         if (RUN_MODE !== 'production') {
             //Debug::output($content);
             $hData    = Error::prepareHeader();

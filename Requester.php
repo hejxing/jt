@@ -107,7 +107,7 @@ class Requester
             $result = Validate::check($value, $option['validate']);
             if ($result === false) {
                 if($option['validate'] === 'uuid' && $value === '0'){
-                    $value =  '00000000000000000000000000000000';
+                    $value =  '00000000-0000-0000-0000-000000000000';
                 }else{
                     self::error('value_validate_invalid', '值只允许是 [' . $option['validate'] . ']', $name, $option);
                 }
