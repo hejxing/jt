@@ -143,8 +143,8 @@ class Bootstrap
         self::loadConfig();
         //注册错误、异常入口
         ini_set('display_errors', true);
-        //set_error_handler('\jt\Error::errorHandler');
-        //set_exception_handler('\jt\Error::exceptionHandler');
+        set_error_handler('\jt\Error::errorHandler');
+        set_exception_handler('\jt\Error::exceptionHandler');
 
         date_default_timezone_set(\Config::TIME_ZONE);
     }
