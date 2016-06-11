@@ -76,8 +76,11 @@ class Responder
             return var_export($data, true);
         }
 
+        if(constant('\Config::WEB_COMMON_DATA')){
+            $data = array_merge_recursive(\Config::WEB_COMMON_DATA, $data);
+        }
 
-        $content = $tpl->render(Controller::current()->getTemplate(), array_merge_recursive(\Config::WEB_COMMON_DATA, $data));
+        $content = $tpl->render(Controller::current()->getTemplate(), $data);
         if (RUN_MODE !== 'production') {
             //Debug::output($content);
             $hData    = Error::prepareHeader();
