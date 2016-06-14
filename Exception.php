@@ -14,7 +14,7 @@ namespace jt;
  */
 class Exception extends \Exception
 {
-    protected $type       = 'task';
+    protected $type       = 'taskFail';
     protected $ignoreLine = 0;
     protected $data       = [];
     protected $param      = [];
