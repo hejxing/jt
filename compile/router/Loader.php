@@ -16,7 +16,7 @@ use jt\Exception;
  */
 abstract class Loader
 {
-    protected static $ignoreCache = false;
+    protected static $ignoreCache = true;
 
     protected static $root          = '';
     protected static $cacheFile     = '';
