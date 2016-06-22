@@ -16,7 +16,7 @@ use jt\Exception;
  */
 abstract class Loader
 {
-    protected static $ignoreCache = true;
+    protected static $ignoreCache = false;
 
     protected static $root          = '';
     protected static $cacheFile     = '';
@@ -138,6 +138,9 @@ abstract class Loader
      */
     public static function processReference()
     {
+        if(empty(self::$cacheStore['action'])){
+            return;
+        }
         foreach (self::$cacheStore['action'] as $className => &$class) {
             foreach ($class['methods'] as &$method) {
                 foreach ($method['param'] as &$param) {
