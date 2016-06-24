@@ -87,7 +87,8 @@ class Transfer
             CURLOPT_HEADER         => 0,        // 1:获取头部信息
             CURLOPT_RETURNTRANSFER => 1,        // 1:获取的信息以文件流的形式返回
             CURLOPT_POSTFIELDS     => $this->data,    // post数据
-            CURLOPT_URL            => $this->gateway
+            CURLOPT_URL            => $this->gateway,
+            CURLOPT_CUSTOMREQUEST  => $this->method
         ];
         curl_setopt_array($ci, $options);
         $this->stream = curl_exec($ci);
