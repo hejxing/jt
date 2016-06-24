@@ -115,7 +115,7 @@ class Transfer
     private function sign()
     {
         $this->data['key'] = \Config::PARTNER_KEY;
-        if (\Config::IS_TEST) {
+        if (RUN_MODE === 'test') {
             $this->data['is_test'] = 1;
         }
         ksort($this->data);
@@ -144,6 +144,6 @@ class Transfer
     {
         $this->transfer();
 
-        return \explode("\r\n\r\n", $this->stream)[1];
+        return $this->stream;
     }
 }
