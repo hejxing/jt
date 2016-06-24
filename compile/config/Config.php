@@ -40,34 +40,52 @@ class Config
         $tokens = token_get_all(file_get_contents($file));
 
         $names  = [];
-        $isName = false;
+        $functions = [];
         $code   = 'return new class {';
-        while (list(, $token) = each($tokens)) {
-            if ($token === '{') {
+        foreach($tokens as $token){
+            array_shift($tokens);
+            if($token === '{'){
                 break;
             }
         }
+
+        foreach($tokens as $index => $token){
+            if (is_array($token)) {
+                $code .= $token[1];
+            }else{
+                $code .= $token;
+            }
+        }
+
         while (list(, $token) = each($tokens)) {
             if (is_array($token)) {
                 if ($token[0] === T_CONST) {
-                    $isName = true;
+                    while(list(, $token) = each($tokens)){
+                        if($token[0] === T_STRING){
+                            $names[] = $token[1];
+                            break;
+                        }
+                    }
                 }
-                if ($isName && $token[0] === T_STRING) {
-                    $isName  = false;
-                    $names[] = $token[1];
+                if ($token[0] === T_FUNCTION){
+                    while(list(, $token) = each($tokens)){
+                        if($token[0] === T_STRING){
+                            $functions[] = $token[1];
+                            break;
+                        }
+                    }
                 }
-                $code .= $token[1];
-            }else {
-                $code .= $token;
-            }
-            if ($token === '}') {
-                break;
             }
         }
+
         $class  = get_class(eval($code . ';'));
         $config = [];
         foreach ($names as $name) {
             $config[$name] = constant("$class::$name");
+        }
+
+        foreach($functions as $name){
+            $config[$name] = call_user_func([$class, $name]);
         }
 
         return $config;
