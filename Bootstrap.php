@@ -156,6 +156,8 @@ class Bootstrap
      * @param array $option 选项
      *   projectRoot 本项目所在的根目录，命名空间的根目录所在的目录为准
      *   runtimeRoot 存放运行时生成的文件的根目录
+     * 
+     * @return Controller
      */
     public static function boot($runMode = 'production', array $option = [])
     {
@@ -168,6 +170,6 @@ class Bootstrap
         ]);
         //Debug::log('$_REQUEST', [$_GET, $_POST, $_FILES]);
         //run_before
-        Controller::run($_SERVER['SCRIPT_NAME']);
+        return new Controller($_SERVER['SCRIPT_NAME']);
     }
 }

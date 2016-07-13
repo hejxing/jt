@@ -108,7 +108,7 @@ class Controller
      *
      * @throws \Exception
      */
-    private function __construct($uri)
+    public function __construct($uri)
     {
         self::$controller = $this;
         $this->uri        = $uri;
@@ -116,24 +116,18 @@ class Controller
 
     /**
      * 启动控制器
-     *
-     * @param string $uri 路径
-     * @return Controller
      */
-    public static function run($uri)
+    public function run()
     {
-        $c = new self($uri);
-        $c->cutURI();
-        $c->dispatch();
-        $c->execute();
-        if ($c->isNeedRetry) {
-            $c->retry();
+        $this->cutURI();
+        $this->dispatch();
+        $this->execute();
+        if ($this->isNeedRetry) {
+            $this->retry();
         }
-        if ($c->outputAllow) {
+        if ($this->outputAllow) {
             Responder::write();
         }
-
-        return $c;
     }
 
     /**
