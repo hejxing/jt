@@ -1,12 +1,13 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: Administrator
- * Date: 2015/6/4
- * Time: 15:35
+ * @Copyright jentian.com
+ * Auth: ax@jentian.com
+ * Create: 2015/6/4 15:35
  */
 
 namespace jt\utils;
+
+use jt\Responder;
 
 /**
  * 与处理URL相关的工具集
@@ -142,16 +143,11 @@ class Url
      *
      * @param string $name 要跳转到的目标页面
      * @param array  $param 参数
-     * @param bool   $break 是否结束后续的内容
-     * @param int    $responseCode 把HTTP响应代码强制为该值
+     * @param int    $status HTTP响应代码
      */
-    public static function jump($name, array $param = [], $break = true, $responseCode = 200)
+    public static function jump($name, array $param = [], $status = 302)
     {
-        header('Location:' . self::make($name, $param), true, $responseCode);
-        if ($break) {
-            //TODO：多线程应用中注意此处
-            exit();
-        }
+        Responder::redirect(self::make($name, $param), $status);
     }
 
     /**
@@ -201,12 +197,18 @@ class Url
         return base64_decode($packed);
     }
 
+    /**
+     * 解析QueryString
+     * @param $url
+     * @return array
+     */
     public static function parseQueryString($url)
     {
+        $param = [];
         if (strpos($url, '?')) {
             list(, $queryString) = explode('?', $url, 2);
+            parse_str($queryString, $param);
         }
-        parse_str($queryString, $param);
 
         return $param;
     }
@@ -216,6 +218,6 @@ class Url
      */
     public static function reload()
     {
-        self::redirect(self::currentURI());
+        Responder::redirect(self::currentURI());
     }
 }

@@ -12,19 +12,26 @@ use jt\lib\database\ErrorCode;
 
 abstract class Model
 {
-    const UUID_ZERO           = '00000000-0000-0000-0000-000000000000';
-    const LIKE_LEFT           = 1;
-    const LIKE_RIGHT          = 2;
-    const LIKE_BOTH           = 3;
+    const UUID_ZERO = '00000000-0000-0000-0000-000000000000';
+
+    const LIKE_LEFT  = 1;
+    const LIKE_RIGHT = 2;
+    const LIKE_BOTH  = 3;
+
     const RELATE_ONE_TO_ONE   = 1;
     const RELATE_ONE_TO_MANY  = 2;
     const RELATE_MANY_TO_ONE  = 3;
     const RELATE_MANY_TO_MANY = 4;
-    const BOUND_AFFIX         = 0;
-    const BOUND_CELL          = 1;
-    const BOUND_ALONE         = 2;
-    const LINK_AND            = 0;
-    const LINK_OR             = 1;
+
+    const BOUND_NONE  = 0;//不加括号
+    const BOUND_BEGIN = 1;//开始一个括号
+    const BOUND_END   = 2;//关闭括号
+    const BOUND_SELF  = 3;//将自身括起来
+    const BOUND_OTHER = 4;//将其它条件括起来
+    const BOUND_ALONE = 7;//将自身和其它条件都括起来
+
+    const LINK_AND = 0;
+    const LINK_OR  = 1;
 
     /**
      * 连接名
@@ -342,7 +349,7 @@ abstract class Model
                 $result['length']    = intval($value);
                 break;
             case in_array($key, self::$parseDict['serial']):
-                $result['fieldType'] = 'int'.str_replace('serial', '', $key);
+                $result['fieldType'] = 'int' . str_replace('serial', '', $key);
                 $result['type']      = 'int';
                 $result['increment'] = true;
                 break;
@@ -600,9 +607,6 @@ abstract class Model
 
     private function genCombStack()
     {
-        if ($this->currentFetchStyle === \PDO::FETCH_NUM) {
-            return [];
-        }
         $stack = [];
         foreach ($this->queryNames as $name) {
             $column = static::$columns[$name];
@@ -619,6 +623,13 @@ abstract class Model
                     return $this->$m($value);
                 };
             }
+        }
+        if ($this->currentFetchStyle === \PDO::FETCH_NUM) {
+            $indexStack = [];
+            foreach ($stack as $name => $item) {
+                $indexStack[array_search($name, $this->queryNames)] = $item;
+            }
+            $stack = $indexStack;
         }
         $this->queryNames = [];
 
@@ -889,25 +900,10 @@ abstract class Model
             case 'int':
                 return intval($value);
             case 'array':
-                return json_decode($value, true);
+                return json_decode($value, true) ?: [];
             default:
                 return $value;
         }
-    }
-
-    /**
-     * 搜集传入的数据
-     *
-     * @return array
-     */
-    private function collectData()
-    {
-        $data = [];
-        foreach ($this->sqlCollect['data'] as $item) {
-            $data = array_merge($data, $item);
-        }
-
-        return $data;
     }
 
     /**
@@ -982,7 +978,7 @@ abstract class Model
      */
     private function genInsertNames()
     {
-        $data = $this->collectData();
+        $data = $this->sqlCollect['data'];
         if (count($data) === 0) {
             return;
         }
@@ -1032,24 +1028,29 @@ abstract class Model
      */
     private function preParseWhere()
     {
-        $isClosed = true;
-        $symbol   = [];
-        $index    = 0;
+        $bracketLevel = 0;
+        $symbol       = [];
+        $index        = 0;
         foreach ($this->sqlCollect['where'] as $index => &$where) { //通观全局
             $symbol[$index]    = ['', '', ' '];
             $symbol[$index][1] = $where[2] ? 'OR ' : 'AND ';
-            if ($where[3] === 0 && $isClosed) { //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
-                $pos             = $index >= 1 ? $index - 1 : $index;
-                $symbol[$pos][0] = '(';
-                $isClosed        = false;
+            if ($where[3] & self::BOUND_BEGIN) { //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
+                $symbol[$index][0] = '(';
+                $bracketLevel++;
             }
-            if ($where[3] === 1 && $isClosed === false) { //括号关闭 当前括号未关闭时关闭
-                $symbol[$index][2] = ')';
-                $isClosed          = true;
+            if ($where[3] & self::BOUND_END && $bracketLevel > 0) { //括号关闭 当前括号未关闭时关闭
+                $symbol[$index][2] = ') ';
+                $bracketLevel--;
             }
-            if ($where[3] === 2 && $index > 0) { //需要将自身独立出来，将前面where用括号括起来
-                $symbol[0][0] .= '( ';
+            if ($where[3] & self::BOUND_OTHER && $index > 0) { //需要将自身独立出来，将前面where用括号括起来
+                $symbol[0][0] .= '(';
+                for (; $bracketLevel > 0; $bracketLevel--) {//将前面未关闭的括号全关闭
+                    $symbol[$index - 1][2] .= ')';
+                }
                 $symbol[$index - 1][2] .= ') ';
+                if (!empty($this->sqlCollect['where'][$index + 1])) {
+                    $this->sqlCollect['where'][$index + 1][3] = self::BOUND_BEGIN;
+                }
             }
             if ($where[4]) {
                 $where[0] = $this->applyAsMapForWhere($where[0]);
@@ -1059,8 +1060,8 @@ abstract class Model
         if ($symbol) {
             $symbol[0][1] = '';
         }
-        if (!$isClosed) {
-            $symbol[$index][2] = ')';
+        for (; $bracketLevel > 0; $bracketLevel--) {
+            $symbol[$index][2] .= ')';
         }
 
         return $symbol;
@@ -1130,7 +1131,7 @@ abstract class Model
      */
     private function genUpdateNames()
     {
-        $data = $this->collectData();
+        $data = $this->sqlCollect['data'];
         if (count($data) === 0) {
             return;
         }
@@ -1387,9 +1388,9 @@ abstract class Model
         foreach (static::$columns as $name => $column) {
             if (isset($column['del'])) {
                 if ($sign === 'only') {
-                    $this->where("$name=true");
+                    $this->where("$name=true", [], self::BOUND_OTHER);
                 }else {
-                    $this->where("$name=false");
+                    $this->where("$name=false", [], self::BOUND_OTHER);
                 }
                 break;
             }
@@ -1554,6 +1555,20 @@ abstract class Model
     }
 
     /**
+     * 以非索引数组返回查询结果
+     *
+     * @param string $field 要获取的属性列表
+     *
+     * @return array
+     */
+    public function fetchIndex($field = '*')
+    {
+        $this->index();
+
+        return $this->fetch($field);
+    }
+
+    /**
      * 获取结果，连同分页信息
      *
      * @param string $field
@@ -1643,8 +1658,8 @@ abstract class Model
      */
     public function add(array $data = [])
     {
-        $this->sqlCollect['data'][] = $data;
-        $this->preSql               = $this->quotesTable;
+        $this->pushData($data);
+        $this->preSql = $this->quotesTable;
         $this->genInsertNames();
 
         return $this->insert($this->preSql, $this->data);
@@ -1677,8 +1692,8 @@ abstract class Model
     public function edit(array $data = [])
     {
         $this->applyLimitForEdit();
-        $this->sqlCollect['data'][] = $data;
-        $this->preSql               = $this->quotesTable;
+        $this->pushData($data);
+        $this->preSql = $this->quotesTable;
         $this->genUpdateNames();
         $this->genWhere();
 
@@ -1701,11 +1716,30 @@ abstract class Model
      * 存入数据，供后续使用
      *
      * @param array $data
+     * @param bool  $recursive
+     * @param bool  $overwrite
      * @return $this
      */
-    public function pushData(array $data)
+    public function pushData(array $data, $recursive = false, $overwrite = true)
     {
-        $this->sqlCollect['data'][] = $data;
+        if (empty($this->sqlCollect['data'])) {
+            $this->sqlCollect['data'] = $data;
+
+            return $this;
+        }
+        if ($recursive) {
+            if ($overwrite) {
+                $this->sqlCollect['data'] = array_replace_recursive($this->sqlCollect['data'], $data);
+            }else {
+                $this->sqlCollect['data'] = array_replace_recursive($data, $this->sqlCollect['data']);
+            }
+        }else {
+            if ($overwrite) {
+                $this->sqlCollect['data'] = array_merge($this->sqlCollect['data'], $data);
+            }else {
+                $this->sqlCollect['data'] = array_merge($data, $this->sqlCollect['data']);
+            }
+        }
 
         return $this;
     }
@@ -1726,7 +1760,7 @@ abstract class Model
         }
         $field = $this->nameMapField($name);
         if ($field) {
-            $this->sqlCollect['data'][] = [$name => "`{$field}{$symbol}{$value}`"];
+            $this->pushData([$name => "`{$field}{$symbol}{$value}`"]);
         }
 
         return $this;
@@ -1761,7 +1795,7 @@ abstract class Model
     /**
      * 删除记录（软删除）
      *
-     * @return int 删除的数量
+     * @return array 删除的数量
      */
     public function remove()
     {
@@ -1769,7 +1803,7 @@ abstract class Model
         foreach (static::$columns as $name => $column) {
             if (isset($column['del'])) {
                 $data[$name] = true;
-                $this->where("{$name}=false", [], self::BOUND_CELL);
+                $this->where("{$name}=false", [], self::BOUND_OTHER);
             }
         }
         if (!count($data)) {
@@ -1782,7 +1816,7 @@ abstract class Model
     /**
      * 还原删除的数据
      *
-     * @return int 还原的条数
+     * @return array 还原的条数
      */
     public function restore()
     {
@@ -1790,7 +1824,7 @@ abstract class Model
         foreach (static::$columns as $name => $column) {
             if (isset($column['del'])) {
                 $data[$name] = false;
-                $this->where("{$name}=true", [], self::BOUND_CELL);
+                $this->where("{$name}=true", [], self::BOUND_OTHER);
             }
         }
         if (!count($data)) {
@@ -1876,7 +1910,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function where($sql, array $data = [], $bound = self::BOUND_CELL)
+    public function where($sql, array $data = [], $bound = self::BOUND_NONE)
     {
         $this->sqlCollect['where'][] = [$sql, $data, 0, $bound, 1];
 
@@ -1892,7 +1926,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function orWhere($sql, array $data = [], $bound = self::BOUND_CELL)
+    public function orWhere($sql, array $data = [], $bound = self::BOUND_NONE)
     {
         $this->sqlCollect['where'][] = [$sql, $data, 1, $bound, 1];
 
@@ -1934,16 +1968,18 @@ abstract class Model
      *
      * @param array  $list
      * @param string $glue
+     * @param int    $bound
      *
      * @return $this
      */
-    public function equalsMulti($list, $glue = 'and')
+    public function equalsMulti($list, $glue = 'and', $bound = self::BOUND_NONE)
     {
+        $glue   = strtoupper($glue);
         $buffer = [];
         foreach ($list as $name => $value) {
             $buffer[] = "$name=:$name";
         }
-        $this->where(implode(" {$glue} ", $buffer), $list);
+        $this->where(implode(" {$glue} ", $buffer), $list, $bound);
 
         return $this;
     }
@@ -1957,7 +1993,7 @@ abstract class Model
      * @param int          $glue 条件间的连接关系
      * @return array
      **/
-    public function preParseLike($name, $keyword, $model, $glue)
+    private function preParseLike($name, $keyword, $model, $glue)
     {
         if ($model & self::LIKE_LEFT) {
             $keyword = '%' . $keyword;
@@ -1996,7 +2032,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function like($name, $keyword, $model = self::LIKE_BOTH, $glue = self::LINK_AND, $bound = self::BOUND_CELL)
+    public function like($name, $keyword, $model = self::LIKE_BOTH, $glue = self::LINK_AND, $bound = self::BOUND_NONE)
     {
         list($sql, $data) = $this->preParseLike($name, $keyword, $model, $glue);
 
@@ -2014,7 +2050,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function orLike($name, $keyword, $model = self::LIKE_BOTH, $glue = self::LINK_AND, $bound = self::BOUND_CELL)
+    public function orLike($name, $keyword, $model = self::LIKE_BOTH, $glue = self::LINK_AND, $bound = self::BOUND_NONE)
     {
         list($sql, $data) = $this->preParseLike($name, $keyword, $model, $glue);
 
@@ -2031,7 +2067,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function search(array $condition, $keyword, $glue = self::LINK_OR, $bound = self::BOUND_CELL)
+    public function search(array $condition, $keyword, $glue = self::LINK_OR, $bound = self::BOUND_NONE)
     {
 
         return $this;
@@ -2047,7 +2083,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function orSearch(array $condition, $keyword, $glue = self::LINK_OR, $bound = self::BOUND_CELL)
+    public function orSearch(array $condition, $keyword, $glue = self::LINK_OR, $bound = self::BOUND_NONE)
     {
 
         return $this;
@@ -2171,14 +2207,15 @@ abstract class Model
      * 关联查询,要获取的字段可以在model上通过field设值
      *
      * @param \jt\Model $model 关联模型
+     * @param string    $name 获取到的值存放的属性名
      * @param array     $foreignShip 外键关系
-     * @param int       $glue
+     * @param int       $relation
      *
      * @return $this
      */
-    public function relate(Model $model, $foreignShip = [], $glue = self::RELATE_ONE_TO_ONE)
+    public function relate(Model $model, $name, $foreignShip = [], $relation = self::RELATE_ONE_TO_ONE)
     {
-        $this->sqlCollect['where']['relate'][] = [$model, $foreignShip, $glue];
+        $this->sqlCollect['relate'][] = [$model, $name, $foreignShip, $relation];
 
         return $this;
     }
@@ -2192,7 +2229,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function exists(Model $model, $link = self::LINK_AND, $bound = self::BOUND_CELL)
+    public function exists(Model $model, $link = self::LINK_AND, $bound = self::BOUND_NONE)
     {
         $this->applyExists($model, $link, $bound, false);
 
@@ -2208,7 +2245,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function notExists(Model $model, $link = self::LINK_AND, $bound = self::BOUND_CELL)
+    public function notExists(Model $model, $link = self::LINK_AND, $bound = self::BOUND_NONE)
     {
         $this->applyExists($model, $link, $bound, true);
 
@@ -2246,7 +2283,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function in($field, $list, $link = self::LINK_AND, $bound = self::BOUND_CELL)
+    public function in($field, $list, $link = self::LINK_AND, $bound = self::BOUND_NONE)
     {
         if (is_array($list)) {
             $this->inList($field, $list, $link, $bound, false);
@@ -2267,7 +2304,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function notIn($name, $list, $link = self::LINK_AND, $bound = self::BOUND_CELL)
+    public function notIn($name, $list, $link = self::LINK_AND, $bound = self::BOUND_NONE)
     {
         if (is_array($list)) {
             $this->inList($name, $list, $link, $bound, true);
@@ -2445,7 +2482,7 @@ abstract class Model
      * @param bool $commit 是否将结果写入数据库
      * @param bool $printSql 是否打印执行过的SQL
      */
-    public static function startDebug($commit = false, $printSql = true)
+    public static function debug($commit = false, $printSql = true)
     {
         self::$debugMode = !$commit;
         self::$debugSql  = $printSql;

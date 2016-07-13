@@ -8,13 +8,13 @@
 
 return [
     '__base'    => [
-        'dBPrefix'    => 'cs_',
+        'dBPrefix'    => '',
         'tablePrefix' => '',
         'type'        => 'pgsql',
         'charset'     => 'UTF8',
         'host'        => 'test.csmall.com',
         'port'        => '5432',
-        'schema'      => 'byzl',
+        'schema'      => 'silver_bag',
         'user'        => 'postgres',
         'password'    => 'wskiliwallens',
         'timeout'     => 15 //s

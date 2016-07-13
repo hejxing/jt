@@ -9,40 +9,31 @@
 namespace jt;
 
 
+use lib\model\test\GoodsCategoryModel;
+use lib\model\test\GoodsModel;
+
 class ModelTest extends \PHPUnit_Framework_TestCase
 {
     public function testEqualsMulti()
     {
-        $model = new \sys\model\User();
-        $model->equalsMulti(['name' => 'apple']);
-        $this->assertEquals(1, 1);
+        $model = new GoodsModel();
+        $model->like('name', '吊坠');
+        $model->where('categoryId != :id', ['id' => Model::UUID_ZERO], Model::BOUND_ALONE);
+        $model->orWhere('price_min > :price', ['price' => 100]);
+        $model->equalsMulti(['name' => 'apple', 'stock' => 8], 'or', Model::BOUND_SELF);
+        $model->debug();
+        $model->first('id');
+        //$this->assertEquals(1, 1);
     }
 
-    public function testArrayPointAfter()
+    public function testRelate()
     {
-        $array = [1, 2, 3];
-        while (list($key, $item) = each($array)) {
-            echo "$key => $item,\r\n";
-        }
-        var_export(prev($array));//false
-        $this->assertFalse(prev($array));
-        //fix
-        $res = prev($array);
-        if ($res === false) {
-            end($array);
-        }
-    }
-
-    public function testArrayPointBefore()
-    {
-        $array = [1, 2, 3];
-        prev($array);
-        var_export(next($array));//false
-        $this->assertFalse(next($array));
-        //fix
-        $res = next($array);
-        if ($res === false) {
-            reset($array);
-        }
+        $model = new GoodsModel();
+        $model->debug();
+        $categoryModel = new GoodsCategoryModel();
+        $categoryModel->field('name, uriPath');
+        $model->relate($categoryModel, 'category', ['categoryId' => 'id'], Model::RELATE_MANY_TO_ONE);
+        $array = $model->fetch();
+        var_export($array);
     }
 }

@@ -8,7 +8,6 @@
 namespace jt\protocol;
 
 use jt\Controller;
-use jt\Error;
 use jt\Exception;
 use jt\utils\Helper;
 
