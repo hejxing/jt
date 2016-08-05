@@ -149,7 +149,7 @@ class Responder
         }
         $content = static::render();
         //拦截
-        $content = str_replace('http://', '//', $content);
+        $content = str_replace('http:\/\/', '\/\/', $content);
         echo $content;
     }
 
