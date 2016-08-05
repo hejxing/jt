@@ -125,7 +125,7 @@ class Url
     public static function img($path, $spec = '', $size = '170', $original = false)
     {
         if (!empty($path)) {
-            if (preg_match('/^http[s]?:/', $path)) {
+            if (preg_match('/^\/\//', $path) || preg_match('/^http[s]?:/', $path)) {
                 return $path;
             }
             if ($original) {
