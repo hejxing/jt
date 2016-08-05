@@ -76,7 +76,7 @@ class Responder
             return var_export($data, true);
         }
 
-        if(constant('\Config::WEB_COMMON_DATA')){
+        if (constant('\Config::WEB_COMMON_DATA')) {
             $data = array_merge_recursive(\Config::WEB_COMMON_DATA, $data);
         }
 
@@ -149,6 +149,7 @@ class Responder
         }
         $content = static::render();
         //拦截
+        $content = str_replace('http://', '//', $content);
         echo $content;
     }
 
