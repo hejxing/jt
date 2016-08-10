@@ -18,10 +18,10 @@ abstract class Model
     const LIKE_RIGHT = 2;
     const LIKE_BOTH  = 3;
 
-    const RELATE_ONE_TO_ONE   = 1;
-    const RELATE_ONE_TO_MANY  = 2;
-    const RELATE_MANY_TO_ONE  = 3;
-    const RELATE_MANY_TO_MANY = 4;
+    const JOIN_INNER = 'INNER';
+    const JOIN_LEFT  = 'LEFT';
+    const JOIN_RIGHT = 'RIGHT';
+    const JOIN_FULL  = 'FULL';
 
     const BOUND_NONE  = 0;//不加括号
     const BOUND_BEGIN = 1;//开始一个括号
@@ -1370,6 +1370,9 @@ abstract class Model
     {
         if (isset($this->sqlCollect['lock'])) {
             $this->preSql .= ' FOR UPDATE';
+            if($this->sqlCollect['lockSkip']){
+                $this->preSql .= ' SKIP LOCKED';
+            }
         }
     }
 
@@ -1404,7 +1407,6 @@ abstract class Model
      */
     private function getSelectSql()
     {
-        $this->needFullFieldName = isset($this->sqlCollect['relate']);
         $this->applyTrashed();
         $this->genSelectNames();
         $this->preSql .= ' FROM ' . $this->quotesTable;
@@ -1511,7 +1513,6 @@ abstract class Model
      */
     private function parseSelectSql()
     {
-        $this->needFullFieldName = isset($this->sqlCollect['relate']);
         $this->applyTrashed();
         $this->genSelectNames();
         $this->preSql .= ' FROM ' . $this->quotesTable;
@@ -2204,23 +2205,6 @@ abstract class Model
     }
 
     /**
-     * 关联查询,要获取的字段可以在model上通过field设值
-     *
-     * @param \jt\Model $model 关联模型
-     * @param string    $name 获取到的值存放的属性名
-     * @param array     $foreignShip 外键关系
-     * @param int       $relation
-     *
-     * @return $this
-     */
-    public function relate(Model $model, $name, $foreignShip = [], $relation = self::RELATE_ONE_TO_ONE)
-    {
-        $this->sqlCollect['relate'][] = [$model, $name, $foreignShip, $relation];
-
-        return $this;
-    }
-
-    /**
      * exists查询
      *
      * @param \jt\Model $model 关联的模型
@@ -2398,6 +2382,8 @@ abstract class Model
     public function lock($skip = false, $table = null)
     {
         $this->sqlCollect['lock'] = true;
+        $this->sqlCollect['lockSkip'] = $skip;
+        $this->sqlCollect['lockTable'] = $table;
 
         return $this;
     }
