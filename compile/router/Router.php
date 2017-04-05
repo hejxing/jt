@@ -1,14 +1,16 @@
 <?php
 /**
- * @Auth ax@jentian.com
+ * @Auth ax@csmall.com
  * @Create 2015/10/22 15:14
  */
 
 namespace jt\compile\router;
 
+use jt\utils\Helper;
+
 class Router extends Action
 {
-    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'affix'];
+    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'affix', 'line'];
 
     /**
      * 清理参数子结点数据
@@ -16,16 +18,16 @@ class Router extends Action
      * @param $nodes
      * @return array
      */
-    private function clearParamNodes($nodes)
+    private function clearNodes($nodes)
     {
         $cleared = [];
-        foreach ($nodes as $item) {
-            $cleared[$item['name']]          = $item['ruler'];
+        foreach($nodes as $item){
+            $cleared[$item['name']] = $item['ruler'];
+            if(isset($item['nodes'])){
+                $cleared[$item['name']]['nodes'] = $this->clearNodes($item['nodes']);
+            }
             $cleared[$item['name']]['_line'] = $item['line'];
             $cleared[$item['name']]['_desc'] = $item['desc'];
-            if (isset($item['nodes'])) {
-                $cleared[$item['name']][] = $this->clearParamNodes($item['nodes']);
-            }
         }
 
         return $cleared;
@@ -40,37 +42,17 @@ class Router extends Action
     private function clearParam(array $value)
     {
         $clean = [];
-        foreach ($value as $name => $item) {
+        foreach($value as $name => $item){
             $clean[$name] = [
                 $item['behave'], //行为
                 $item['type'], //type
-                isset($item['ruler']) ? $item['ruler'] : [], //validate
-                isset($item['nodes']) ? $this->clearParamNodes($item['nodes']) : [], //node
-                isset($item['pos']) ? $item['pos'] : 0
+                isset($item['ruler'])? $item['ruler']: [], //validate
+                isset($item['nodes'])? $this->clearNodes($item['nodes']): [], //node
+                isset($item['pos'])? $item['pos']: 0
             ];
         }
 
         return $clean;
-    }
-
-    /**
-     * 清理返回参数的结点内容
-     *
-     * @param array $value
-     * @return array
-     */
-    private function clearReturnNode(array $value)
-    {
-        $collect = [];
-        foreach ($value as $item) {
-            $node = [$item['name'], $item['ruler'], $item['line']];
-            if (isset($item['nodes']) && $item['nodes']) {
-                $node[] = $this->clearReturnNode($item['nodes']);
-            }
-            $collect[] = $node;
-        }
-
-        return $collect;
     }
 
     /**
@@ -81,17 +63,29 @@ class Router extends Action
      */
     private function clearReturn(array $value)
     {
-        $clean = [
-            '',
-            $value['ruler'],
-            $value['line'],
-            []
-        ];
-        if (isset($value['nodes']) && $value['nodes']) {
-            $clean[3] = $this->clearReturnNode($value['nodes']);
+        $clean = $value['ruler'];
+        if(isset($value['nodes']) && $value['nodes']){
+            $clean['nodes'] = $this->clearNodes($value['nodes']);
         }
+        $clean['_line'] = $value['line'];
+        $clean['_desc'] = $value['desc'];
 
         return $clean;
+    }
+
+    /**
+     * 对生成的Action做后期加工
+     *
+     * @param $action
+     */
+    private function modifyAction(&$action)
+    {
+        preg_match('/^(.*?)(?:\.(.*))?$/', $action[4], $matches);
+        if($matches[1]){
+            $action[4] = [$matches[1], $matches[2]??null];
+        }else{
+            $action[4] = [];
+        }
     }
 
     /**
@@ -102,20 +96,21 @@ class Router extends Action
     private function link()
     {
         $parsedList = static::$cacheStore['action'];
-        foreach ($parsedList as $class => $methods) {
-            foreach ($methods['methods'] as $ruler) {
-                if (!$ruler['methods']) {
+
+        foreach($parsedList as $class => $methods){
+            foreach($methods['methods'] as $ruler){
+                if(!$ruler['methods']){
                     continue;
                 }
                 $map = &static::$parsedStore;
-                foreach ($ruler['path'] as $path) {
-                    if (!isset($map[$path])) {
+                foreach($ruler['path'] as $path){
+                    if(!isset($map[$path])){
                         $map[$path] = [];
                     }
                     $map = &$map[$path];
                 }
-                foreach ($ruler['methods'] as $method) {
-                    if (isset($map['__method'][$method])) {
+                foreach($ruler['methods'] as $method){
+                    if(isset($map['__method'][$method])){
                         $conflictRuler = $map['__method'][$method];
                         $this->setErrorPos($this->getFileByClass($class), $ruler['line']);
                         $ef = $this->getFileByClass($conflictRuler[0]);
@@ -123,17 +118,18 @@ class Router extends Action
 
                         $this->error('routerMapDuplicate',
                             "[{$conflictRuler[0]}::{$conflictRuler[1]}] 对应的路由规则与 [ {$ruler['class']} :: {$ruler['method']} ] 冲突，请检查! in {$ef} line {$el} &");
-                    }else {
+                    }else{
                         $action = [];
-                        foreach (self::RULER_ORDER_MAP as $name) {
+                        foreach(self::RULER_ORDER_MAP as $name){
                             $value = $ruler[$name];
-                            if ($name === 'param') {
+                            if($name === 'param'){
                                 $value = $this->clearParam($value);
-                            }elseif ($name === 'return' && $value) {
+                            }elseif($name === 'return' && $value){
                                 $value = $this->clearReturn($value);
                             }
                             $action[] = $value;
                         }
+                        $this->modifyAction($action);
                         $map['__method'][$method] = $action;
                     }
                 }
@@ -146,38 +142,36 @@ class Router extends Action
     /**
      * 生成并缓存路由
      *
-     * @param $saveAs
+     * @param string $saveAs
+     * @param string $projectRoot
+     * @param string $module
      *
      * @return array
      */
-    public static function general($saveAs)
+    public static function general($saveAs, $projectRoot, $module)
     {
-        static::parse();
+        static::parse($projectRoot, $module);
 
-        if (!static::$parseNewFile && file_exists($saveAs)) {
+        if(!static::$parseNewFile && file_exists($saveAs)){
             return include($saveAs);
         }
-        if (file_exists($saveAs)) {
+        if(file_exists($saveAs)){
             unlink($saveAs);
         }
 
         $router    = new self('', '');
         $routerMap = $router->link();
-        if (!is_dir(dirname($saveAs))) {
+
+        if(!is_dir(dirname($saveAs))){
             mkdir(dirname($saveAs), 0700, true);
         }
         //file_put_contents($saveAs, "<?php\nreturn [" . static::serialize($routerMap) . '];');
-        file_put_contents($saveAs, "<?php\nreturn " . var_export($routerMap, true) . ';');
+        file_put_contents($saveAs, "<?php\nreturn ".var_export($routerMap, true).';', LOCK_EX);
         //>debug
-        if (RUN_MODE === 'develop') {
-            $dir      = new \RecursiveDirectoryIterator(RUNTIME_PATH_ROOT);
-            $iterator = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::SELF_FIRST);
-            foreach ($iterator as $item) {
-                if (substr($item, -1) !== '.' && !(fileperms($item) & 0x0002)) {
-                    chmod($item, 0777);
-                }
-            }
+        if(RUN_MODE === 'develop'){
+            Helper::modifyFilePerms(RUNTIME_PATH_ROOT, 0777);
         }
+
         //debug<
         return $routerMap;
     }
@@ -192,7 +186,7 @@ class Router extends Action
     private static function serialize(array $map)
     {
         $ser = '';
-        self::recursionPrint($map, $ser, 0);
+        self::recursionPrint($map, $ser);
 
         return $ser;
     }
@@ -205,12 +199,12 @@ class Router extends Action
      */
     private static function linePrint($ruler, &$ser)
     {
-        foreach ($ruler as $value) {
-            if (is_array($value)) {
+        foreach($ruler as $value){
+            if(is_array($value)){
                 $ser .= '[';
                 self::linePrint($value, $ser);
                 $ser .= '],';
-            }else {
+            }else{
                 $ser .= "'{$value}',";
             }
         }
@@ -226,20 +220,21 @@ class Router extends Action
      */
     private static function recursionPrint($map, &$ser)
     {
-        foreach ($map as $name => $methods) {
+        foreach($map as $name => $methods){
             $ser .= "'{$name}'=>[";
-            if ($name === '__method') {
-                foreach ($methods as $method => $ruler) {
+            if($name === '__method'){
+                foreach($methods as $method => $ruler){
                     $ser .= "'{$method}'=>[";
                     self::linePrint($ruler, $ser);
                     $ser .= '],';
                 }
                 $ser = substr($ser, 0, -1);
-            }else {
+            }else{
                 $ser .= self::recursionPrint($methods, $ser);
             }
             $ser .= "],";
         }
-        return  substr($ser, 0, -1);
+
+        return substr($ser, 0, -1);
     }
 }

@@ -20,13 +20,13 @@ class WxPayNotify extends WxPayNotifyReply
         $msg = "OK";
         //当返回false的时候，表示notify中调用NotifyCallBack回调失败获取签名校验失败，此时直接回复失败
         $result = WxpayApi::notify([$this, 'NotifyCallBack'], $msg);
-        if ($result == false) {
+        if($result == false){
             $this->SetReturn_code("FAIL");
             $this->SetReturn_msg($msg);
             $this->ReplyNotify(false);
 
             return;
-        }else {
+        }else{
             //该分支在成功回调到NotifyCallBack方法，处理完成之后流程
             $this->SetReturn_code("SUCCESS");
             $this->SetReturn_msg("OK");
@@ -49,13 +49,13 @@ class WxPayNotify extends WxPayNotifyReply
     public function NotifyProcess($data, &$msg)
     {
         $notifyer = new \WxPayNotify();
-        if (!array_key_exists("transaction_id", $data)) {
+        if(!array_key_exists("transaction_id", $data)){
             $msg = "输入参数不正确";
 
             return false;
         }
         //查询订单，判断订单真实性
-        if (!$notifyer->Queryorder($data["transaction_id"])) {
+        if(!$notifyer->Queryorder($data["transaction_id"])){
             $msg = "订单查询失败";
 
             return false;
@@ -77,10 +77,10 @@ class WxPayNotify extends WxPayNotifyReply
         $msg    = "OK";
         $result = $this->NotifyProcess($data, $msg);
 
-        if ($result == true) {
+        if($result == true){
             $this->SetReturn_code("SUCCESS");
             $this->SetReturn_msg("OK");
-        }else {
+        }else{
             $this->SetReturn_code("FAIL");
             $this->SetReturn_msg($msg);
         }
@@ -97,7 +97,7 @@ class WxPayNotify extends WxPayNotifyReply
     final private function ReplyNotify($needSign = true)
     {
         //如果需要签名
-        if ($needSign == true && $this->GetReturn_code() == "SUCCESS") {
+        if($needSign == true && $this->GetReturn_code() == "SUCCESS"){
             $this->SetSign();
         }
         WxpayApi::replyNotify($this->ToXml());
@@ -115,9 +115,9 @@ class WxPayNotify extends WxPayNotifyReply
         $input = new \WxPayOrderQuery();
         $input->SetTransaction_id($transaction_id);
         $result = \WxPayApi::orderQuery($input);
-        if (array_key_exists("return_code", $result) && array_key_exists("result_code",
+        if(array_key_exists("return_code", $result) && array_key_exists("result_code",
                 $result) && $result["return_code"] == "SUCCESS" && $result["result_code"] == "SUCCESS"
-        ) {
+        ){
             return true;
         }
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * @Copyright jentian.com
+ * @Copyright csmall.com
  * Auth: hejxi
  * Create: 2016/3/25 18:06
  */

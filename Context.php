@@ -1,6 +1,6 @@
 <?php
 /**
- * Created by ax@jentian.com.
+ * Created by ax@csmall.com.
  * Date: 2015/7/4 11:19
  *
  *
@@ -11,60 +11,22 @@ namespace jt;
 
 class Context
 {
-    /**
-     * 当前线程ID
-     *
-     * @type string
-     */
-    private static $currentThreadId = '0';
-    /**
-     * 线程池
-     *
-     * @type array
-     */
-    private static $threadPool = [];
-    /**
-     * 切换到指定线程
-     *
-     * @param $threadId
-     */
-    public static function switchTo($threadId)
-    {
-        self::$currentThreadId = $threadId;
-    }
+    private $pool = [];
 
-    /**
-     * 将某对象保存到当前进程
-     *
-     * @param $name
-     * @param $value
-     */
-    public static function __set($name, $value)
+    public function current($name)
     {
-        self::$threadPool[self::$currentThreadId][$name] = $value;
-    }
-
-    /**
-     * 取出当前进程下的某对象
-     *
-     * @param $name
-     * @return mixed
-     */
-    public static function __get($name)
-    {
-        return self::$threadPool[self::$currentThreadId][$name];
-    }
-
-    public static function current($name){
         switch($name){
             case 'Controller':
                 return Controller::current();
             case 'action':
                 return Controller::current()->getAction();
         }
+
+        return null;
     }
 
-    public static function push($name, $data){
-
+    public function push($name, $data)
+    {
+        $this->pool[$name] = $data;
     }
 }

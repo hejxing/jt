@@ -5,52 +5,78 @@
  *
  * @package lib
  */
+
 namespace jt\utils;
+
+use jt\Exception;
 
 class Transfer
 {
     /**
-     * 服务器返回的数据流
-     *
-     * @var string
+     * @var string 服务器返回的数据流
      */
-    private $stream = '';
+    protected $stream = '';
     /**
-     * 解析后的结果
-     *
-     * @var null
+     * @var null 解析后的结果
      */
-    private $body = null;
+    protected $body = null;
     /**
-     * 接口路径
-     *
-     * @var string
+     * @var string 接口路径
      */
-    private $gateway = '';
+    protected $gateway = '';
     /**
      * 发送方式
      *
      * @var string
      */
-    private $method = '';
+    protected $method = '';
     /**
-     * 要发送的数据
-     *
-     * @var array
+     * @var int 请求超时时间
      */
-    private $data = [];
+    protected $timeout = 3;
+    /**
+     * @var array 要发送的数据
+     */
+    protected $data = [];
+    /**
+     *
+     * @var string
+     */
+    protected $asJson = false;
+
+    public static function getContent($url, $timeout = 3)
+    {
+        $transfer = new self($url, 'get');
+        $transfer->setTimeout($timeout);
+
+        return $transfer->getStream();
+    }
 
     /**
      * 初始设置接口地址和发送方法
      *
-     * @param $uri
-     * @param $method
+     * @param      $url
+     * @param      $method
      */
-    public function __construct($uri, $method)
+    public function __construct($url, $method = 'get')
     {
+        $this->setGateWay($url);
+        $this->method = strtoupper($method);
+    }
 
-        $this->setGateWay($uri);
-        $this->method = $method;
+    /**
+     * 设置超时时间 (单位:s)
+     *
+     * @param int $timeout
+     */
+    public function setTimeout($timeout)
+    {
+        $this->timeout = intval($timeout);
+    }
+
+    public function sendAsJson()
+    {
+        $this->asJson = true;
     }
 
     /**
@@ -76,17 +102,23 @@ class Transfer
     /**
      * 与服务器通信
      */
-    private function transfer()
+    protected function transfer()
     {
-        if (!function_exists('curl_init')) {
-            exit('Need to open the curl extension');
+        if(!function_exists('curl_init')){
+            throw new Exception('NeedCurlExtension:Need to open the curl extension');
         }
-        $ci      = \curl_init();
+        $ci   = \curl_init();
+        $data = $this->asJson? json_encode($this->data, JSON_UNESCAPED_UNICODE): $this->data;
+        if($this->method === 'GET'){
+            $this->gateway = Url::addQueryParam($data, $this->gateway);
+            $data          = null;
+        }
+
         $options = [
-            CURLOPT_TIMEOUT        => 60,
+            CURLOPT_TIMEOUT        => $this->timeout,
             CURLOPT_HEADER         => 0,        // 1:获取头部信息
             CURLOPT_RETURNTRANSFER => 1,        // 1:获取的信息以文件流的形式返回
-            CURLOPT_POSTFIELDS     => $this->data,    // post数据
+            CURLOPT_POSTFIELDS     => $data,    // post数据
             CURLOPT_URL            => $this->gateway,
             CURLOPT_CUSTOMREQUEST  => $this->method
         ];
@@ -98,8 +130,6 @@ class Transfer
 
     /**
      * 分离解析数据
-     *
-     * @return array
      */
     private function parse()
     {
@@ -116,12 +146,12 @@ class Transfer
     private function sign()
     {
         $this->data['key'] = \Config::PARTNER_KEY;
-        if (RUN_MODE === 'test') {
+        if(RUN_MODE === 'test'){
             $this->data['is_test'] = 1;
         }
         ksort($this->data);
         $param              = implode('&', $this->data);
-        $this->data['sign'] = \md5($param . \Config::SIGN_SALT);
+        $this->data['sign'] = \md5($param.\Config::SIGN_SALT);
     }
 
     /**

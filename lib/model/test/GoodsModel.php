@@ -1,11 +1,13 @@
 <?php
 
 /**
- * @Copyright jentian.com
- * Auth: ax@jentian.com
+ * @Copyright csmall.com
+ * Auth: ax@csmall.com
  * Create: 2016/7/1 13:47
  */
+
 namespace lib\model\test;
+
 use jt\Model;
 
 class GoodsModel extends Model
@@ -42,6 +44,7 @@ class GoodsModel extends Model
         'updateAt'      => 'field:update_at timestamp at:update',
         'del'           => 'bool del'
     ];
+
     /**
      * @return array
      */

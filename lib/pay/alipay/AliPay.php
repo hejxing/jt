@@ -3,14 +3,13 @@
 /**
  * 支付宝支付接口
  *
- * @copyright jentian.com
+ * @copyright csmall.com
  * @date 2012-02-21 22:36:39
  * @author hejxing
  */
 
 namespace jt\lib\pay\alipay;
 
-use jt\utils\Url;
 
 class AliPay
 {
@@ -87,15 +86,10 @@ class AliPay
     protected $config = [];
     protected $data   = [];
 
-    public function __construct(array $config, $targetType, $notify_url = '')
+    public function __construct($targetType)
     {
         $this->targetType = $targetType;
-        if (!preg_match('/^http[s]?:\/\//i', $notify_url)) {
-            $notify_url = Url::host() . $notify_url;
-        }
-
-        $this->notify_url = $notify_url;
-        $this->config     = $config;
+        $this->config     = $this->setConfig();
     }
 
     private function payInit($amount, $id, $name, $memo)
@@ -104,6 +98,13 @@ class AliPay
         $this->data['id']   = $id;
         $this->data['name'] = $name;
         $this->data['memo'] = $memo;
+    }
+
+    private function setConfig()
+    {
+        require_once(__DIR__.'/alipay.config.php');
+
+        return $alipay_config;
     }
 
     /**
@@ -118,13 +119,12 @@ class AliPay
     public function appPay($amount, $id, $name, $memo)
     {
         $this->payInit($amount, $id, $name, $memo);
-
         $param = [
             'partner'        => $this->config['pid'],
             'seller_id'      => $this->config['seller_email'],
             'out_trade_no'   => $this->data['id'],
             'subject'        => $this->data['name'],
-            'body'           => '支付订单:' . $this->data['id'],//商品详情,
+            'body'           => $name,//商品详情,
             'total_fee'      => $this->amount,
             'notify_url'     => $this->notify_url,
             'service'        => 'mobile.securitypay.pay',
@@ -139,24 +139,71 @@ class AliPay
         return ['pay_url' => $gateWay];
     }
 
+    /**
+     * web支付
+     *
+     * @param float  $amount 支付金额
+     * @param string $out_trade_no 订单编号
+     * @param string $name 在支付平台显示的支付内容
+     * @param string $memo 支付备注
+     * @return array
+     */
+    public function webPay($amount, $out_trade_no, $name, $memo)
+    {
+        require_once(__DIR__.'/alipay_submit.class.php');
+        $parameter = [
+            "service"        => $this->config['service'],
+            "partner"        => $this->config['partner'],
+            "seller_id"      => $this->config['seller_id'],
+            "payment_type"   => $this->config['payment_type'],
+            "notify_url"     => $this->config['notify_url'],
+            "return_url"     => $this->config['return_url'],
+            "_input_charset" => trim(strtolower($this->config['input_charset'])),
+            "out_trade_no"   => $out_trade_no,
+            "subject"        => $name,
+            "total_fee"      => $amount,
+            "body"           => $name,
+
+        ];
+        //建立请求
+        $alipaySubmit = new \AlipaySubmit($this->config);
+        $gateWay      = $alipaySubmit->buildRequestForm($parameter, "get", "确认");
+
+        return $gateWay;
+    }
+
+    /**
+     * 返回回调实例
+     *
+     * @return array
+     */
+    public function notifyCls()
+    {
+        require_once("alipay_notify.class.php");
+        $alipayNotify  = new AlipayNotify($this->config);
+        $verify_result = $alipayNotify->verifyNotify();
+
+        return $verify_result;
+    }
+
     protected function genGateWay($param)
     {
         $buffer = [];
-        foreach ($param as $key => $value) {
-            if ($value === '' || $value === null) {
+        foreach($param as $key => $value){
+            if($value === '' || $value === null){
                 continue;
             }
-            $buffer[] = $key . '="' . $value . '"';
+            $buffer[] = $key.'="'.$value.'"';
         }
         $queryString = implode('&', $buffer);
 
-        $priKey = file_get_contents($this->config['key_path'] . '/rsa_private_key.pem');
+        $priKey = file_get_contents($this->config['key_path'].'/rsa_private_key.pem');
         $res    = openssl_get_privatekey($priKey);
         openssl_sign($queryString, $sign, $res);
         openssl_free_key($res);
         $sign = urlencode(base64_encode($sign));
 
-        return $queryString . '&sign="' . $sign . '"&sign_type="RSA"';
+        return $queryString.'&sign="'.$sign.'"&sign_type="RSA"';
     }
 
     /**
@@ -249,16 +296,16 @@ class AliPay
      */
     protected function alipay($config)
     {
-        require_once(__DIR__ . '/alipay_submit.class.php');
+        require_once(__DIR__.'/alipay_submit.class.php');
         $alipaySubmit = new \AlipaySubmit($config);
 
         $para      = $alipaySubmit->buildRequestPara($this->packagePayServiceConfig());
         $urlBuffer = [];
-        foreach ($para as $key => $val) {
-            $urlBuffer[] = $key . '=' . $val;
+        foreach($para as $key => $val){
+            $urlBuffer[] = $key.'='.$val;
         }
 
-        return $this->alipayGateWay . implode('&', $urlBuffer);
+        return $this->alipayGateWay.implode('&', $urlBuffer);
     }
 
     /**
@@ -373,20 +420,20 @@ class AliPay
      */
     public function appNotify(callable $callback)
     {
-        if (!class_exists('\AlipayNotify', false)) {
-            require(__DIR__ . '/alipay_notify.class.php');
+        if(!class_exists('\AlipayNotify', false)){
+            require(__DIR__.'/alipay_notify.class.php');
         }
         $alipayNotify = new \AlipayNotify([
             'partner'             => $this->config['pid'],
-            'ali_public_key_path' => $this->config['key_path'] . '/alipay_public_key.pem',
+            'ali_public_key_path' => $this->config['key_path'].'/rsa_public_key.pem',
             'sign_type'           => 'RSA',
             'input_charset'       => $this->inputCharset,
-            'cacert'              => __DIR__ . '/cacert.pem',
+            'cacert'              => __DIR__.'/cacert.pem',
             'transport'           => $this->config['transport']
         ]);
 
-        if ($alipayNotify->verifyNotify() === true) {
-            if ($callback() === true) {
+        if($alipayNotify->verifyNotify() === true){
+            if($callback() === true){
                 echo 'SUCCESS';
 
                 return;

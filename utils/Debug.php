@@ -8,8 +8,8 @@
 
 namespace jt\utils;
 
-use jt\Action;
 use jt\Bootstrap;
+use jt\Controller;
 use jt\Error;
 use jt\Model;
 
@@ -29,15 +29,20 @@ class Debug
      */
     private static $lastTime = null;
 
+    /**
+     * @var array 搜集各种调试信息
+     */
+    protected static $collect = [];
+
     public static function runtime($margin = true)
     {
         $now = microtime(true);
-        if (self::$lastTime === null) {
+        if(self::$lastTime === null){
             self::$lastTime = Bootstrap::$startTime;
         }
-        if ($margin) {
+        if($margin){
             $spendTime = $now - self::$lastTime;
-        }else {
+        }else{
             $spendTime = $now - Bootstrap::$startTime;
         }
         self::$lastTime = $now;
@@ -86,7 +91,7 @@ class Debug
         echo '<pre>';
         var_export($var);
         echo '</pre>';
-        if ($break) {
+        if($break){
             exit();
         }
     }
@@ -99,20 +104,27 @@ class Debug
      */
     public static function log($name, $var)
     {
-        self::saveToFile('info.log', "{$name} => " . var_export($var, true));
+        self::saveToFile('info.log', "{$name} => ".var_export($var, true));
     }
 
     private static function saveToFile($file, $content)
     {
-        $logPath = RUNTIME_PATH_ROOT . '/log';
-        if (!file_exists($logPath)) {
+        $logPath = \Config::DEBUG_LOG_DIR;
+        if(!file_exists($logPath)){
             mkdir($logPath, 0777, true);
 
         }
-        $request = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'];
-        $request .= "\r\n" . "post: " . \file_get_contents('php://input') . "\r\n" . "get: " . $_SERVER['QUERY_STRING'];
-        file_put_contents($logPath . "/$file", "{$request}:\r\n$content\r\n\r\n", FILE_APPEND);
-        chmod($logPath . "/$file", 0777);
+        $request = $_SERVER['REQUEST_METHOD'].' '.$_SERVER['REQUEST_URI'];
+        $request .= "\r\n"."post: ".\file_get_contents('php://input')."\r\n"."get: ".$_SERVER['QUERY_STRING'];
+        file_put_contents($logPath."/$file", "{$request}:\r\n$content\r\n\r\n", FILE_APPEND);
+        chmod($logPath."/$file", 0777);
+    }
+
+    public static function trace()
+    {
+        echo '<pre>';
+        debug_print_backtrace();
+        echo '</pre>';
     }
 
     /**
@@ -120,67 +132,90 @@ class Debug
      */
     public static function complete()
     {
-        if (class_exists('\jt\Model', false)) {
-            if (self::$isCommit) {//代码执行 && 业务成功
-                Model::commit();
-            }else {
+        if(class_exists('\jt\Model', false)){
+            if(self::$isCommit){//代码执行 && 业务成功
+                Model::commitAll();
+            }else{
                 Model::rollBack();
             }
         }
         $lastError = error_get_last();
-        if ($lastError) {
+        $action    = Controller::current()->getAction();
+        if($lastError){
             echo '---------------------ERROR-----------------', PHP_EOL;
             var_export($lastError);
-        }else {
-            Action::setIsRunComplete(true);
+        }else{
+            $action->setIsRunComplete(true);
         }
 
         echo PHP_EOL, PHP_EOL;
         echo '---------------------RESULT-----------------', PHP_EOL;
 
         $header         = Error::prepareHeader();
-        $header         = array_merge($header, Action::getHeaderStore());
-        $header['data'] = Action::getDataStore();
+        $header         = array_merge($header, $action->getHeaderStore());
+        $header['data'] = $action->getDataStore();
 
-        if ($header['success']) {
-            unset($header['success']);
-            unset($header['msg']);
-        }
         var_export($header);
 
         echo PHP_EOL, PHP_EOL;
     }
 
     /**
+     * 搜集调试信息
+     *
+     * @param $name
+     * @param $content
+     */
+    public static function collect($name, $content)
+    {
+        self::$collect[$name][] = $content;
+    }
+
+    /**
+     * 获取搜集到的调试信息
+     *
+     * @param $name
+     * @return array
+     */
+    public static function getFromCollect($name)
+    {
+        return self::$collect[$name]??[];
+    }
+
+    /**
      * 进入测试入口
      *
-     * @param string $runtimeRoot 项目运行时生成的目录
+     * @param string $runtimePath 项目运行时生成的目录
      * @param string $projectRoot 项目根目录
      */
-    public static function entrance($runtimeRoot = '', $projectRoot = null)
+    public static function entrance($runtimePath = '', $projectRoot = null)
     {
-        if ($projectRoot === null) {
-            if($_SERVER['argv'][4] === '--filter'){
-                $testClass = $_SERVER['argv'][6];
-                $testFile  = $_SERVER['argv'][7];
-            }else {
-                $testClass = $_SERVER['argv'][4];
-                $testFile  = $_SERVER['argv'][5];
-            }
+        if($_SERVER['argv'][4] === '--filter'){
+            $testClass = $_SERVER['argv'][6];
+            $testFile  = $_SERVER['argv'][7];
+        }else{
+            $testClass = $_SERVER['argv'][4];
+            $testFile  = $_SERVER['argv'][5];
+        }
 
+        if($projectRoot === null){
             $projectRoot = explode(str_replace('\\', DIRECTORY_SEPARATOR, $testClass), $testFile)[0];
             $projectRoot = substr($projectRoot, 0, -1);
         }
-        
-        require(__DIR__ . '/../Bootstrap.php');
+
+        require(__DIR__.'/../Bootstrap.php');
         //定义扫尾方法
         register_shutdown_function('\jt\utils\Debug::complete');
-        Bootstrap::init([
-            'runMode'     => 'develop',
+        Bootstrap::init('develop', [
             'projectRoot' => $projectRoot,
-            'runtimeRoot' => $runtimeRoot
+            'runtimePath' => $runtimePath
         ]);
         Error::directOutput();
         $_SERVER['HTTP_USER_AGENT'] = 'Cli/debug';
+        $_SERVER['SERVER_PORT']     = '--';
+        $_SERVER['HTTP_HOST']       = 'cli';
+        $_SERVER['REMOTE_ADDR']     = '127.0.0.1';
+        $_SERVER['SCRIPT_NAME']     = $testFile;
+        $_SERVER['REQUEST_METHOD']  = 'CLI';
     }
 }

@@ -61,7 +61,7 @@ class ColumnsParser
     public static function parse($columns)
     {
         $parsed = [];
-        foreach ($columns as $name => $attr) {
+        foreach($columns as $name => $attr){
             $parsed[$name] = self::line($attr);
         }
 
@@ -72,7 +72,7 @@ class ColumnsParser
     {
         $lined = [];
         $parts = \explode(' ', $str);
-        foreach ($parts as $a) {
+        foreach($parts as $a){
             $lined = array_merge($lined, self::attr($a));
         }
 
@@ -81,16 +81,17 @@ class ColumnsParser
 
     public static function attr($a)
     {
-        if (strpos($a, ':')) {
+        if(strpos($a, ':')){
             list($key, $value) = explode(':', $a, 2);
-        }else {
+        }else{
             list($key, $value) = [$a, null];
         }
         $result = [];
-        switch (true) {
+        switch(true){
             case in_array($key, self::$boolList):
                 $result[$key] = $value === null || ($value !== 'false' && (bool)$value);
                 break;
+            /** @noinspection PhpMissingBreakStatementInspection */
             case in_array($key, self::$typesWithLength):
                 $result['length'] = intval($value);
             case in_array($key, self::$types):

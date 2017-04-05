@@ -1,7 +1,7 @@
 <?php
 /**
- * @Copyright jentian.com
- * Auth: ax@jentian.com
+ * @Copyright csmall.com
+ * Auth: ax@csmall.com
  * Create: 2016/4/16 11:06
  */
 
@@ -130,22 +130,22 @@ abstract class Sms
      */
     protected function receiverFilter($strict = true)
     {
-        foreach ($this->receive as $index => $mobile) {
-            if (empty($this->todayLog[$mobile])) {
+        foreach($this->receive as $index => $mobile){
+            if(empty($this->todayLog[$mobile])){
                 continue;
             }
-            if (count($this->todayLog[$mobile]) >= $this->maxCount) {
+            if(count($this->todayLog[$mobile]) >= $this->maxCount){
                 unset($this->receive[$index]);
-                if ($strict || empty($this->receive)) {
-                    throw new Exception('moreThanMaxSendCount:' . "号码[{$mobile}]在发送通道[{$this->channel}]中每天最多只允许发送[{$this->maxCount}]条");
+                if($strict || empty($this->receive)){
+                    throw new Exception('moreThanMaxSendCount:'."号码[{$mobile}]在发送通道[{$this->channel}]中每天最多只允许发送[{$this->maxCount}]条");
                 }
             }
             $lastLog = $this->todayLog[$mobile][0];
 
-            if ((time() - strtotime($lastLog['createAt'])) < $this->minMargin) {
+            if((time() - strtotime($lastLog['createAt'])) < $this->minMargin){
                 unset($this->receive[$index]);
-                if ($strict || empty($this->receive)) {
-                    throw new Exception('sendSmsIntervalTooBrief:' . "向号码[{$mobile}]发送的短信至少要间隔[{$this->minMargin}]秒");
+                if($strict || empty($this->receive)){
+                    throw new Exception('sendSmsIntervalTooBrief:'."向号码[{$mobile}]发送的短信至少要间隔[{$this->minMargin}]秒");
                 }
             }
         }
@@ -178,7 +178,7 @@ abstract class Sms
      */
     public function addReceiver($receive)
     {
-        $receive       = is_array($receive) ? $receive : preg_split('/ *, */', $receive);
+        $receive       = is_array($receive)? $receive: preg_split('/ *, */', $receive);
         $this->receive = array_unique(array_merge($this->receive, $receive));
     }
 
@@ -188,11 +188,11 @@ abstract class Sms
     protected function supplementarySignature()
     {
         $signature = $this->signature;
-        if (!$signature && defined('\Config::SMS_SIGNATURE')) {
+        if(!$signature && defined('\Config::SMS_SIGNATURE')){
             $signature = \Config::SMS_SIGNATURE;
         }
-        if ($signature && !preg_match("/^【.+】/", $this->content)) {
-            $this->content = '【' . $signature . '】' . $this->content;
+        if($signature && !preg_match("/^【.+】/", $this->content)){
+            $this->content = '【'.$signature.'】'.$this->content;
         }
     }
 
@@ -215,11 +215,12 @@ abstract class Sms
      */
     public function send($msg, $receive = null)
     {
-        $this->content = $msg;
-        if ($receive) {
+        $this->content = $msg;  //加签名
+        $this->setSignature('金猫银猫');
+        if($receive){
             $this->addReceiver($receive);
         }
-        if ($this->verify() === true) {
+        if($this->verify() === true){
             $this->supplementarySignature();
             $this->sending();
 
@@ -238,12 +239,9 @@ abstract class Sms
         $modelName = $this->logModel;
         $model     = $modelName::open();
         $today     = date('Y-m-d');
-        foreach ($this->receive as $mobile) {
-            $this->todayLog[$mobile] = $model->where('createAt > :today', ['today' => $today])
-                ->equals('receiver', $mobile)
-                ->equals('channel', $this->channel)
-                ->equals('status', 'success')
-                ->order('createAt', 'desc')->fetch('id, createAt');
+        foreach($this->receive as $mobile){
+            $this->todayLog[$mobile] = $model->where('createAt > :today', ['today' => $today])->equals('receiver', $mobile)->equals('channel',
+                $this->channel)->equals('status', 'success')->order('createAt', 'desc')->fetch('id, createAt');
         }
     }
 
@@ -255,10 +253,10 @@ abstract class Sms
      */
     private function verify()
     {
-        if (count($this->receive) === 0) {
+        if(count($this->receive) === 0){
             throw new Exception('receiverSmsListEmpty:短信接收人为空');
         }
-        if ($this->content === '') {
+        if($this->content === ''){
             throw new Exception('smsContentEmpty:短信内容为空');
         }
 

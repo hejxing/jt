@@ -1,9 +1,7 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: 渐兴
- * Date: 15-4-26
- * Time: 19:04
+ * Auth: ax
+ * Date: 15-4-26 19:04
  */
 
 namespace jt;
@@ -18,19 +16,18 @@ class Responder
     /**
      * 解析html用到的模板引擎
      *
-     * @type null
+     * @type TemplateInterface
      */
-    protected static $tplEngine    = null;
-    protected static $startObClean = false;
+    protected $tplEngine = null;
 
     /**
      * 生成内容
      *
      * @return string
      */
-    protected static function render()
+    protected function render()
     {
-        switch (Controller::current()->getMime()) {
+        switch(Controller::current()->getMime()){
             case 'json':
                 return self::json();
             case 'html':
@@ -46,12 +43,17 @@ class Responder
     /**
      * 以json响应客户端
      */
-    protected static function json()
+    protected function json()
     {
-        header('Content-type: application/json; charset=' . \Config::CHARSET, true);
-        $data           = Action::getDataStore();
-        $header         = Error::prepareHeader();
-        $header         = array_merge($header, Action::getHeaderStore());
+        header('Content-type: application/json; charset='.\Config::CHARSET, true);
+        $action = Controller::current()->getAction();
+        //$start = microtime(true);
+        $data = $action->getDataStore();
+        //sleep(1);
+        //$spend = (microtime(true) - $start) * 1000;
+        $header = Error::prepareHeader();
+        //$header['parseDataSpendTime'] = $spend;
+        $header         = array_replace_recursive($header, $action->getHeaderStore());
         $header['data'] = $data;
 
         $content = json_encode($header, \Config::JSON_FORMAT);
@@ -59,43 +61,61 @@ class Responder
         return $content;
     }
 
+    protected function makeEngine()
+    {
+        if(!$this->tplEngine && defined('\Config::TEMPLATE')){
+            $engine          = \Config::TEMPLATE['engine']??'\jt\utils\PHPTemplate';
+            $this->tplEngine = new $engine(\Config::TEMPLATE);
+        }
+    }
+
     /**
      * 输出HTML
      */
-    protected static function html()
+    protected function html()
     {
-        ob_end_flush();
-        self::$startObClean = true;
-        header('Content-type: text/html; charset=' . \Config::CHARSET, true);
-        $data = Action::getDataStore(false);
-        if (self::$tplEngine) {
-            $tpl = self::$tplEngine;
-        }elseif (defined('\Config::TEMPLATE')) {
-            $tpl = new Template(\Config::TEMPLATE);
-        }else {
+        if(ob_get_level()){
+            ob_end_flush();
+        }
+        header('Content-type: text/html; charset='.\Config::CHARSET, true);
+        $data = Controller::current()->getAction()->getDataStore(false);
+        $this->makeEngine();
+        if($this->tplEngine === null){
             return var_export($data, true);
         }
 
-        if (constant('\Config::WEB_COMMON_DATA')) {
+        if(constant('\Config::WEB_COMMON_DATA')){
             $data = array_merge_recursive(\Config::WEB_COMMON_DATA, $data);
         }
 
-        $content = $tpl->render(Controller::current()->getTemplate(), $data);
-        if (RUN_MODE !== 'production') {
+        $content = $this->tplEngine->render(Controller::current()->getTemplate(), $data);
+        if(RUN_MODE !== 'production'){
             //Debug::output($content);
-            $hData    = Error::prepareHeader();
-            $errorMsg = '';
-            foreach (['fatal', 'notice', 'info'] as $type) {
-                if (isset($hData[$type])) {
-                    $errorMsg .= '<div class="error-type">' . $type . '</div>';
-                    $errorMsg .= '<div class="error-desc">' . var_export($hData[$type], true) . '</div>';
-                }
-            }
-            if ($errorMsg) {
-                str_replace('</body>', '<div class="error-msg-box">' . $errorMsg . '</div></body>', $content);
-            }
+            $hData = Error::prepareHeader();
+            //$errorMsg = '';
+            //foreach (['fatal', 'notice', 'info'] as $type) {
+            //    if (isset($hData[$type])) {
+            //        $errorMsg .= '<div class="error-type">' . $type . ':</div>';
+            //        $errorMsg .= '<pre class="error-desc">' . var_export($hData[$type], true) . '</pre>';
+            //    }
+            //}
+            //if ($errorMsg) {
+            //    $content = str_replace('</body>', '<div class="error-msg-box">' . $errorMsg . '</div></body>', $content);
+            //}
+
+            $ruler   = Controller::current()->getRuler();
+            $sqlList = "\n        ".implode("\n        ", $hData['querySqlList']);
+            $content .= "
+<!--
+    Entrance: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[8]})
+    SqlQueryTimes: {$hData['queryCount']}
+    LoadFiles: {$hData['loadFilesCount']}
+    UseMemory: {$hData['useMemory']}
+    SpendTime: {$hData['spendTime']}
+    
+    SqlList: {$sqlList}
+-->";
         }
-        self::$startObClean = false;
 
         return $content;
     }
@@ -109,15 +129,15 @@ class Responder
      *
      * @return mixed
      */
-    private static function array2xml($array, $xml)
+    private function array2xml($array, $xml)
     {
-        foreach ($array as $key => $value) {
-            if (is_numeric($key)) {
+        foreach($array as $key => $value){
+            if(is_numeric($key)){
                 $key = 'item';
             }
-            if (is_array($value)) {
+            if(is_array($value)){
                 self::array2xml($value, $xml->addChild($key));
-            }else {
+            }else{
                 $xml->addChild($key, \htmlspecialchars($value));
             }
         }
@@ -128,12 +148,13 @@ class Responder
     /**
      * 输出xml
      */
-    protected static function xml()
+    protected function xml()
     {
-        header('Content-type: application/xml; charset=' . \Config::CHARSET);
+        $action = Controller::current()->getAction();
+        header('Content-type: application/xml; charset='.\Config::CHARSET);
         $header         = Error::prepareHeader();
-        $header         = \array_replace_recursive($header, Action::getHeaderStore());
-        $header['data'] = Action::getDataStore();
+        $header         = array_replace_recursive($header, $action->getHeaderStore());
+        $header['data'] = $action->getDataStore();
         $content        = self::array2xml($header, new \SimpleXMLElement('<root></root>'))->asXML();
 
         return $content;
@@ -142,14 +163,13 @@ class Responder
     /**
      * 输出结果
      */
-    public static function write()
+    public function write()
     {
-        if (self::$startObClean) {
-            \ob_clean();
+        if(RUN_MODE === 'production' && ob_get_level()){
+            ob_clean();
         }
-        $content = static::render();
+        $content = $this->render();
         //拦截
-        $content = str_replace('http:\/\/', '\/\/', $content);
         echo $content;
     }
 
@@ -161,7 +181,7 @@ class Responder
      */
     public static function redirect($url, $status = 302)
     {
-        header('Location:' . $url, true, $status);
+        header('Location:'.$url, true, $status);
         self::end($status);
     }
 
@@ -173,8 +193,11 @@ class Responder
      */
     public static function end($status = null)
     {
-        if ($status) {
-            \header('Status: ' . $status, true);
+        if($status){
+            \header('Status: '.$status, true);
+        }
+        if($status === null || ($status >= 200 && $status < 400)){
+            Controller::current()->getAction()->setIsRunComplete(true);
         }
 
         $e = new Exception('User end task');
@@ -188,8 +211,30 @@ class Responder
      *
      * @param $engine
      */
-    public static function setTplEngine($engine)
+    public function setTplEngine(TemplateInterface $engine)
     {
-        static::$tplEngine = $engine;
+        $this->tplEngine = $engine;
+    }
+
+    /**
+     * 是否有缓存
+     *
+     * @return int 1:有缓存 0:无缓存 -1:不允许缓存
+     * @throws Exception
+     */
+    public function hadCache()
+    {
+        if(Controller::current()->getMime() === 'html'){
+            $this->makeEngine();
+            if(!is_subclass_of($this->tplEngine, '\jt\TemplateInterface')){
+                throw new Exception('TemplateEngineError:Cache need Template Engine implements \jt\TemplateInterface');
+            }
+            $uri = Controller::current()->getRequestPath();
+            if($this->tplEngine->hadCache($uri, $_SERVER['QUERY_STRING'])){
+                return 1;
+            }
+        }
+
+        return 0;
     }
 }

@@ -1,13 +1,15 @@
 <?php
 /**
- * Auth: ax@jentian.com
+ * Auth: ax@csmall.com
  * Create: 2015/10/20 10:48
  */
 
 namespace jt;
 
 
-class ActionTest extends \PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class ActionTest extends TestCase
 {
     private function outTotal($total, $size, $page)
     {

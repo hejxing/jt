@@ -1,12 +1,12 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: 渐兴
- * Date: 15-4-26
- * Time: 15:39
+ * Auth: ax
+ * Date: 15-4-26 15:39
  */
 
 namespace jt;
+
+use jt\utils\Debug;
 
 class Error extends Action
 {
@@ -15,13 +15,13 @@ class Error extends Action
      *
      * @type bool
      */
-    static protected $isDirectOutput = false;
+    protected static $isDirectOutput = false;
     /**
      * 收集到的错误信息
      *
      * @var array
      */
-    static protected $collected = [];
+    protected static $collected = [];
 
     /**
      * 捕获错误
@@ -31,21 +31,60 @@ class Error extends Action
      * @param       $errFile
      * @param       $errLine
      */
-    static public function errorHandler($errNo, $errStr, $errFile, $errLine)
+    public static function errorHandler($errNo, $errStr, $errFile, $errLine)
     {
+        $msg = $errStr.' in '.$errFile.' line '.$errLine;
         //写错误日志
-        if (in_array($errNo, [
+        if(in_array($errNo, [
             E_ERROR,
             E_RECOVERABLE_ERROR,
             E_PARSE,
             E_CORE_ERROR,
             E_COMPILE_ERROR,
             E_USER_ERROR
-        ])) {
-            self::exeFatal('FatalError: ' . $errNo, $errStr . ' in ' . $errFile . ' line ' . $errLine, []);
-        }elseif (ERRORS_VERBOSE) {
-            self::notice($errNo, $errStr . ' in ' . $errFile . ' line ' . $errLine);
+        ])){
+            self::exeFatal($errNo, $msg, []);
+            self::logFatal($errNo, $msg);
+        }elseif(ERRORS_VERBOSE){
+            self::notice($errNo, $msg);
+            self::logNotice($errNo, $msg);
         }
+    }
+
+    /**
+     * 写致命错误日志
+     *
+     * @param $errNo
+     * @param $desc
+     */
+    public static function logFatal($errNo, $desc)
+    {
+        self::writeLog('['.$errNo.'] '.$desc, 'fatal');
+    }
+
+    /**
+     * 写错误信息
+     *
+     * @param $errNo
+     * @param $desc
+     */
+    public static function logNotice($errNo, $desc)
+    {
+        self::writeLog('['.$errNo.'] '.$desc, 'notice');
+    }
+
+    /**
+     * 写错误日志
+     *
+     * @param $desc
+     * @param $file
+     */
+    protected static function writeLog($desc, $file)
+    {
+        if(!is_dir(\Config::ERROR_LOG_DIR)){
+            mkdir(\Config::ERROR_LOG_DIR, 0777, true);
+        }
+        file_put_contents(\Config::ERROR_LOG_DIR.'/'.$file.'.log', $desc.PHP_EOL, FILE_APPEND);
     }
 
     /**
@@ -57,35 +96,37 @@ class Error extends Action
     {
         $msg  = $e->getMessage();
         $code = $e->getCode();
-        if (strpos($msg, ':') !== false) {
+        if(strpos($msg, ':') !== false){
             list($code, $msg) = explode(':', $msg, 2);
+        }
+
+        if($code == 404){
+            self::logFatal($code, $msg);
         }
 
         $data = [];
 
-        if ($e instanceof Exception) {
-            switch ($e->getType()) {
+        if($e instanceof Exception){
+            switch($e->getType()){
                 case 'taskEnd':
+                    Controller::current()->response();
+
                     return;
                 case 'taskFail':
                     break;
                 default:
-                    if (ERRORS_VERBOSE) {
+                    if(ERRORS_VERBOSE){
                         $data['_debug_trace'] = $e->getTrace();
-                        Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
+                        Controller::current()->getAction()->header('triggerPoint', $e->getFile().' line '.$e->getLine());
                     }
                     break;
-                //case 'createDatabaseOrTable':
-                //    Controller::current()->retry();
-                //    return;
             }
-
             $data = array_merge($data, $e->getData());
             self::error($code, $msg, false, $e->getParam(), $data);
-        }else {
-            if (ERRORS_VERBOSE) {
+        }else{
+            if(ERRORS_VERBOSE){
                 $data['_debug_trace'] = $e->getTrace();
-                Controller::current()->getAction()->header('triggerPoint', $e->getFile() . ' line ' . $e->getLine());
+                Controller::current()->getAction()->header('triggerPoint', $e->getFile().' line '.$e->getLine());
             }
             self::fatalError($code, $msg, [], true, $data);
         }
@@ -112,6 +153,7 @@ class Error extends Action
     public static function fatal($code, $msg = '', $param = [])
     {
         self::exeFatal($code, $msg, $param);
+        Controller::current()->quiet();
         Responder::end();
     }
 
@@ -126,14 +168,14 @@ class Error extends Action
     {
         $p = [];
         $d = [];
-        foreach ($param as $k => $v) {
-            if (is_string($k)) {
+        foreach($param as $k => $v){
+            if(is_string($k)){
                 $d[$k] = $v;
-            }else {
+            }else{
                 $d[] = $v;
             }
         }
-        if ($d) {
+        if($d){
             $method = '_error';
             self::getAction($method, true)->outMass($d);
         }
@@ -143,7 +185,7 @@ class Error extends Action
     /**
      * 捕获到的错误
      *
-     * @param        $code
+     * @param string $code
      * @param string $msg
      * @param bool   $fatal 是否致命错误
      * @param array  $param 传递的其它参数
@@ -151,28 +193,35 @@ class Error extends Action
      */
     protected static function error($code, $msg, $fatal, $param = [], $data = [])
     {
-        if (self::$isDirectOutput) {
-            echo $code . ': ' . $msg, PHP_EOL;
+        if(self::$isDirectOutput){
+            echo $code.': '.$msg, PHP_EOL;
 
             return;
         }
-        $method = '_' . $code;
+        $method = '_'.$code;
         $action = self::getAction($method, $fatal);
+        $action->cleanData();
+        if(is_numeric($code) && preg_match('/[34]{1}\d{2}/', $code)){
+            $action->status(intval($code), $msg, [], false);
+        }
         $action->header('code', $code);
         $action->header('msg', $msg);
-        if (Controller::current()->getMime() === 'html') {
-            $action->out('title', $action->getFromData('title') ?: '有错误发生');
-            $action->out('code', $code);
-            $action->out('msg', $msg);
+
+        if(Controller::current()->getMime() === 'html'){
+            $data['title'] = $action->getFromData('title')?: '有错误发生';
+            $data['code']  = $code;
+            $data['msg']   = $msg;
             Controller::current()->setTemplate('error/error');
         }
         $action->outMass($data);
         $action->$method(...$param);
         try{
-            Responder::write();
-        }catch (\Exception $e){
+            Controller::current()->getResponder()->write();
+        }catch(\Exception $e){
+            $ruler = Controller::current()->getRuler();
             echo $e->getMessage(), "<br>\n";
-            echo $code . '::' . $msg;
+            echo $code.':'.$msg, "<br>\n";
+            echo "<i>Access entry: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[8]})</i>";
         }
     }
 
@@ -182,39 +231,48 @@ class Error extends Action
      * @param string $method
      * @param bool   $fatal 是否致命错误
      *
-     * @return \jt\Controller|\jt\ErrorHandler
+     * @return \jt\Action|\jt\ErrorHandler
      */
     final private static function getAction(&$method, $fatal)
     {
         $controller = Controller::current();
         $action     = $controller->getAction();
-        if ($action && method_exists($action, $method)) {
+
+        if($action && method_exists($action, $method)){
             return $action;
         }
 
-        $class = '\action\ErrorHandler';
-        if (Bootstrap::tryLoad($class)) {
+        $data = $action->getDataStore(false);
+        /** @var \jt\Action $errorAction */
+        $errorAction = null;
+        $class       = '\action\ErrorHandler';
+        if(Bootstrap::tryLoad($class)){
             $action = new $class();
-            if (\method_exists($action, $method)) {
-                return $action;
+            if(\method_exists($action, $method)){
+                $errorAction = $action;
             }
         }
 
-        $action = new ErrorHandler();
-        if (!\method_exists($action, $method)) {
-            $method = $fatal ? 'unknown_error' : 'unknown_fail';
+        if($errorAction === null){
+            $errorAction = new ErrorHandler();
+            if(!\method_exists($action, $method)){
+                $method = $fatal? 'unknown_error': 'unknown_fail';
+            }
         }
 
-        return $action;
+        $controller->setAction($errorAction);
+        $errorAction->outMass($data);
+
+        return $errorAction;
     }
 
-    static public function getTrace()
+    public static function getTrace()
     {
         $trace = debug_backtrace(false, 5);
         array_shift($trace);
         array_shift($trace);
-        foreach ($trace as $k => $t) {
-            if (!isset($t['file']) || !isset($t['class'])) {
+        foreach($trace as $k => $t){
+            if(!isset($t['file']) || !isset($t['class'])){
                 unset($trace[$k]);
             }
         }
@@ -228,14 +286,17 @@ class Error extends Action
      * @param $code
      * @param $msg
      */
-    static public function notice($code, $msg)
+    public static function notice($code, $msg)
     {
+        if(strpos($msg, '/smarty/compile/') || strpos($msg, '/runtime/')){
+            return;
+        }
         self::$collected['notice'][] = [
             'code' => $code,
             'msg'  => $msg
         ];
-        if (self::$isDirectOutput) {
-            echo $code . ': ' . $msg, PHP_EOL;
+        if(self::$isDirectOutput){
+            echo $code.': '.$msg, PHP_EOL;
         }
     }
 
@@ -245,14 +306,14 @@ class Error extends Action
      * @param $code
      * @param $msg
      */
-    static public function info($code, $msg)
+    public static function info($code, $msg)
     {
         self::$collected['info'][] = [
             'code' => $code,
             'msg'  => $msg
         ];
-        if (self::$isDirectOutput) {
-            echo $code . ': ' . $msg, PHP_EOL;
+        if(self::$isDirectOutput){
+            echo $code.': '.$msg, PHP_EOL;
         }
     }
 
@@ -261,23 +322,46 @@ class Error extends Action
      *
      * @return array
      */
-    static public function prepareHeader()
+    public static function prepareHeader()
     {
-        $success = Action::isSuccess() && Action::isRunComplete();
+        $success = Controller::current()->isCompleteAndSuccess();
         $header  = [
             'success' => $success,
-            'msg'     => $success ? '请求成功' : '请求失败',
+            'msg'     => $success? '请求成功': '请求失败',
             'code'    => ''
         ];
-        if (isset(self::$collected['fatal'])) {
+        if(isset(self::$collected['fatal'])){
             $header = array_merge($header, self::$collected['fatal']);
         }
-        if (isset(self::$collected['notice'])) {
+        if(isset(self::$collected['notice'])){
             $header['notice'] = self::$collected['notice'];
         }
-        if (isset(self::$collected['info'])) {
+        if(isset(self::$collected['info'])){
             $header['info'] = self::$collected['info'];
         }
+
+        //>debug
+        if(RUN_MODE !== 'production'){
+            $header['queryCount']   = class_exists('\jt\Model', false)? Model::getQueryTimes(): 0;// + \dal\Dal::selectQueryTimes();
+            $header['querySqlList'] = Debug::getFromCollect('sql');
+
+            $includeFiles             = get_included_files();
+            $header['loadFilesCount'] = count($includeFiles);
+
+            $unit = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+            $size = memory_get_usage(true) / 8;
+            $i    = (int)floor(log($size, 1024));
+
+            $header['useMemory'] = round($size / pow(1024, $i), 2).' '.$unit[$i];
+            $header['spendTime'] = round((microtime(true) - Bootstrap::$startTime) * 1000, 3);
+
+            $ruler = Controller::current()->getRuler();
+            if(!empty($ruler)){
+                $header['entrance'] = "{$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[8]})";
+            }
+        }
+
+        //debug<
 
         return $header;
     }
@@ -287,15 +371,15 @@ class Error extends Action
      *
      * @param bool $v
      */
-    static public function directOutput($v = true)
+    public static function directOutput($v = true)
     {
-        self::$isDirectOutput = RUN_MODE === 'develop' ? $v : false;
+        self::$isDirectOutput = RUN_MODE === 'develop'? $v: false;
     }
 
     /**
      * 清除搜集到的错误
      */
-    static public function cleanData()
+    public function cleanData()
     {
         self::$collected = [];
     }

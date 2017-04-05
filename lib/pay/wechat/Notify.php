@@ -1,16 +1,14 @@
 <?php
 /**
- * @Copyright jentian.com
- * Auth: ax@jentian.com
+ * @Copyright csmall.com
+ * Auth: ax@csmall.com
  * Create: 2015/12/8 14:12
  */
 
 namespace jt\lib\pay\wechat;
 
-use jt\utils\Url;
-
-require __DIR__ . '/WxPay.Api.php';
-require __DIR__ . '/WxPay.Notify.php';
+require __DIR__.'/WxPay.Api.php';
+require __DIR__.'/WxPay.Notify.php';
 
 /**
  * 微信JsApi支付通知回调类
@@ -21,8 +19,8 @@ class Notify extends \WxPayNotify
 {
     protected $targetType = '';
     protected $notify_url = '';
-    protected $data       = ['memo' => 'CSMALL', 'id' => ''];
-    protected $task   = null;
+    protected $data       = ['memo' => '一点公益', 'id' => ''];
+    protected $task       = null;
 
     public function __construct(array $config, $targetType)
     {
@@ -45,7 +43,7 @@ class Notify extends \WxPayNotify
             $result = call_user_func($this->task, $data);
 
             return boolval($result);
-        }catch (\WxPayException $e){
+        }catch(\WxPayException $e){
             $msg = $e->errorMessage();
         }
 
@@ -54,9 +52,11 @@ class Notify extends \WxPayNotify
 
     /**
      * app支付回调
+     *
      * @param callable $callback
      */
-    public function app(callable $callback){
+    public function app(callable $callback)
+    {
         $this->task = $callback;
         $this->Handle();
     }

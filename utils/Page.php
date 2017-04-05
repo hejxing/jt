@@ -1,4 +1,5 @@
 <?php
+
 namespace jt\utils;
 
 /*
@@ -52,7 +53,7 @@ class Page
      */
     public function __construct($totalCount, $pageSize, $bothNum = 5)
     {
-        $this->totalCount = $totalCount ? $totalCount : 0;
+        $this->totalCount = $totalCount? $totalCount: 0;
         $this->pageSize   = $pageSize;
         $this->pageCount  = ceil($this->totalCount / $this->pageSize);
         $this->pageIndex  = $this->setPage();
@@ -65,17 +66,17 @@ class Page
      */
     public function setPage()
     {
-        if (!empty($_GET['pageIndex'])) {
-            if ($_GET['pageIndex'] > 0) {
-                if ($_GET['pageIndex'] > $this->pageCount) {
+        if(!empty($_GET['pageIndex'])){
+            if($_GET['pageIndex'] > 0){
+                if($_GET['pageIndex'] > $this->pageCount){
                     return $this->pageCount;
-                }else {
+                }else{
                     return $_GET['pageIndex'];
                 }
-            }else {
+            }else{
                 return 1;
             }
-        }else {
+        }else{
             return 1;
         }
     }
@@ -87,12 +88,12 @@ class Page
     {
         $url = $this->request_uri();//IIS的$SERVER
         $par = parse_url($url);
-        if (isset($par['query'])) {
+        if(isset($par['query'])){
             parse_str($par['query'], $query);
             unset($query['pageIndex']);
-            $url = $par['path'] . '?' . http_build_query($query) . '&';
-        }else {
-            $url = $par['path'] . '?';
+            $url = $par['path'].'?'.http_build_query($query).'&';
+        }else{
+            $url = $par['path'].'?';
         }
 
         return $url;
@@ -104,13 +105,13 @@ class Page
      */
     private function request_uri()
     {
-        if (isset($_SERVER['REQUEST_URI'])) {
+        if(isset($_SERVER['REQUEST_URI'])){
             $uri = $_SERVER['REQUEST_URI'];
-        }else {
-            if (isset($_SERVER['argv'])) {
-                $uri = $_SERVER['PHP_SELF'] . '?' . $_SERVER['argv'][0];
-            }else {
-                $uri = $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING'];
+        }else{
+            if(isset($_SERVER['argv'])){
+                $uri = $_SERVER['PHP_SELF'].'?'.$_SERVER['argv'][0];
+            }else{
+                $uri = $_SERVER['PHP_SELF'].'?'.$_SERVER['QUERY_STRING'];
             }
         }
 
@@ -122,7 +123,7 @@ class Page
      */
     private function showCount()
     {
-        return '共' . $this->totalCount . '条记录	共' . $this->pageCount . '页';
+        return '共'.$this->totalCount.'条记录	共'.$this->pageCount.'页';
     }
 
     /**
@@ -130,24 +131,24 @@ class Page
      */
     private function pageList()
     {
-        $pagelist = '';
-        for ($i = $this->bothNum; $i >= 1; $i--) {
+        $pageList = '';
+        for($i = $this->bothNum; $i >= 1; $i--){
             $page = $this->pageIndex - $i;
-            if ($page < 1) {
+            if($page < 1){
                 continue;
             }
-            $pagelist .= '<a href="' . $this->url . 'pageIndex=' . $page . '">' . $page . '</a>';
+            $pageList .= '<a href="'.$this->url.'pageIndex='.$page.'">'.$page.'</a>';
         }
-        $pagelist .= '<span class="cur">' . $this->pageIndex . '</span>';
-        for ($i = 1; $i <= $this->bothNum; $i++) {
+        $pageList .= '<span class="cur">'.$this->pageIndex.'</span>';
+        for($i = 1; $i <= $this->bothNum; $i++){
             $page = $this->pageIndex + $i;
-            if ($page > $this->pageCount) {
+            if($page > $this->pageCount){
                 break;
             }
-            $pagelist .= '<a href="' . $this->url . 'pageIndex=' . $page . '">' . $page . '</a>';
+            $pageList .= '<a href="'.$this->url.'pageIndex='.$page.'">'.$page.'</a>';
         }
 
-        return $pagelist;
+        return $pageList;
     }
 
     /**
@@ -155,8 +156,8 @@ class Page
      */
     private function first()
     {
-        if ($this->pageIndex > $this->bothNum + 1) {
-            return ' <a href="' . $this->url . 'pageIndex=1">1</a><em>...</em>';
+        if($this->pageIndex > $this->bothNum + 1){
+            return ' <a href="'.$this->url.'pageIndex=1">1</a><em>...</em>';
         }
     }
 
@@ -165,11 +166,11 @@ class Page
      */
     private function prev()
     {
-        if ($this->pageIndex == 1) {
+        if($this->pageIndex == 1){
             return '<span class="disabled">◀</span>';
         }
 
-        return '<a href="' . $this->url . 'pageIndex=' . ($this->pageIndex - 1) . '">◀</a> ';
+        return '<a href="'.$this->url.'pageIndex='.($this->pageIndex - 1).'">◀</a> ';
     }
 
     /**
@@ -177,11 +178,11 @@ class Page
      */
     private function next()
     {
-        if ($this->pageIndex == $this->pageCount) {
+        if($this->pageIndex == $this->pageCount){
             return '<span class="disabled">▶</span>';
         }
 
-        return '<a href="' . $this->url . 'pageIndex=' . ($this->pageIndex + 1) . '">▶</a> ';
+        return '<a href="'.$this->url.'pageIndex='.($this->pageIndex + 1).'">▶</a> ';
     }
 
     /**
@@ -189,23 +190,23 @@ class Page
      */
     private function last()
     {
-        if ($this->pageCount - $this->pageIndex > $this->bothNum) {
-            return '<em>...</em><a href="' . $this->url . 'pageIndex=' . $this->pageCount . '">' . $this->pageCount . '</a> ';
+        if($this->pageCount - $this->pageIndex > $this->bothNum){
+            return '<em>...</em><a href="'.$this->url.'pageIndex='.$this->pageCount.'">'.$this->pageCount.'</a> ';
         }
     }
 
     /**
      * 分页信息
      *
-     * @param string $style 分页样式，1为详细的分页视图，2为简洁分页，只显示上下页按钮
-     * @return html
+     * @param int $style 分页样式，1为详细的分页视图，2为简洁分页，只显示上下页按钮
+     * @return string html
      */
     public function show($style = 1)
     {
         $page = '';
-        switch ($style) {
+        switch($style){
             case 1:
-                if ($this->pageCount > 0) {
+                if($this->pageCount > 0){
                     $page .= $this->prev();
                     $page .= $this->first();
                     $page .= $this->pageList();
@@ -215,7 +216,7 @@ class Page
                 $page .= $this->showCount();
                 break;
             case 2:
-                $page .= $this->pageIndex . '/' . $this->pageCount;
+                $page .= $this->pageIndex.'/'.$this->pageCount;
                 $page .= $this->prev();
                 $page .= $this->next();
                 break;

@@ -8,6 +8,7 @@
 
 namespace jt\lib\database;
 
+use jt\compile\config\Database;
 use jt\Exception;
 
 class Connector
@@ -66,10 +67,10 @@ class Connector
 
     public function __construct($module, $conn)
     {
-        $this->connSeed = $module . $conn;
+        $this->connSeed = $module.$conn;
         $this->config   = self::loadConfig($module, $conn);
-        if (!isset(self::$quotesList[$this->config['type']])) {
-            throw new \ErrorException('DatabaseTypeIll:数据库类型 [' . $this->config['type'] . '] 错误，不存在此种数据库或未实现对此种数据库的支持');
+        if(!isset(self::$quotesList[$this->config['type']])){
+            throw new \ErrorException('DatabaseTypeIll:数据库类型 ['.$this->config['type'].'] 错误，不存在此种数据库或未实现对此种数据库的支持');
         }
     }
 
@@ -109,13 +110,13 @@ class Connector
      */
     public function open()
     {
-        if (empty(self::$pdoList[$this->connSeed])) {
+        if(empty(self::$pdoList[$this->connSeed])){
             self::$pdoList[$this->connSeed] = $this->createPDO();
         }
         /** @type \PDO $pdo */
         $pdo = self::$pdoList[$this->connSeed];
 
-        if (!$pdo->inTransaction()) {
+        if(!$pdo->inTransaction()){
             $pdo->beginTransaction();
         }
 
@@ -132,15 +133,15 @@ class Connector
      */
     protected static function loadConfig($module, $conn)
     {
-        $connSeed = $module . $conn;
-        if (isset(static::$configPool[$connSeed])) {
+        $connSeed = $module.$conn;
+        if(isset(static::$configPool[$connSeed])){
             return static::$configPool[$connSeed];
         }
         //获取模块配置
-        if (isset(static::$configModelPool[$module])) {
+        if(isset(static::$configModelPool[$module])){
             $modelConfig = static::$configModelPool[$module];
-        }else {
-            $modelConfig                      = static::readConfig(PROJECT_ROOT . '/config/' . RUN_MODE);
+        }else{
+            $modelConfig                      = static::readConfig();
             static::$configModelPool[$module] = $modelConfig;
         }
         $config = \array_replace_recursive($modelConfig['__base'], $modelConfig[$conn]);
@@ -153,21 +154,18 @@ class Connector
     /**
      * 加载配置文件
      *
-     * @param string $root 本置文件所在的根目录
-     *
      * @return mixed
      * @throws Exception
      */
-    public static function readConfig($root)
+    public static function readConfig()
     {
-        $file   = $root . '/database.php';
-        $result = @include($file);
-
-        if ($result === false) {
-            throw new Exception('databaseConfigNotFound: 数据库配置文件 [' . $file . '] 不存在');
+        $file = RUNTIME_PATH_ROOT.'/config/db_'.MODULE.'.php';
+        if(!file_exists($file) || RUN_MODE === 'develop'){
+            Database::general($file, PROJECT_ROOT.'/config/'.RUN_MODE.'/Database.php');
         }
 
-        return $result;
+        /** @noinspection PhpIncludeInspection */
+        return include($file);
     }
 
     /**
@@ -192,15 +190,15 @@ class Connector
      */
     protected function mysql(array $config)
     {
-        $dsn = 'mysql:host=' . $config['host'];
-        if ($this->selectDb) {
-            $dsn .= ';dbname=' . $this->config['dBPrefix'] . $config['schema'];
+        $dsn = 'mysql:host='.$config['host'];
+        if($this->selectDb){
+            $dsn .= ';dbname='.$this->config['dBPrefix'].$config['schema'];
         }
-        if (isset($config['port'])) {
-            $dsn .= ';port=' . $config['port'];
+        if(isset($config['port'])){
+            $dsn .= ';port='.$config['port'];
         }
-        if (isset($config['charset'])) {
-            $dsn .= ';charset=' . $config['charset'];
+        if(isset($config['charset'])){
+            $dsn .= ';charset='.$config['charset'];
         }
 
         return $dsn;
@@ -215,12 +213,12 @@ class Connector
      */
     protected function pgsql(array $config)
     {
-        $dsn = 'pgsql:host=' . $config['host'];
-        if ($this->selectDb) {
-            $dsn .= ';dbname=' . $this->config['dBPrefix'] . $config['schema'];
+        $dsn = 'pgsql:host='.$config['host'];
+        if($this->selectDb){
+            $dsn .= ';dbname='.$this->config['dBPrefix'].$config['schema'];
         }
-        if (isset($config['port'])) {
-            $dsn .= ';port=' . $config['port'];
+        if(isset($config['port'])){
+            $dsn .= ';port='.$config['port'];
         }
 
         return $dsn;

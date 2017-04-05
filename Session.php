@@ -1,7 +1,7 @@
 <?php
 /**
- * @Copyright jentian.com
- * Auth: ax@jentian.com
+ * @Copyright csmall.com
+ * Auth: ax@csmall.com
  * Create: 2016/3/25 15:17
  */
 
@@ -23,19 +23,19 @@ abstract class Session implements SessionHandlerInterface
      * @return string
      * @throws Exception
      */
-    public static function start($sowing = false, $sessionId = '', $restart = true)
+    public static function start($sowing = false, $sessionId = '', $restart = false)
     {
         ini_set('session.use_cookies', 0);
-        $sessionId = $sessionId ?: self::getSessionId($sowing, $restart);
-        if (!self::checkStatus($restart)) {
+        $sessionId = $sessionId?: self::getSessionId($sowing, $restart);
+        if(!self::checkStatus($restart)){
             return $sessionId;
         }
 
-        if ($sessionId) {
+        if($sessionId){
             $handler = new Saver();
             session_set_save_handler($handler);
             session_id($sessionId);
-        }else {
+        }else{
             session_set_save_handler(new Invalid());
         }
 
@@ -56,13 +56,13 @@ abstract class Session implements SessionHandlerInterface
         $savers = explode(',', \Config::SESSION['idSaver']);
         $names  = explode(',', \Config::SESSION['idName']);
 
-        foreach ($savers as $index => $saver) {
+        foreach($savers as $index => $saver){
             $name         = $names[$index]??$names[0];
-            $sowingMethod = 'sowingIdBy' . $saver;
-            if (method_exists(__CLASS__, $sowingMethod)) {
+            $sowingMethod = 'sowingIdBy'.$saver;
+            if(method_exists(__CLASS__, $sowingMethod)){
                 self::$sowingMethod($id, $name);
-            }else {
-                throw new Exception('sessionSowingIdNotExists:存储方式:' . $saver . ' 的存储SessionId的方法未实现');
+            }else{
+                throw new Exception('sessionSowingIdNotExists:存储方式:'.$saver.' 的存储SessionId的方法未实现');
             }
         }
     }
@@ -76,7 +76,7 @@ abstract class Session implements SessionHandlerInterface
     protected static function sowingIdByHeader($id, $name)
     {
         $ns = explode('_', $name);
-        foreach ($ns as &$n) {
+        foreach($ns as &$n){
             $n = ucfirst(strtolower($n));
         }
         $name = implode('-', $ns);
@@ -107,8 +107,8 @@ abstract class Session implements SessionHandlerInterface
         $path     = '/';
         $domain   = null;
         $secure   = null;
-        $httpOnly = null;
-        setcookie($name, $id, $expire, $path, $domain, $httpOnly);
+        $httpOnly = true;
+        setcookie($name, $id, $expire, $path, $domain, $secure, $httpOnly);
     }
 
     /**
@@ -116,12 +116,14 @@ abstract class Session implements SessionHandlerInterface
      *
      * @param $sessionId
      */
-    public static function erase($sessionId)
+    public static function erase($sessionId = null)
     {
-        if ($sessionId) {
+        if($sessionId){
             self::start(false, $sessionId);
-            session_destroy();
+        }else{
+            self::start();
         }
+        session_destroy();
     }
 
     /**
@@ -133,14 +135,14 @@ abstract class Session implements SessionHandlerInterface
     public static function regenerateId($hold = false, $sessionId = null)
     {
         $data = null;
-        if ($hold && \session_status() === PHP_SESSION_ACTIVE) {
+        if($hold && \session_status() === PHP_SESSION_ACTIVE){
             $data = $_SESSION;
         }
-        if (!$sessionId) {
+        if(!$sessionId){
             $sessionId = self::genSessionId();
         }
         self::start(false, $sessionId);
-        if ($hold && $data) {
+        if($hold && $data){
             $_SESSION = $data;
         }
     }
@@ -155,14 +157,14 @@ abstract class Session implements SessionHandlerInterface
     private static function checkStatus($restart)
     {
         $status = session_status();
-        switch ($status) {
+        switch($status){
             case PHP_SESSION_DISABLED:
                 throw new Exception('SessionDisabled:当前SESSION不可用，请打开PHP SESSION功能');
                 break;
             case PHP_SESSION_ACTIVE:
-                if ($restart) {
+                if($restart){
                     session_write_close();
-                }else {
+                }else{
                     return false;
                 }
                 break;
@@ -185,25 +187,25 @@ abstract class Session implements SessionHandlerInterface
         $savers = explode(',', \Config::SESSION['idSaver']);
         $names  = explode(',', \Config::SESSION['idName']);
 
-        if ($sowing && $restart) {
+        if($sowing && $restart){
             return self::genSessionId();
         }
 
-        foreach ($savers as $index => $saver) {
+        foreach($savers as $index => $saver){
             $name = $names[$index]??$names[0];
             \session_save_path($saver);
             \session_name($name);
-            $getIdMethod = 'getIdBy' . $saver;
-            if (method_exists(__CLASS__, $getIdMethod)) {
+            $getIdMethod = 'getIdBy'.$saver;
+            if(method_exists(__CLASS__, $getIdMethod)){
                 $sessionId = self::$getIdMethod($name);
-                if ($sessionId) {
+                if($sessionId){
                     return $sessionId;
                 }
-            }else {
-                throw new Exception('sessionSaverNotExists:存储方式:' . $saver . ' 的获取SessionId的方法未实现');
+            }else{
+                throw new Exception('sessionSaverNotExists:存储方式:'.$saver.' 的获取SessionId的方法未实现');
             }
         }
-        if ($sowing) {
+        if($sowing){
             return self::genSessionId();
         }
 
@@ -232,7 +234,7 @@ abstract class Session implements SessionHandlerInterface
      */
     protected static function getIdByHeader($name)
     {
-        return $_SERVER['HTTP_' . $name]??null;
+        return $_SERVER['HTTP_'.$name]??null;
     }
 
     /**
@@ -255,7 +257,7 @@ abstract class Session implements SessionHandlerInterface
     protected static function getIdByCookie($name)
     {
         $id = $_COOKIE[$name]??null;
-        if ($id) {
+        if($id){
             self::sowingIdByCookie($id, $name);//刷新Cookie的有效期
         }
 
@@ -277,5 +279,10 @@ abstract class Session implements SessionHandlerInterface
     public function open($save_path, $session_id)
     {
         return true;
+    }
+
+    public function get($name)
+    {
+
     }
 }

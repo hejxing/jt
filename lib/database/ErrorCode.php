@@ -1,6 +1,6 @@
 <?php
 /**
- * @Copyright jentian.com
+ * @Copyright csmall.com
  * Auth: hejxi
  * Create: 2016/1/13 18:54
  */
@@ -14,15 +14,14 @@ class ErrorCode
         '23505' => 'duplicate'
     ];
 
-    private static $defaultErrorMsg = [
-        //'duplicate' => '不允许添加相同内容'
+    private static $defaultErrorMsg = [//'duplicate' => '不允许添加相同内容'
     ];
 
     public static function getDefaultMsg($code)
     {
-        if (!empty(self::$defaultErrorMsg[$code])) {
+        if(!empty(self::$defaultErrorMsg[$code])){
             return self::$defaultErrorMsg[$code];
-        }else {
+        }else{
             return null;
         }
     }
@@ -36,9 +35,9 @@ class ErrorCode
      */
     public static function getName($type, $code)
     {
-        switch ($type) {
+        switch($type){
             case 'pgsql':
-                if (isset(self::$pgsql[$code])) {
+                if(isset(self::$pgsql[$code])){
                     return self::$pgsql[$code];
                 }
                 break;
@@ -60,11 +59,11 @@ class ErrorCode
      */
     public static function getMessage(\jt\Model $model, \PDOException $e, $sql = '')
     {
-        $type = self::getName($model->getConnectorType(), $e->getCode());
+        $type    = self::getName($model->getConnectorType(), $e->getCode());
         $msgList = $model->getErrorMsgList();
 
-        $msg = $msgList[$type]??self::getDefaultMsg($type) ?: $e->getMessage() . ' SQL[' . $sql . ']';
-        if ($type === 'duplicate' && strpos($msg, '[field]') !== false) {
+        $msg = $msgList[$type]??self::getDefaultMsg($type)?: $e->getMessage().' SQL['.$sql.']';
+        if($type === 'duplicate' && strpos($msg, '[field]') !== false){
             preg_match('/Key \((.*?)\)/', $e->getMessage(), $matched);
             $msg = str_replace('[field]', $matched[1], $msg);
         }

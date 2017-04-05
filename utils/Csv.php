@@ -23,6 +23,7 @@ class Csv
      * @type int
      */
     public $length    = 0;
+    public $count     = 0;
     public $delimiter = ',';
     public $enclosure = '"';
     public $escape    = '\\';
@@ -38,19 +39,29 @@ class Csv
         $this->file = $file;
     }
 
-    public function getList($length = null)
+    public function getList($count = null)
     {
-        if ($length) {
-            $this->length = $length;
+        if($count){
+            $this->count = $count;
         }
         $handle = fopen($this->file, 'r');
+        $list   = [];
 
         while($item = fgetcsv($handle, $this->length, $this->delimiter, $this->enclosure, $this->escape)){
-            $list = [];
-            foreach ($this->fieldMap as $name => $key) {
-                $list[$name] = $item[$key];
+            $node = [];
+            foreach($this->fieldMap as $name => $key){
+                if(is_callable($key)){
+                    $node[$name] = $key($item);
+                }else{
+                    $node[$name] = $item[$key];
+                }
+
             }
-            yield $list;
+            $list[] = $node;
+            if($this->count && $this->count <= count($list)){
+                yield $list;
+                $list = [];
+            }
         }
     }
 }

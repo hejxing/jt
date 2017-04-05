@@ -1,18 +1,10 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: 渐兴
+ * Auth: ax
  * Date: 15-4-4 01:36
  */
 
 namespace jt;
-
-define('FILL_DATA_OVER', 1);
-define('FILL_DATA_IGNORE', 2);
-define('FILL_DATA_APPEND', 3);
-define('FILL_DATA_PREPEND', 4);
-define('FILL_DATA_JOIN_RIGHT', 5);
-define('FILL_DATA_JOIN_LEFT', 6);
 
 /**
  * Action基类
@@ -22,24 +14,31 @@ define('FILL_DATA_JOIN_LEFT', 6);
  */
 class Action
 {
+    const FILL_OVER         = 1;
+    const FILL_IGNORE       = 2;
+    const FILL_APPEND       = 3;
+    const FILL_PREPEND      = 4;
+    const FILL_JOIN_RIGHT   = 5;
+    const FILL_JOIN_LEFT    = 6;
+    const FILL_IGNORE_EMPTY = 7;
     /**
      * 参数验证规则
      *
      * @type array
      */
-    protected static $validate = [];
+    protected $validate = [];
     /**
      * 存放要响应给客户端的数据
      *
      * @var array
      */
-    static private $dataStore = [];
+    private $dataStore = [];
     /**
      * 存放要响应给客户端的状态信息
      *
-     * @var string
+     * @var array
      */
-    static private $headerStore = [];
+    private $headerStore = [];
     /**
      * 保存中间变量，用来在方法之间传值
      *
@@ -51,13 +50,21 @@ class Action
      *
      * @type bool
      */
-    protected static $runComplete = false;
+    protected $runComplete = false;
+    /**
+     * @var Controller
+     */
+    protected $controller = null;
     /**
      * 本次操作是否成功
      *
      * @type bool
      */
-    private static $taskSuccess = true;
+    private $taskSuccess = true;
+    /**
+     * @var bool 是否缓存，与模板引擎配合使用
+     */
+    private $isCache = false;
 
     /**
      * 设置回复的头部数据
@@ -68,9 +75,9 @@ class Action
      *
      * @return bool
      */
-    public function header($key, $value, $model = FILL_DATA_OVER)
+    public function header($key, $value, $model = self::FILL_OVER)
     {
-        return self::fillData(self::$headerStore, $key, $value, $model);
+        return $this->fillData($this->headerStore, $key, $value, $model);
     }
 
     /**
@@ -82,9 +89,9 @@ class Action
      *
      * @return bool
      */
-    public function out($key, $value, $model = FILL_DATA_OVER)
+    public function out($key, $value, $model = self::FILL_OVER)
     {
-        return self::fillData(self::$dataStore, $key, $value, $model);
+        return $this->fillData($this->dataStore, $key, $value, $model);
     }
 
     /**
@@ -93,10 +100,10 @@ class Action
      * @param array $data
      * @param int   $model 添加方式
      */
-    public function outMass(array $data, $model = FILL_DATA_OVER)
+    public function outMass(array $data, $model = self::FILL_OVER)
     {
-        foreach ($data as $key => $value) {
-            self::fillData(self::$dataStore, $key, $value, $model);
+        foreach($data as $key => $value){
+            $this->fillData($this->dataStore, $key, $value, $model);
         }
     }
 
@@ -110,7 +117,10 @@ class Action
      */
     private function fillData(array &$data, $key, $value, $model)
     {
-        if ($key === null || (\is_int($key) && $key === count($data))) {
+        if($this->isCache){
+            $data = &$data['__cache'];
+        }
+        if($key === null || (\is_int($key) && $key === count($data))){
             $data[] = $value;
 
             return true;
@@ -118,55 +128,58 @@ class Action
 
         $parts = explode('.', $key);
         $key   = array_pop($parts);
-        foreach ($parts as $p) {
-            if (!$p) {
+        foreach($parts as $p){
+            if(!$p){
                 $p = count($data);
             }
-            if (!isset($data[$p])) {
+            if(!isset($data[$p])){
                 $data[$p] = [];
             }
             $data = &$data[$p];
         }
-        if (!$key) {
+        if(!$key){
             $key = count($data);
         }
-        switch ($model) {
-            case FILL_DATA_OVER:
+        switch($model){
+            /** @noinspection PhpMissingBreakStatementInspection */
+            case self::FILL_IGNORE:
+                if(isset($data[$key])){
+                    return false;
+                }
+            /** @noinspection PhpMissingBreakStatementInspection */
+            case self::FILL_IGNORE_EMPTY:
+                if(($value === null || $value === '') && isset($data[$key])){
+                    return false;
+                }
+            case self::FILL_OVER:
                 $data[$key] = $value;
                 break;
-            case FILL_DATA_IGNORE:
-                if (isset($data[$key])) {
-                    return false;
-                }else {
-                    $data[$key] = $value;
-                }
-                break;
-            case FILL_DATA_APPEND:
-            case FILL_DATA_PREPEND:
-                if (!isset($data[$key])) {
+            case self::FILL_APPEND:
+            case self::FILL_PREPEND:
+                if(!isset($data[$key])){
                     $data[$key] = [];
                 }
-                if (!is_array($data[$key])) {
+                if(!is_array($data[$key])){
                     return false;
                 }
-                if ($model === FILL_DATA_APPEND) {
+                if($model === self::FILL_APPEND){
                     array_push($data[$key], $value);
-                }else {
+                }else{
                     array_unshift($data[$key], $value);
                 }
                 break;
-            case FILL_DATA_JOIN_RIGHT:
-            case FILL_DATA_JOIN_LEFT:
-                if (!\is_string($value) || (isset($data[$key]) && !\is_string($data[$key]))) {
+            case self::FILL_JOIN_RIGHT:
+            case self::FILL_JOIN_LEFT:
+                if(!is_string($value) || (isset($data[$key]) && !is_string($data[$key]))){
                     return false;
                 }
-                if (isset($data[$key])) {
-                    if ($model === FILL_DATA_JOIN_RIGHT) {
+                if(isset($data[$key])){
+                    if($model === self::FILL_JOIN_RIGHT){
                         $data[$key] .= $value;
-                    }else {
-                        $data[$key] = $value . $data[$key];
+                    }else{
+                        $data[$key] = $value.$data[$key];
                     }
-                }else {
+                }else{
                     $data[$key] = $value;
                 }
                 break;
@@ -178,50 +191,35 @@ class Action
     /**
      * 获取头部数据
      *
-     * @return string
+     * @return array
      */
-    public static function getHeaderStore()
+    public function getHeaderStore()
     {
-        $headerStore = self::$headerStore;
-        //>debug
-        if (RUN_MODE === 'develop') {
-            $headerStore['queryCount']     = class_exists('\jt\Model', false) ? Model::getQueryTimes() : 0;// + \dal\Dal::selectQueryTimes();
-            $includeFiles                  = get_included_files();
-            $headerStore['loadFilesCount'] = count($includeFiles);
-
-            $unit = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-            $size = memory_get_usage(true) / 8;
-            $i    = (int)floor(log($size, 1024));
-
-            $headerStore['useMemory'] = round($size / pow(1024, $i), 2) . ' ' . $unit[$i];
-            $headerStore['spendTime'] = intval((microtime(true) - Bootstrap::$startTime) * 1000);
-        }
-        //debug<
-
-        return $headerStore;
+        return $this->headerStore;
     }
 
     /**
      * 获取数据
+     *
      * @param bool $filter 是否过滤结果
      *
      * @return array
      */
-    public static function getDataStore($filter = true)
+    public function getDataStore($filter = true)
     {
         if($filter === false){
-            return self::$dataStore;
+            return $this->dataStore;
         }
         $ruler       = Controller::current()->getRuler();
         $returnRuler = $ruler[6]??[];
-        if (empty($returnRuler) || !self::$runComplete || !self::$taskSuccess) {
-            return self::$dataStore;
+        if(empty($returnRuler) || !$this->runComplete || !$this->taskSuccess){
+            return $this->dataStore;
         }
-        if (empty(self::$dataStore)) {
-            (new self())->header('empty', true);
-        }
+        //if (empty(self::$dataStore)) {
+        //    (new self())->header('empty', true);
+        //}
 
-        return Requester::revisionData($returnRuler, self::$dataStore);
+        return Requester::revisionOutput($this->dataStore, $returnRuler);
     }
 
     /**
@@ -233,9 +231,9 @@ class Action
      */
     public function getFromData($name)
     {
-        if (isset(self::$dataStore[$name])) {
-            return self::$dataStore[$name];
-        }else {
+        if(isset($this->dataStore[$name])){
+            return $this->dataStore[$name];
+        }else{
             return null;
         }
     }
@@ -249,48 +247,21 @@ class Action
      */
     public function getFromHead($name)
     {
-        if (isset(self::$headerStore[$name])) {
-            return self::$headerStore[$name];
-        }else {
+        if(isset($this->headerStore[$name])){
+            return $this->headerStore[$name];
+        }else{
             return null;
         }
     }
 
     /**
-     * 保存中间值
-     *
-     * @param      $name
-     * @param      $value
-     */
-    public function __set($name, $value)
-    {
-        $this->valueStore[$name] = $value;
-    }
-
-    /**
-     * 获取保存的中间值
-     *
-     * @param $name
-     *
-     * @return null
-     */
-    public function __get($name)
-    {
-        if (isset($this->valueStore[$name])) {
-            return $this->valueStore[$name];
-        }
-
-        return null;
-    }
-
-    /**
      * 清空数据
      */
-    public static function cleanData()
+    public function cleanData()
     {
-        Controller::current()->getAction()->valueStore = [];
-        self::$dataStore                               = [];
-        self::$headerStore                             = [];
+        $this->valueStore  = [];
+        $this->dataStore   = [];
+        $this->headerStore = [];
     }
 
     /**
@@ -322,9 +293,9 @@ class Action
      *
      * @param bool $isComplete
      */
-    public static function setIsRunComplete($isComplete)
+    public function setIsRunComplete($isComplete)
     {
-        self::$runComplete = $isComplete;
+        $this->runComplete = $isComplete;
     }
 
     /**
@@ -332,9 +303,9 @@ class Action
      *
      * @param bool $success
      */
-    public static function setIsSuccess($success)
+    public function setIsSuccess($success)
     {
-        self::$taskSuccess = $success;
+        $this->taskSuccess = $success;
     }
 
     /**
@@ -342,9 +313,9 @@ class Action
      *
      * @return bool
      */
-    public static function isRunComplete()
+    public function isRunComplete()
     {
-        return self::$runComplete;
+        return $this->runComplete;
     }
 
     /**
@@ -358,10 +329,10 @@ class Action
     public function success($msg, $code = '', $responseEnd = false)
     {
         $this->header('msg', $msg);
-        if ($code) {
+        if($code){
             $this->header('code', $code);
         }
-        if ($responseEnd) {
+        if($responseEnd){
             Responder::end();
         }
     }
@@ -378,17 +349,17 @@ class Action
      */
     public function fail($msg, $code = 'fail', $param = [], $status = null, $responseEnd = true)
     {
-        self::$taskSuccess = false;
-        if ($status) {
-            header('Status: ' . $status, true);
+        $this->taskSuccess = false;
+        if($status){
+            header('Status: '.$status, true);
         }
-        if ($responseEnd) {
+        if($responseEnd){
             $e = new Exception("{$code}:{$msg}");
             $e->setType('taskFail');
             $e->setParam($param);
             $e->setIgnoreTraceLine(1);
             throw $e;
-        }else {
+        }else{
             $this->header('code', $code);
             $this->header('msg', $msg);
         }
@@ -399,9 +370,9 @@ class Action
      *
      * @return bool
      */
-    public static function isSuccess()
+    public function isSuccess()
     {
-        return self::$taskSuccess;
+        return $this->taskSuccess;
     }
 
     /**
@@ -411,7 +382,7 @@ class Action
      */
     public function getValidate()
     {
-        return static::$validate;
+        return $this->validate;
     }
 
     /**
@@ -427,48 +398,48 @@ class Action
     {
         $result     = [];
         $indexAssoc = false;
-        foreach ($map as $n => $v) {
-            if (\is_int($n)) {
+        foreach($map as $n => $v){
+            if(\is_int($n)){
                 $n          = $v;
                 $indexAssoc = true;
             }
             $type = 'string';
             \preg_match('/^\((.*)\)(.+)/', $n, $matched);
-            if (\count($matched) > 2) {
+            if(\count($matched) > 2){
                 $type = $matched[1];
                 $n    = $matched[2];
-                if ($indexAssoc) {
+                if($indexAssoc){
                     $v = $n;
                 }
             }
             $vns   = \explode('.', $v);
             $value = $data;
-            foreach ($vns as $vn) {
+            foreach($vns as $vn){
 
-                if (isset($value[$vn])) {
+                if(isset($value[$vn])){
                     $value = $value[$vn];
-                }elseif (\substr($vn, 0, 1) === '"' && \substr($vn, -1, 1) === '"') {
+                }elseif(\substr($vn, 0, 1) === '"' && \substr($vn, -1, 1) === '"'){
                     $value = \substr($vn, 1, -1);
-                }else {
+                }else{
                     $value = null;
                     break;
                 }
             }
-            if ($value === null && $ignoreEmpty) {
+            if($value === null && $ignoreEmpty){
                 continue;
             }
-            switch ($type) {
+            switch($type){
                 case 'int':
-                    $value = intval($value ?: 0);
+                    $value = intval($value?: 0);
                     break;
                 case 'float':
-                    $value = floatval($value ?: 0);
+                    $value = floatval($value?: 0);
                     break;
                 case 'bool':
                     $value = boolval($value);
                     break;
                 default:
-                    $value = $value === null ? '' : $value;
+                    $value = $value === null? '': $value;
                     break;
             }
             $result[$n] = $value;
@@ -493,34 +464,18 @@ class Action
             'minCount' => -1,
             'maxCount' => 9999999
         ], $option);
-        foreach ($data as $key => $item) {
+        foreach($data as $key => $item){
             $result[$key] = $this->map($map, $item);
-            if (\sizeof($result) >= $option['maxCount']) {
+            if(\sizeof($result) >= $option['maxCount']){
                 break;
             }
         }
 
-        while (\sizeof($result) < $option['minCount']) {
+        while(\sizeof($result) < $option['minCount']){
             $result[] = $this->map($map, []);
         }
 
         return $result;
-    }
-
-    /**
-     * 输出操作结果
-     *
-     * @param bool  $success 成功状态
-     * @param array $successMsg 成功信息数组
-     * @param array $failMsg 失败信息数组
-     */
-    public function outResult($success, array $successMsg, array $failMsg)
-    {
-        if ($success) {
-            $this->success($successMsg[1], $successMsg[0]);
-        }else {
-            $this->fail($failMsg[1], $failMsg[0]);
-        }
     }
 
     /**
@@ -532,16 +487,16 @@ class Action
      */
     public function outTotal($total, $size, $page)
     {
-        $this->out('total', \intval($total));
-        $this->out('size', \intval($size));
-        $this->out('page', \intval($page));
+        $this->out('total', intval($total));
+        $this->out('size', intval($size));
+        $this->out('page', intval($page));
     }
 
     /**
      * 输出带分页信息的列表
      *
      * @param array $list
-     * @param array $page 分页信息 其值的顺序为 total,size,index
+     * @param array $page 分页信息 其值的顺序为 total,size,page
      */
     public function outList(array $list, array $page)
     {
@@ -581,10 +536,12 @@ class Action
 
     /**
      * 不输出内容
+     *
+     * @param bool $quiet
      */
-    public function quiet()
+    public function quiet($quiet = true)
     {
-        Controller::current()->quiet();
+        Controller::current()->quiet($quiet);
     }
 
     /**
@@ -601,18 +558,19 @@ class Action
     /**
      * 设置请求返回状态，默认为200
      *
-     * @param int   $status 状态码
-     * @param array $param 请求传递的参数
-     * @param bool  $error 是否判定为错误
+     * @param int    $status 状态码
+     * @param string $msg
+     * @param array  $param 请求传递的参数
+     * @param bool   $error 是否判定为错误
      * @throws Exception
      */
-    public function status($status, $param = [], $error = true)
+    public function status($status, $msg = '', $param = [], $error = true)
     {
-        \header('Status: ' . $status);
-        if ($status >= 400 && $error) {
-            self::$taskSuccess = false;
+        header('Status: '.$status);
+        if($status >= 400 && $error){
+            $this->taskSuccess = false;
 
-            $e = new Exception($status . ':');
+            $e = new Exception($status.':'.$msg);
             $e->setType('taskFail');
             $e->setParam($param);
             throw $e;
@@ -631,6 +589,16 @@ class Action
     }
 
     /**
+     * 设置当前的Controller
+     *
+     * @param Controller $controller
+     */
+    public function setController(Controller $controller)
+    {
+        $this->controller = $controller;
+    }
+
+    /**
      * 初始化Action
      *
      * @return bool
@@ -641,12 +609,23 @@ class Action
     }
 
     /**
-     * 获取当前Action实例
+     * 此后的数据可以缓存
      *
-     * @return \jt\Action
+     * @throws \jt\Exception
      */
-    public static function current()
+    public function startCache()
     {
-        return Controller::current()->getAction();
+        $method = Controller::current()->getRequestMethod();
+        if($method !== 'get'){
+            throw new Exception('NotAllowCache:Request method: '.$method.' not allow cache!');
+        }
+        $this->isCache = true;
+        $responder     = Controller::current()->getResponder();
+        if($responder->hadCache()){
+            $responder->end();
+        }
+        //判断是否已经有缓存了
+        $this->dataStore['__cache']   = [];
+        $this->headerStore['__cache'] = [];
     }
 }

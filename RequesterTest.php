@@ -1,10 +1,15 @@
 <?php
 
 /**
- * Auth: ax@jentian.com
+ * Auth: ax@csmall.com
  * Create: 2015/10/14 17:21
  */
-class RequesterTest extends PHPUnit_Framework_TestCase
+
+namespace jt;
+
+use PHPUnit\Framework\TestCase;
+
+class RequesterTest extends TestCase
 {
 
     public function testGet()
@@ -18,7 +23,7 @@ class RequesterTest extends PHPUnit_Framework_TestCase
             'likeLanguage' => 'php,c,  go, js',
             'novalidate'   => 'we'
         ], [
-            'likeLanguage' => 'array',
+            'likeLanguage' => 'list',
             'hair'         => 'bool use:sex',
             'novalidate'   => 'min:10'
         ]);
@@ -29,13 +34,13 @@ class RequesterTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(30, $requester->get('age', 'int'));
         $this->assertTrue($requester->get('inChina', 'bool'));
         $this->assertTrue($requester->hair);
-        $this->assertEquals(null, $requester->notExists);
+        $this->assertEquals('', $requester->notExists);
         $this->assertTrue($requester->has('name'));
-        //$this->assertFalse($requester->has('novalidate'));
+        $this->assertTrue($requester->has('novalidate'));
         $this->assertFalse($requester->has('notExists'));
         $this->assertTrue(is_array($requester->get('likeLanguage')));
-        $this->assertEquals(['php', 'c', 'go', 'js'], $requester->get('likeLanguage', 'array'));
-        //$this->assertEquals(6, count($requester->fetchAll()));
+        $this->assertEquals(['php', 'c', 'go', 'js'], $requester->get('likeLanguage', 'list'));
+        $this->assertEquals(6, count($requester->fetchExclude('novalidate')));
         $this->assertEquals(1, count($requester->fetch('name')));
     }
 
@@ -49,7 +54,7 @@ class RequesterTest extends PHPUnit_Framework_TestCase
             //'novalidate'   => 'we',
             'sex'          => 2
         ], [
-            'likeLanguage' => 'array',
+            'likeLanguage' => 'list',
             'hair'         => 'bool use:sex',
             //'novalidate'   => 'min:10',
             'age'          => 'int',
@@ -103,7 +108,7 @@ class RequesterTest extends PHPUnit_Framework_TestCase
                 'js'
             ],
             'hair'         => true
-        ], $requester->fetch('age,name', 'in', 'likeLanguage,hair'));
+        ], $requester->fetch('age,name,in,likeLanguage,hair'));
     }
 
     public function testNeedOne()
@@ -116,7 +121,7 @@ class RequesterTest extends PHPUnit_Framework_TestCase
             //'novalidate'   => 'we',
             'sex'          => 2
         ], [
-            'likeLanguage' => 'array',
+            'likeLanguage' => 'list',
             'hair'         => 'bool use:sex',
             //'novalidate'   => 'min:10',
             'age'          => 'int',
@@ -137,7 +142,7 @@ class RequesterTest extends PHPUnit_Framework_TestCase
             //'novalidate'   => 'we',
             'sex'          => 2
         ], [
-            'likeLanguage' => 'array',
+            'likeLanguage' => 'list',
             'hair'         => 'bool use:sex',
             //'novalidate'   => 'min:10',
             'age'          => 'int',
@@ -174,7 +179,7 @@ class RequesterTest extends PHPUnit_Framework_TestCase
                 'js'
             ],
             'hair'         => true
-        ], $requester->fetchExclude('age', 'in'));
+        ], $requester->fetchExclude('age, in'));
     }
 
     public function testConvert()
@@ -200,7 +205,7 @@ class RequesterTest extends PHPUnit_Framework_TestCase
             'novalidate'   => 'we',
             'sex'          => 2
         ], [
-            'likeLanguage' => 'array',
+            'likeLanguage' => 'list',
             'hair'         => 'bool use:sex',
             'novalidate'   => 'min:10',
             'age'          => 'int',

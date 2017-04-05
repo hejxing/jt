@@ -1,17 +1,20 @@
 <?php
 /**
- * Auth: ax@jentian.com
+ * Auth: ax@csmall.com
  * Create: 2015/10/17 22:32
  */
+
 namespace jt;
 
-class ValidateTest extends \PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class ValidateTest extends TestCase
 {
     public function testEmail()
     {
-        $this->assertTrue(Validate::email('ax@jentian.com'));
-        $this->assertTrue(Validate::email('ax@jentian.com.cn'));
-        $this->assertTrue(Validate::email('123_ax@jentian.com.cn'));
+        $this->assertTrue(Validate::email('ax@csmall.com'));
+        $this->assertTrue(Validate::email('ax@csmall.com.cn'));
+        $this->assertTrue(Validate::email('123_ax@csmall.com.cn'));
         $this->assertTrue(Validate::email('t123@163.cn'));
         $this->assertFalse(Validate::email('t123@163.cn.'));
         $this->assertFalse(Validate::email('@163.cn'));
@@ -28,7 +31,8 @@ class ValidateTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse(Validate::mobile('(+86)130668157321'));
     }
 
-    public function testIdentityCard(){
+    public function testIdentityCard()
+    {
         $this->assertTrue(Validate::identityCard('511324198312076499'));
         $this->assertTrue(Validate::identityCard('362430198906108115'));
     }

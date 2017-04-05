@@ -1,6 +1,6 @@
 <?php
 /**
- * @Copyright jentian.com
+ * @Copyright csmall.com
  * Auth: hejxi
  * Create: 2016/4/15 10:47
  */
@@ -21,26 +21,26 @@ class Upload
     {
         self::check($fieldName);
         $loadList = [];
-        if ($fieldName) {
+        if($fieldName){
             $loadList[] = $_FILES[$fieldName];
-        }else {
-            foreach ($_FILES as $item) {
+        }else{
+            foreach($_FILES as $item){
                 $loadList[] = $item;
             }
         }
         $index  = 0;
         $upList = [];
-        foreach ($loadList as $item) {
-            if (is_array($item['name'])) {//该域下有多个文件
-                foreach ($item['name'] as $i => $k) {
+        foreach($loadList as $item){
+            if(is_array($item['name'])){//该域下有多个文件
+                foreach($item['name'] as $i => $k){
                     $node = [];
-                    foreach ($item as $key => $null) {
+                    foreach($item as $key => $null){
                         $node[$key] = $item[$key][$i];
                     }
                     $upList[] = self::move($node, $saveTo, $index);
                     $index++;
                 }
-            }else {
+            }else{
                 $upList[] = self::move($item, $saveTo, $index);
                 $index++;
             }
@@ -64,11 +64,11 @@ class Upload
         $originFile = $item['name'];
         $saveFile   = ParsePath::path('{hexmtime}{_index}.{extension}', $originFile, $index);
 
-        if (is_uploaded_file($tmpFile)) {
-            if (!is_dir($saveTo) && !mkdir($saveTo, 0777, true)) {
-                throw new \Exception('createSaveToFolderFail:创建文件上传目录 [' . $saveTo . '] 失败，可能是权限不够，请检查!');
+        if(is_uploaded_file($tmpFile)){
+            if(!is_dir($saveTo) && !mkdir($saveTo, 0777, true)){
+                throw new \Exception('createSaveToFolderFail:创建文件上传目录 ['.$saveTo.'] 失败，可能是权限不够，请检查!');
             }
-            move_uploaded_file($tmpFile, $saveTo . '/' .$saveFile);
+            move_uploaded_file($tmpFile, $saveTo.'/'.$saveFile);
         }
 
         return $saveFile;
@@ -88,10 +88,10 @@ class Upload
      */
     private static function check($fieldName)
     {
-        if (strtolower($_SERVER['REQUEST_METHOD']) !== 'post') {
+        if(strtolower($_SERVER['REQUEST_METHOD']) !== 'post'){
             throw new \Exception('uploadMethodIllegal:文件上传只能是post请求');
         }
-        if ($fieldName && empty($_FILES[$fieldName])) {
+        if($fieldName && empty($_FILES[$fieldName])){
             throw new \Exception('uploadFieldNameNotExists:本次请求中文件上传域不存在或不是一个有效的文件上传域');
         }
     }

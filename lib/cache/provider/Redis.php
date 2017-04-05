@@ -1,7 +1,7 @@
 <?php
 /**
- * @Copyright jentian.com
- * Auth: ax@jentian.com
+ * @Copyright csmall.com
+ * Auth: ax@csmall.com
  * Create: 2016/4/20 16:16
  */
 

@@ -1,16 +1,13 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: ax@jentian.com
- * Date: 2015/11/24
- * Time: 17:38
+ * Auth: ax
+ * Date: 2015/11/24 17:38
  */
 
 namespace jt\auth;
 
 use jt\Controller;
 use jt\Session;
-use jt\Action;
 
 /**
  * 权限控制基类
@@ -19,11 +16,11 @@ use jt\Action;
  */
 abstract class Auth
 {
-    const LOGIN_SUCCESS      = 1;
-    const LOGIN_PASSWORD_ILL = 2;
-    const LOGIN_BLOCK        = 3;
-    const LOGIN_FAIL         = 4;
-    const LOGIN_OUT          = 5; //退出登录
+    const LOGIN_SUCCESS      = 20;//登录成功
+    const LOGIN_PASSWORD_ILL = 30;//密码错误
+    const LOGIN_BLOCK        = 40;//禁止登录
+    const LOGIN_NEED_VERIFY  = 43;//需要输入验证码才能登录
+    const LOGIN_FAIL         = 50;//登录失败
     /**
      * @type \jt\Action
      */
@@ -43,34 +40,60 @@ abstract class Auth
      */
     protected $loginUrl = '/login';
     /**
-     * 操作员
-     *
-     * @type null
+     * @var string 调用处传递过来的标记,可以针对此标记做些小调整
+     */
+    protected $mark = null;
+    /**
+     * @var string 配置类
+     */
+    protected $configClass = 'AuthConfigurator';
+    /**
+     * @type Operator 操作员
      */
     private $operator = null;
+    /**
+     * @var AuthConfigurator
+     */
+    private $configurator = null;
 
     /**
      * 执行权限检查
      *
      * @return int 200,401,403
      */
-    abstract public function auth();
+    abstract protected function auth();
 
     /**
      * 访问结果过滤
      *
      * @return int
      */
-    abstract public function filter();
+    abstract protected function filter();
 
     /**
      * 初始化操作员信息
-     *
-     * @return \jt\auth\Operator
      */
     protected function createOperator()
     {
-        return new Operator('undefined', '', '');
+        $this->setOperator(new Operator('undefined', '', ''));
+    }
+
+    /**
+     * 设置操作员
+     *
+     * @param \jt\auth\Operator $operator
+     */
+    protected function setOperator(Operator $operator)
+    {
+        $this->operator = $operator;
+    }
+
+    /**
+     * 创建授权界面管理器
+     */
+    protected function createConfigurator()
+    {
+        $this->configurator = new $this->configClass();
     }
 
     /**
@@ -110,8 +133,19 @@ abstract class Auth
      */
     protected function notLogin()
     {
-        $this->action->out('loginUrl', $this->loginUrl . '?ref=' . $_SERVER['REQUEST_URI']);
-        $this->action->fail('未登录或登录失败，请重登录', 401);
+        if(Controller::current()->getMime() === 'html'){
+            $this->loginPage();
+        }else{
+            $this->action->fail('未登录或登录失败，请重登录', 401);
+        }
+    }
+
+    /**
+     * 未登录的跳转页面
+     */
+    protected function loginPage()
+    {
+        $this->action->redirect($this->loginUrl.'?ref='.$_SERVER['REQUEST_URI']);
     }
 
     /**
@@ -138,19 +172,20 @@ abstract class Auth
     final public function inCheck()
     {
         $code = $this->auth();
-        switch ($code) {
+        switch($code){
             case 200:
                 return true;
                 break;
             case 401:
                 $this->notLogin();
                 break;
+            case null:
             case 403:
                 $this->writeInExceedLog();
                 $this->inExceed();
                 break;
             default:
-                $this->action->status($code, [], false);
+                $this->action->status($code, '', [], false);
         }
 
         return false;
@@ -164,18 +199,19 @@ abstract class Auth
     final public function outCheck()
     {
         $code = $this->filter();
-        switch ($code) {
+        switch($code){
             case 200:
                 $this->writeSuccessLog();
 
                 return true;
                 break;
+            case null:
             case 403:
                 $this->writeOutExceedLog();
                 $this->outExceed();
                 break;
             default:
-                $this->action->status($code, [], false);
+                $this->action->status($code, '', [], false);
         }
 
         return false;
@@ -185,14 +221,26 @@ abstract class Auth
      * @param $data
      * @return string
      */
-    protected static function hold($data)
+    public static function hold($data)
     {
-        $token         = Session::start(true);
-        $data['token'] = $token;
-        $_SESSION      = $data;
-        (new Action())->header('token', $token);
+        $token            = Session::start(true);
+        $data['token']    = $token;
+        $_SESSION['user'] = $data;
+        Controller::current()->getAction()->header('token', $token);
 
         return $token;
+    }
+
+    /**
+     * 获取当前登录用户信息
+     *
+     * @return array
+     */
+    public static function userInfo()
+    {
+        Session::start();
+
+        return $_SESSION['user'];
     }
 
     /**
@@ -202,10 +250,30 @@ abstract class Auth
      */
     public function getOperator()
     {
-        if ($this->operator === null) {
-            $this->operator = $this->createOperator();
+        if($this->operator === null){
+            $this->createOperator();
         }
 
         return $this->operator;
+    }
+
+    /**
+     * 获取授权配置器，用于管理授权相关配置信息
+     */
+    public function getConfigurator()
+    {
+        if($this->configurator === null){
+            $this->createConfigurator();
+        }
+
+        return $this->configurator;
+    }
+
+    /**
+     * @param string $mark
+     */
+    public function setMark($mark)
+    {
+        $this->mark = $mark;
     }
 }

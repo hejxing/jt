@@ -1,6 +1,6 @@
 <?php
 /**
- * Created by www.csmall.com
+ * Created by www.51ydgymall.cn
  * User: Rocky
  * Date: 2015/6/2
  * Time: 17:30
@@ -48,7 +48,7 @@ class GoodsCategoryModel extends Model
     {
         return $this->equals('parentId', $id)->fetch('id, name, code, nodeCount');
     }
-    
+
     /**
      * 获取商品列表
      *
@@ -58,10 +58,11 @@ class GoodsCategoryModel extends Model
      */
     public function getList($page, $keywords)
     {
-        if (!empty($keywords)) {
+        if(!empty($keywords)){
             $this->search(['name', 'code'], "%{$keywords}%");
         }
+
         //var_dump(111);
-        return $this->setPage($page)->fetchWithPage();
+        return $this->page($page['pageSize'], $page['page'])->fetchWithPage();
     }
 }

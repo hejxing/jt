@@ -1,9 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: 渐兴
- * Date: 15-4-3
- * Time: 22:13
+/**Auth: ax
+ * Date: 15-4-3 22:13
  */
 
 namespace jt\utils;
@@ -26,12 +23,12 @@ class Helper
     public static function uuid(array $default = [], $split = '')
     {
         $partLength = [8, 4, 4, 4, 12];
-        foreach ($partLength as $i => $length) {
-            if (isset($default[$i])) {
+        foreach($partLength as $i => $length){
+            if(isset($default[$i])){
                 $default[$i] = str_pad(substr($default[$i], 0, $length), $length, '0', STR_PAD_LEFT);
-            }else {
+            }else{
                 $default[$i] = '';
-                while (strlen($default[$i]) < $length) {
+                while(strlen($default[$i]) < $length){
                     $default[$i] .= str_pad(base_convert(mt_rand(0, 65535), 10, 16), 4, '0', STR_PAD_LEFT);
                 }
             }
@@ -50,7 +47,7 @@ class Helper
      */
     public static function encrypt($pwd, $salt)
     {
-        return \md5($salt . $pwd . $salt);
+        return \md5($salt.$pwd.$salt);
     }
 
     /**
@@ -62,7 +59,7 @@ class Helper
     public static function delArrayAssoc($array)
     {
         $newArr = [];
-        foreach ($array as $value) {
+        foreach($array as $value){
             $newArr[] = $value;
         }
 
@@ -77,19 +74,21 @@ class Helper
      */
     public static function decodeJSON($json)
     {
-        if (is_string($json) && !empty($json)) {
+        if(is_string($json) && !empty($json)){
             return json_decode($json, true);
-        }else {
+        }else{
             return [];
         }
     }
 
     /**
      * 将数据序列化成json,将不对中文进行编码
+     *
      * @param $data
      * @return string
      */
-    public static function encodeJSON($data){
+    public static function encodeJSON($data)
+    {
         if(is_string($data)){
             return $data;
         }else{
@@ -112,8 +111,8 @@ class Helper
             'android' => 'android'
         ];
         $agent = \strtolower($_SERVER['HTTP_USER_AGENT']);
-        foreach ($map as $type => $flag) {
-            if (\strpos($agent, $flag) !== false) {
+        foreach($map as $type => $flag){
+            if(\strpos($agent, $flag) !== false){
                 return $type;
             }
         }
@@ -134,7 +133,7 @@ class Helper
     }
 
     /**
-     * 搜集列表所需的内容
+     * 搜集属性列表，带索的内容将进行映射
      *
      * @param $map
      * @param $data
@@ -143,9 +142,12 @@ class Helper
     public static function mapList($map, $data)
     {
         $list = [];
-        foreach ($map as $key) {
-            if (isset($data[$key])) {
-                $list[$key] = $data[$key];
+        foreach($map as $key => $value){
+            if(is_int($key)){
+                $key = $value;
+            }
+            if(isset($data[$key])){
+                $list[$value] = $data[$key];
             }
         }
 
@@ -160,29 +162,29 @@ class Helper
     private static function getClientIp()
     {
         $ip = null;
-        if (isset($_SERVER)) {
-            if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        if(isset($_SERVER)){
+            if(isset($_SERVER['HTTP_X_FORWARDED_FOR'])){
                 $arr = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
                 /* 取X-Forwarded-For中第一个非unknown的有效IP字符串 */
-                foreach ($arr as $ip) {
+                foreach($arr as $ip){
                     $ip = trim($ip);
-                    if ($ip != 'unknown') {
+                    if($ip != 'unknown'){
                         break;
                     }
                 }
-            }else {
-                if (isset($_SERVER['HTTP_CLIENT_IP'])) {
+            }else{
+                if(isset($_SERVER['HTTP_CLIENT_IP'])){
                     $ip = $_SERVER['HTTP_CLIENT_IP'];
                 }
             }
-        }else {
-            if (getenv('HTTP_X_FORWARDED_FOR')) {
+        }else{
+            if(getenv('HTTP_X_FORWARDED_FOR')){
                 $ip = getenv('HTTP_X_FORWARDED_FOR');
-            }elseif (getenv('HTTP_CLIENT_IP')) {
+            }elseif(getenv('HTTP_CLIENT_IP')){
                 $ip = getenv('HTTP_CLIENT_IP');
             }
         }
-        if ($ip === null) {
+        if($ip === null){
             $ip = self::getShakeIp();
         }
 
@@ -191,7 +193,7 @@ class Helper
 
     private static function getShakeIp()
     {
-        return $_SERVER['REMOTE_ADDR']??getenv('REMOTE_ADDR') ?: '0.0.0.0';
+        return $_SERVER['REMOTE_ADDR']??getenv('REMOTE_ADDR')?: '0.0.0.0';
     }
 
     /**
@@ -203,15 +205,15 @@ class Helper
      */
     public static function getIp($proxy = true, $long = false)
     {
-        if ($proxy) {
+        if($proxy){
             /* 这类IP皆是可伪造的HTTP报文 */
             //此处为http报文,可伪造,不可靠
             $ip = self::getClientIp();
-        }else {
+        }else{
             $ip = self::getShakeIp();
         }
 
-        return $long ? ip2long($ip) : $ip;
+        return $long? ip2long($ip): $ip;
     }
 
     /**
@@ -222,13 +224,13 @@ class Helper
      */
     public static function uniChr($dec)
     {
-        if ($dec < 128) {
+        if($dec < 128){
             $utf = chr($dec);
-        }else {
-            if ($dec < 2048) {
+        }else{
+            if($dec < 2048){
                 $utf = chr(192 + (($dec - ($dec % 64)) / 64));
                 $utf .= chr(128 + ($dec % 64));
-            }else {
+            }else{
                 $utf = chr(224 + (($dec - ($dec % 4096)) / 4096));
                 $utf .= chr(128 + ((($dec % 4096) - ($dec % 64)) / 64));
                 $utf .= chr(128 + ($dec % 64));
@@ -238,18 +240,25 @@ class Helper
         return $utf;
     }
 
+    /**
+     * 产生随机字符
+     *
+     * @param     $length
+     * @param int $mask
+     * @return string
+     */
     public static function randString($length, $mask = JT_CHAR_NUMBER)
     {
         $randomString = "";
         $type         = [];
-        foreach ([1, 2, 4, 8] as $t) {
-            if ($t & $mask) {
+        foreach([1, 2, 4, 8] as $t){
+            if($t & $mask){
                 $type[] = $t;
             }
         }
-        while ($length) {
+        while($length){
             $c = '';
-            switch ($type[array_rand($type)]) {
+            switch($type[array_rand($type)]){
                 case JT_CHAR_NUMBER:
                     $c = chr(mt_rand(48, 57));
                     break;
@@ -268,5 +277,56 @@ class Helper
         }
 
         return $randomString;
+    }
+
+    /**
+     * 修改文件或文件夹权限
+     *
+     * @param $path
+     * @param $perms
+     */
+    public static function modifyFilePerms($path, $perms)
+    {
+        if(is_dir($path)){
+            $dir      = new \RecursiveDirectoryIterator($path);
+            $iterator = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::SELF_FIRST);
+            foreach($iterator as $item){
+                $fileName = (string)$item;
+                if(substr($fileName, -1) !== '.' && !(fileperms($fileName) & 0x0002)){
+                    chmod($fileName, $perms);
+                }
+            }
+        }else{
+            chmod($path, $perms);
+        }
+    }
+
+    /**
+     * 获取文件中最后一行的内容
+     *
+     * @param string $file
+     * @return string
+     */
+    public static function readLastLine($file)
+    {
+        $fp = fopen($file, 'r');
+        if($fp === false){
+            return '';
+        }
+        fseek($fp, -1, SEEK_END);
+        $line = '';
+        while(($c = fgetc($fp)) !== false){
+            if($c === "\n" || $c === "\r"){
+                if($line){
+                    break;
+                }
+            }else{
+                $line = $c.$line;
+            }
+            fseek($fp, -2, SEEK_CUR);
+        }
+        fclose($fp);
+
+        return $line;
     }
 }

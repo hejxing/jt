@@ -12,8 +12,8 @@ namespace jt\lib\pay\wechat;
 use jt\utils\Url;
 
 
-require(__DIR__ . '/WxPay.Api.php');
-require(__DIR__ . '/WxPay.JsApiPay.php');
+require(__DIR__.'/WxPay.Api.php');
+require(__DIR__.'/WxPay.JsApiPay.php');
 
 class WxPay
 {
@@ -26,13 +26,13 @@ class WxPay
     protected $amount     = 0.0;
     protected $outTradeNo = '';
     protected $targetType = '';
-    protected $data       = ['memo' => 'CSMALL', 'id' => ''];
+    protected $data       = ['memo' => '一点公益', 'id' => ''];
 
     public function __construct(array $config, $targetType, $notify_url)
     {
         $this->targetType = $targetType;
-        if (!preg_match('/^http[s]?:\/\//i', $notify_url)) {
-            $notify_url = Url::host() . $notify_url;
+        if(!preg_match('/^http[s]?:\/\//i', $notify_url)){
+            $notify_url = Url::host().$notify_url;
         }
 
         $this->notify_url = $notify_url;
@@ -64,7 +64,7 @@ class WxPay
         $input->SetTrade_type("APP");
         $result = \WxPayApi::getPayRequestParam($input);
 
-        if (isset($result['package'])) {
+        if(isset($result['package'])){
             $result['packages']  = $result['package'];
             $result['nonce_str'] = $result['noncestr'];
             unset($result['package']);

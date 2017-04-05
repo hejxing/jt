@@ -1,6 +1,6 @@
 <?php
 /**
- * Auth: ax@jentian.com
+ * Auth: ax@csmall.com
  * Date: 15-4-1
  * Time: 03:15
  *
@@ -18,17 +18,13 @@ namespace jt;
 class Controller
 {
     /**
-     * 当前使用的路由
-     *
-     * @type null
+     * @type Controller 当前使用的路由
      */
-    private static $controller = null;
+    private static $currController = null;
     /**
-     * 路由缓存
-     *
-     * @type array
+     * @type array 路由缓存
      */
-    private static $routerMapPool = [];
+    protected static $routerMapPool = [];
     /**
      * @var string 访问路径
      */
@@ -42,19 +38,23 @@ class Controller
      */
     protected $ruler = [];
     /**
+     * @var \jt\Requester
+     */
+    protected $requester = null;
+    /**
      * @var \jt\Action
      */
     protected $action = null;
     /**
-     * 执行的方法
-     *
-     * @type string
+     * @var \jt\Responder
+     */
+    protected $responder = null;
+    /**
+     * @type string 执行的方法
      */
     protected $method = '';
     /**
-     * 请求的方式
-     *
-     * @type string
+     * @type string 请求的方式
      */
     protected $requestMethod = '';
     /**
@@ -62,27 +62,19 @@ class Controller
      */
     protected $param = [];
     /**
-     * 响应的文档类型
-     *
-     * @type string
+     * @type string 响应的文档类型
      */
     protected $mime = '';
     /**
-     * 生成HTML用的模板文件
-     *
-     * @type string
+     * @type string 生成HTML用的模板文件
      */
     protected $template = '';
     /**
-     * 权限控制器
-     *
-     * @type \jt\auth\Auth
+     * @type \jt\auth\Auth 权限控制器
      */
     protected $authority = null;
     /**
-     * 重试的次数
-     *
-     * @type int
+     * @type int 重试的次数
      */
     private static $retryTimes = 10;
     /**
@@ -90,12 +82,13 @@ class Controller
      */
     private $outputAllow = true;
     /**
-     * 是否需要重试
-     *
-     * @type bool
+     * @type bool 是否需要重试
      */
     private $isNeedRetry = false;
-    private $hookQueue   = [
+    /**
+     * @var array 存储设的勾子
+     */
+    private $hookQueue = [
         'auth'    => [],
         'execute' => [],
         'render'  => []
@@ -104,14 +97,15 @@ class Controller
     /**
      * 匹配访问入口
      *
-     * @param string $uri 请求地址
+     * @param array $server 请求相关选项
      *
      * @throws \Exception
      */
-    public function __construct($uri)
+    public function __construct(array $server)
     {
-        self::$controller = $this;
-        $this->uri        = $uri;
+        $this->uri            = $server['SCRIPT_NAME'];
+        $this->requestMethod  = strtolower($server['REQUEST_METHOD']);
+        self::$currController = $this;
     }
 
     /**
@@ -122,12 +116,10 @@ class Controller
         $this->cutURI();
         $this->dispatch();
         $this->execute();
-        if ($this->isNeedRetry) {
+        if($this->isNeedRetry){
             $this->retry();
         }
-        if ($this->outputAllow) {
-            Responder::write();
-        }
+        $this->response();
     }
 
     /**
@@ -137,9 +129,9 @@ class Controller
     {
         $this->isNeedRetry = false;
         self::$retryTimes--;
-        if (self::$retryTimes > 0) {
-            Action::cleanData();
-            Error::cleanData();
+        if(self::$retryTimes > 0){
+            $this->action->cleanData();
+            //Error::cleanData();
 
             Model::rollBack();
             $this->execute();
@@ -149,20 +141,24 @@ class Controller
     /**
      * 获取权限验证器
      *
-     * @param $className
+     * @param $author
      *
      * @return bool
      */
-    private function checkAuthority($className)
+    private function checkAuthority($author)
     {
-        if (!$className) {
-            $className = \Config::DEFAULT_AUTH_CHECKER;
+        if(!$author){
+            $author = [\Config::DEFAULT_AUTH_CHECKER, null];
         }
-        if ($className === 'public') {
+
+        list($className, $mark) = $author;
+
+        if($className === 'public'){
             return true;
         }
 
         $this->authority = new $className();
+        $this->authority->setMark($mark);
 
         return $this->authority->inCheck();
     }
@@ -174,7 +170,7 @@ class Controller
      */
     private function applyFilter()
     {
-        if ($this->authority === null) {
+        if($this->authority === null){
             return true;
         }
 
@@ -189,11 +185,13 @@ class Controller
      */
     private function trigger($on)
     {
-        foreach ($this->hookQueue[$on] as $task) {
-            if (call_user_func_array($task[0], $task[1]) === false) {
+        foreach($this->hookQueue[$on] as $task){
+            if(call_user_func_array($task[0], $task[1]) === false){
                 return false;
             }
         }
+
+        return true;
     }
 
     /**
@@ -213,51 +211,56 @@ class Controller
      */
     private function execute()
     {
-        if ($this->action === null) {
+        if($this->action === null){
             return;
         }
 
-        if (strpos($this->ruler[7], 'output_quiet') !== false) {
+        if(strpos($this->ruler[7], 'output_quiet') !== false){
             $this->action->quiet();
         }
 
-        if ($this->trigger('auth') === false) {
+        if($this->action->init() === false){
+            throw new Exception('Action '.$this->ruler[0].' init fail', 500);
+        }
+
+        if($this->trigger('auth') === false){
             return;
         }
 
-        if ($this->checkAuthority($this->ruler[4]) === false) {
+        if($this->checkAuthority($this->ruler[4]) === false){
             return;
         }
 
-        if (call_user_func_array([$this->action, 'before'], [$this->method, $this->param]) === false) {
+        if(call_user_func_array([$this->action, 'before'], [$this->method, $this->param]) === false){
             return;
         }
 
-        if ($this->trigger('execute') === false) {
+        if($this->trigger('execute') === false){
             return;
         }
 
         $result = call_user_func_array([$this->action, $this->method], $this->param);
-        if (is_array($result)) {
-            if (isset($result[0]) && is_int($result[0])) {
-                $this->action->status($result[0], array_slice($result, 1));
+        if(is_array($result)){
+            if(isset($result[0]) && is_int($result[0])){
+                $this->action->status($result[0], '', array_slice($result, 1));
             }
+
             $this->action->outMass($result);
         }
 
-        if (call_user_func_array([$this->action, 'after'], [$this->method, $this->param]) === false) {
+        if(call_user_func_array([$this->action, 'after'], [$this->method, $this->param]) === false){
             return;
         }
 
 
-        if ($this->applyFilter() === false) {
+        if($this->applyFilter() === false){
             return;
         }
 
-        if ($this->trigger('render') === false) {
+        if($this->trigger('render') === false){
             return;
         }
-        Action::setIsRunComplete(true);
+        $this->action->setIsRunComplete(true);
     }
 
     /**
@@ -267,11 +270,11 @@ class Controller
      */
     public static function current()
     {
-        if (self::$controller === null) {
-            return new self('');
+        if(self::$currController === null){
+            self::$currController = new self($_SERVER);
         }
 
-        return self::$controller;
+        return self::$currController;
     }
 
     /**
@@ -281,11 +284,23 @@ class Controller
      */
     public function getAction()
     {
-        if ($this->action === null) {
-            return new Action();
+        if($this->action === null){
+            $action = new Action();
+            $action->setController($this);
+            $this->action = $action;
         }
 
         return $this->action;
+    }
+
+    /**
+     * 设置当前的接口实例
+     *
+     * @param Action $action
+     */
+    public function setAction(Action $action)
+    {
+        $this->action = $action;
     }
 
     /**
@@ -296,6 +311,16 @@ class Controller
     public function getMethod()
     {
         return $this->method;
+    }
+
+    /**
+     * 获取请求的路径
+     *
+     * @return string
+     */
+    public function getRequestPath()
+    {
+        return '/'.implode('/', $this->paths);
     }
 
     /**
@@ -335,15 +360,16 @@ class Controller
     protected function parseMime()
     {
         $last = array_pop($this->paths);
-        if ($last === null) {
+        if($last === null){
             return;
         }
         $pos = strrpos($last, '.');
-        if ($pos !== false && ($suffix = substr($last, $pos + 1))) {
-            if ($this->setMime($suffix) === false) {
-                Error::fatal('404', 'Mime: [' . $suffix . '] not exists');
+        if($pos !== false && ($suffix = substr($last, $pos + 1)) && $this->setMime($suffix)){
+            if($pos === 0){
+                $last = 'index';
+            }else{
+                $last = substr($last, 0, $pos);
             }
-            $last = substr($last, 0, $pos);
         }
         $this->paths[] = $last;
     }
@@ -356,7 +382,7 @@ class Controller
      */
     public function setMime($mime)
     {
-        if (in_array($mime, \Config::ACCEPT_MIME)) {
+        if(in_array($mime, \Config::ACCEPT_MIME)){
             $this->mime = $mime;
 
             return true;
@@ -373,7 +399,7 @@ class Controller
      */
     public function getMime()
     {
-        return $this->mime ?: \Config::ACCEPT_MIME[0];
+        return $this->mime?: \Config::ACCEPT_MIME[0];
     }
 
     /**
@@ -385,26 +411,23 @@ class Controller
      *
      * @throws Exception
      */
-    public function loadAction($class, $method)
+    protected function loadAction($class, $method)
     {
-        if (class_exists($class)) {
+        if(class_exists($class)){
             /** @type Action $action */
             $action = new $class();
-        }else {
-            throw new Exception('Action ' . $class . ' not found', 404);
+            $action->setController($this);
+        }else{
+            throw new Exception('Action '.$class.' not found', 404);
         }
 
-        if ($action->init() === false) {
-            throw new Exception('Action ' . $class . ' init fail', 500);
-        }
-
-        if (method_exists($action, $method)) {
+        if(method_exists($action, $method)){
             $this->action = $action;
             $this->method = $method;
 
             return true;
-        }else {
-            throw new Exception('Method not found ' . $class . '::' . $method, 404);
+        }else{
+            throw new Exception('Method not found '.$class.'::'.$method, 404);
         }
     }
 
@@ -413,27 +436,32 @@ class Controller
      *
      * @return array
      */
-    private static function loadRouter()
+    protected static function loadRouter()
     {
-        if (isset(self::$routerMapPool[MODULE])) {
+        if(isset(self::$routerMapPool[MODULE])){
             return self::$routerMapPool[MODULE];
         }
-        $routerMapFile = RUNTIME_PATH_ROOT . '/router/' . MODULE . '.php';
+        $routerMapFile = RUNTIME_PATH_ROOT.'/router/'.MODULE.'.php';
         //加载不成功则生成
-        if (RUN_MODE === 'develop') { //生成路由
-            $result = compile\router\Router::general($routerMapFile);
-        }else { //加载路由
+        if(RUN_MODE === 'develop'){ //生成路由
+            $result = compile\router\Router::general($routerMapFile, PROJECT_ROOT, MODULE);
+        }else{ //加载路由
             $result = include($routerMapFile);
-            if ($result === false) { //生成并保存
-                $result = compile\router\Router::general($routerMapFile);
+            if($result === false){ //生成并保存
+                $result = compile\router\Router::general($routerMapFile, PROJECT_ROOT, MODULE);
             }
         }
-        if (!is_array($result)) {
+        if(!is_array($result)){
             Error::fatal('LoadRouterMapFail', '加载或生成路由表失败');
         }
         self::$routerMapPool[MODULE] = $result;
 
         return $result;
+    }
+
+    public static function getRouterMap()
+    {
+        return self::$routerMapPool;
     }
 
     /**
@@ -447,25 +475,26 @@ class Controller
         $anyMatch          = [];
         $startAnyMathIndex = 0;
         //匹配路由
-        foreach ($this->paths as $index => $p) {
-            if (isset($router['__*'])) {
+        foreach($this->paths as $index => $p){
+            if(isset($router['__*'])){
                 $anyMatch          = $router['__*'];
                 $startAnyMathIndex = $index;
             }
-            if (isset($router[$p])) {
+            if(isset($router[$p])){
                 $router = $router[$p];
-            }elseif (isset($router['__var'])) { //参数
+            }elseif(isset($router['__var'])){ //参数
                 $param[] = $p;
                 $router  = $router['__var'];
-            }else {
+            }else{
                 $router = [];
                 break;
             }
         }
 
-        $method = strtolower($_SERVER['REQUEST_METHOD']);
+        $method = $this->requestMethod;
+
         //检查是否是一个有效的$router
-        if (!isset($router['__method']) && !isset($anyMatch['__method'])) {
+        if(!isset($router['__method']) && !isset($anyMatch['__method'])){
             //判断是否可以补'/'
             //if($this->getMime() === 'html' && $method === 'get' && $p !== 'index' && $index + 1 === \count($this->paths)){
             //    $router = $router['index']??$router['__*']??[];
@@ -473,39 +502,55 @@ class Controller
             //        Responder::redirect($this->uri.'/');
             //    }
             //}
-            Error::fatal('404', 'Router not found [' . implode('/', $this->paths) . ']');
+
+            throw new Exception('404:Router not found ['.$this->uri.']');
         }
 
-        if (isset($router['__method'][$method])) {
+        if(isset($router['__method'][$method])){
             $this->ruler = $router['__method'][$method];
-        }else {
-            if (isset($router['__method']['any'])) {
+        }else{
+            if(isset($router['__method']['any'])){
                 $this->ruler = $router['__method']['any'];
-            }else {
-                if (isset($anyMatch['__method'][$method])) {
+            }else{
+                if(isset($anyMatch['__method'][$method])){
                     $this->ruler = $anyMatch['__method'][$method];
-                }elseif (isset($anyMatch['__method']['any'])) {
+                }elseif(isset($anyMatch['__method']['any'])){
                     $this->ruler = $anyMatch['__method']['any'];
                 }
-                if ($this->ruler) {
+                if($this->ruler){
                     $param   = array_slice($param, $startAnyMathIndex);
                     $param[] = implode('/', array_slice($this->paths, $startAnyMathIndex));
-                }else {
-                    Error::fatal('405', 'Method not allowed');
+                }else{
+                    //TODO 列出相关的路由及入口
+                    throw new Exception('405:Method not allowed ['.$method.']');
                 }
             }
         }
-        //应用Mime
-        if ($this->ruler[5] && (!$this->mime || !in_array($this->mime, $this->ruler[5]))) {
-            foreach ($this->ruler[5] as $mime) {
-                if ($this->setMime($mime) === true) {
-                    break;
-                }
-            }
-        }
-        $this->requestMethod = $method;
+
+        $this->checkMime();
         $this->loadAction($this->ruler[0], $this->ruler[1]);
         $this->combParam($param, $this->ruler[2]);
+    }
+
+    /**
+     * 检查当前请求的Mime
+     */
+    private function checkMime()
+    {
+        //应用Mime
+        if($this->mime){
+            if($this->ruler[5] && !in_array($this->mime, $this->ruler[5])){
+                throw new Exception('404:Mime not allowed ['.$this->mime.']');
+            }
+        }else{
+            $mimes = $this->ruler[5]?: \Config::ACCEPT_MIME;
+            foreach($mimes as $mime){
+                if($this->setMime($mime) === true){
+                    return;
+                }
+            }
+        }
+
     }
 
     /**
@@ -516,34 +561,42 @@ class Controller
      */
     private function combParam(array $p, array $options)
     {
-        foreach ($options as $name => $option) {
-            switch ($option[0]) {
-                case 'request':
+        foreach($options as $name => $option){
+            switch($option[0]){
+                case '\jt\Requester':
                     $this->param[] = Requester::createFromRequest($option[3], $name);
+                    break;
+                case '\jt\Cookie':
+                    $this->param[] = Cookie::create(\Config::COOKIE);
+                    break;
+                case 'array':
+                    Session::start();
+                    $this->param[] = $_SESSION;
                     break;
                 case 'inject':
                     $class = $option[1];
                     $ruler = $option[2];
                     $param = [];
-                    if (isset($ruler['param'])) {
+                    if(isset($ruler['param'])){
                         $param = $ruler['param'];
                     }
-                    if (isset($ruler['instance'])) {
+                    if(isset($ruler['instance'])){
                         $instance      = $ruler['instance'];
                         $this->param[] = $class::$instance(...$param);
-                    }else {
+                    }else{
                         $this->param[] = new $class(...$param);
                     }
                     break;
                 default:
                     $v = $p[$option[4]];
-                    if ($v === 'index' && isset($option[2]['require'])) {
+                    if($v === 'index' && isset($option[2]['require'])){
                         $v = null;
                     }
-                    $this->param[] = Requester::doProcess($v, $option[2], 'path:' . $name);
+                    $this->param[] = Requester::validate($v, $option[2], 'path: .'.$name);
                     break;
             }
         }
+        Requester::cleanOriginRequest();
     }
 
     /**
@@ -563,13 +616,13 @@ class Controller
      */
     public function getTemplate()
     {
-        if ($this->template) {
+        if($this->template){
             $template = $this->template;
-        }else {
+        }else{
             $template = $this->ruler[3];
         }
-        if (strpos($template, '/') !== 0) {
-            $template = '/' . $template;
+        if(strpos($template, '/') !== 0){
+            $template = '/'.$template;
         }
 
         return $template;
@@ -618,10 +671,54 @@ class Controller
      */
     public function getOperator()
     {
-        if ($this->authority) {
+        if($this->authority){
             return $this->authority->getOperator();
-        }else {
+        }else{
             return new auth\Operator('public', '', '');
         }
+    }
+
+    /**
+     * 获取请求对象
+     */
+    public function getRequester()
+    {
+        if($this->requester === null){
+            $this->requester = new Requester();
+        }
+
+        return $this->requester;
+    }
+
+    /**
+     * @return Responder
+     */
+    public function getResponder()
+    {
+        if($this->responder === null){
+            $this->responder = new Responder();
+        }
+
+        return $this->responder;
+    }
+
+    /**
+     * 输出请求内容
+     */
+    public function response()
+    {
+        if($this->outputAllow){
+            $this->getResponder()->write();
+        }
+    }
+
+    /**
+     * 当前任务是否执行成功
+     *
+     * @return bool
+     */
+    public function isCompleteAndSuccess(): bool
+    {
+        return $this->action && $this->action->isSuccess() && $this->action->isRunComplete();
     }
 }

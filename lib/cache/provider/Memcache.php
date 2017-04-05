@@ -1,10 +1,11 @@
 <?php
 
 /**
- * @Copyright jentian.com
+ * @Copyright csmall.com
  * Auth: hejxi
  * Create: 2015/11/25 11:31
  */
+
 namespace jt\lib\cache\provider;
 
 /**

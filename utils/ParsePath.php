@@ -1,6 +1,6 @@
 <?php
 /**
- * @Copyright jentian.com
+ * @Copyright csmall.com
  * Auth: ax
  * Create: 2016/4/15 11:44
  */
@@ -20,12 +20,12 @@ class ParsePath
      */
     public static function name($name, $oldName, $index = 0)
     {
-        if ($name == '') {
+        if($name == ''){
             return $oldName;
         }
         preg_match_all('/\{(.*?)\}/', $name, $m);
-        foreach ($m[0] as $i => $origin) {
-            switch ($m[1][$i]) {
+        foreach($m[0] as $i => $origin){
+            switch($m[1][$i]){
                 case 'filename':
                     $pathInfo = pathinfo($oldName);
                     $name     = str_replace($origin, $pathInfo['filename'], $name);
@@ -38,7 +38,7 @@ class ParsePath
                     $name = str_replace($origin, $index, $name);
                     break;
                 case '_index':
-                    $name = str_replace($origin, $index == 0 ? '' : '_' . $index, $name);
+                    $name = str_replace($origin, $index == 0? '': '_'.$index, $name);
                     break;
                 default:
                     $name = str_replace($origin, self::parseCode($m[1][$i]), $name);
@@ -57,11 +57,11 @@ class ParsePath
      */
     static public function folder($folder)
     {
-        if ($folder === '.') {
+        if($folder === '.'){
             return '';
         }
-        if (preg_match_all('/\{(.*?)\}/', $folder, $m)) {
-            foreach ($m[0] as $i => $origin) {
+        if(preg_match_all('/\{(.*?)\}/', $folder, $m)){
+            foreach($m[0] as $i => $origin){
                 $folder = str_replace($origin, self::parseCode($m[1][$i]), $folder);
             }
         }
@@ -79,13 +79,13 @@ class ParsePath
      */
     static public function path($path, $oldName, $index = 0)
     {
-        if ($path == '') {
+        if($path == ''){
             return $oldName;
         }
         $dirName  = self::folder(dirname($path));
         $baseName = self::name(basename($path), $oldName, $index);
 
-        return $dirName . ($dirName ? DIRECTORY_SEPARATOR : '') . $baseName;
+        return $dirName.($dirName? DIRECTORY_SEPARATOR: '').$baseName;
     }
 
     /**
@@ -97,12 +97,12 @@ class ParsePath
     static private function parseCode($code)
     {
         $resolve = explode(':', $code);
-        switch ($resolve[0]) {
+        switch($resolve[0]){
             case 'date':
-                $v = date(isset($resolve[1]) ? $resolve[1] : 'Y/M/D');
+                $v = date(isset($resolve[1])? $resolve[1]: 'Y/M/D');
                 break;
             case 'time':
-                $v = date(isset($resolve[1]) ? $resolve[1] : 'H');
+                $v = date(isset($resolve[1])? $resolve[1]: 'H');
                 break;
             case 'mtime':
                 $v = sprintf('%1.0f', microtime(true) * 1000000, 1);
@@ -111,7 +111,7 @@ class ParsePath
                 $v = dechex(microtime(true) * 1000000);
                 break;
             case 'uuid':
-                $v = Helper::uuid(isset($resolve[1]) ? json_decode('{' . $resolve[1] . '}') : [], '-');
+                $v = Helper::uuid(isset($resolve[1])? json_decode('{'.$resolve[1].'}'): [], '-');
                 break;
             default:
                 $v = $resolve[0];

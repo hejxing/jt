@@ -1,12 +1,13 @@
 <?php
 
 /**
- * @Copyright jentian.com
- * Auth: ax@jentian.com
+ * @Copyright csmall.com
+ * Auth: ax@csmall.com
  * Create: 2016/4/16 11:07
  *
  * 邮件发送类
  */
+
 namespace jt\protocol;
 
 abstract class Email
@@ -73,14 +74,14 @@ abstract class Email
     /**
      * 发送前的准备工作
      *
-     * @return mixed
+     * @return bool
      */
     abstract function preSend();
 
     /**
      * 由各邮件发送方式去具体实现
      *
-     * @return mixed
+     * @return bool
      */
     abstract function sending();
 
@@ -92,7 +93,7 @@ abstract class Email
      */
     public function addReceiver($receive)
     {
-        $receive       = is_array($receive) ? $receive : preg_split('/ *, */', $receive);
+        $receive       = is_array($receive)? $receive: preg_split('/ *, */', $receive);
         $this->receive = array_unique(array_merge($this->receive, $receive));
     }
 
@@ -133,7 +134,7 @@ abstract class Email
      */
     public function setMime($mime)
     {
-        $this->contentType = 'text/' . $mime;
+        $this->contentType = 'text/'.$mime;
     }
 
     /**
@@ -144,8 +145,10 @@ abstract class Email
      */
     public function addAttachments($file)
     {
-        $files             = is_array($file) ? $file : preg_split('/ *, */', $file);
+        $files             = is_array($file)? $file: preg_split('/ *, */', $file);
         $this->attachments = array_unique(array_merge($this->attachments, $files));
+
+        return true;
     }
 
     /**
@@ -158,7 +161,8 @@ abstract class Email
         $this->fillHeader();
         $this->encodeBody();
         $this->preSend();
-        $this->sending();
+
+        return $this->sending();
     }
 
     /**
@@ -171,8 +175,8 @@ abstract class Email
     {
         $logFolder = '/server/debug/';
         mkdir($logFolder, 0777, true);
-        $mailErrorFile = fopen($logFolder . 'customMailLog.txt', 'a+') or die("can't open file");
-        fwrite($mailErrorFile, $protocol . ':' . $errorStr . '\r');
+        $mailErrorFile = fopen($logFolder.'customMailLog.txt', 'a+') or die("can't open file");
+        fwrite($mailErrorFile, $protocol.':'.$errorStr.'\r');
         fclose($mailErrorFile);
     }
 
@@ -184,7 +188,7 @@ abstract class Email
      */
     protected function encode($content)
     {
-        return "=?{$this->encoding}?B?" . base64_encode($content) . '?=';
+        return "=?{$this->encoding}?B?".base64_encode($content).'?=';
     }
 
     /**
@@ -197,7 +201,7 @@ abstract class Email
     {
         preg_match('/^(.+?)(<.+>)$/', $address, $match);
 
-        return $this->encode($match[1]) . $match[2];
+        return $this->encode($match[1]).$match[2];
     }
 
     /**
@@ -219,7 +223,7 @@ abstract class Email
     protected function getContentType($file)
     {
         $extension = strrchr(basename($file), '.');
-        switch ($extension) {
+        switch($extension){
             case ".gif":
                 return "image/gif";
             case ".gz":
@@ -243,11 +247,12 @@ abstract class Email
 
     /**
      * 获取发件人地址
+     *
      * @return string
      */
     protected function getFrom()
     {
-        return $this->from ?: defined('\Config::MAIL_FROM') ? \Config::MAIL_FROM : '';
+        return $this->from?: defined('\Config::MAIL_FROM')? \Config::MAIL_FROM: '';
     }
 
     protected function fillHeader()
@@ -262,12 +267,12 @@ abstract class Email
         $header = "MIME-Version: 1.0{$delimiter}";
         $header .= "X-Priority: 3{$delimiter}";
         $header .= "X-MSMail-Priority: Normal{$delimiter}";
-        $header .= "X-Mailer: csmall.com(copyRight 2008){$delimiter}";
-        $header .= "Content-Type: {$this->contentType}; charset={$this->encoding}; format=flowed" . $this->delimiter;
+        $header .= "X-Mailer: 51ydgymall.cn(copyRight 2008){$delimiter}";
+        $header .= "Content-Type: {$this->contentType}; charset={$this->encoding}; format=flowed".$this->delimiter;
 
         $from = $this->getFrom();
-        if ($from) {
-            $header .= "FROM: " . $this->addressEncode($from) . $delimiter;
+        if($from){
+            $header .= "FROM: ".$this->addressEncode($from).$delimiter;
         }
         //$header .= "Content-Transfer-Encoding: {$this->encoding}{$delimiter}";
         $this->header = $header;
@@ -280,15 +285,15 @@ abstract class Email
      */
     protected function encodeBody()
     {
-        if ($this->contentType !== 'text/html') {
+        if($this->contentType !== 'text/html'){
             return;
         }
-        $header = "Content-Transfer-Encoding: base64" . $this->delimiter;
-        $header .= "Content-Disposition: inline" . $this->delimiter . $this->delimiter;
-        $header .= chunk_split(base64_encode($this->body)) . $this->delimiter;
+        $header = "Content-Transfer-Encoding: base64".$this->delimiter;
+        $header .= "Content-Disposition: inline".$this->delimiter.$this->delimiter;
+        $header .= chunk_split(base64_encode($this->body)).$this->delimiter;
 
         $this->header .= $header;
-        $this->body = '';
+        $this->body   = '';
     }
 
     /**
@@ -299,17 +304,17 @@ abstract class Email
      */
     protected function encodeAttachmentHeader($file)
     {
-        if (file_exists($file) && $fileStream = file_get_contents($file)) {
+        if(file_exists($file) && $fileStream = file_get_contents($file)){
             $delimiter   = $this->delimiter;
             $header      = "";
             $contentType = $this->getContentType($file);
-            $header .= "Content-Type: {$contentType};{$delimiter}";
-            $header .= "....name=\"" . basename($file) . "\"{$delimiter}";
-            $header .= "Content-Transfer-Encoding: base64{$delimiter}";
-            $header .= "Content-Disposition: attachment;{$delimiter}";
-            $header .= "....filename=\"" . basename($file) . "\"{$delimiter}{$delimiter}";
+            $header      .= "Content-Type: {$contentType};{$delimiter}";
+            $header      .= "....name=\"".basename($file)."\"{$delimiter}";
+            $header      .= "Content-Transfer-Encoding: base64{$delimiter}";
+            $header      .= "Content-Disposition: attachment;{$delimiter}";
+            $header      .= "....filename=\"".basename($file)."\"{$delimiter}{$delimiter}";
 
-            $header .= chunk_split(base64_encode($fileStream)) . $this->delimiter;
+            $header .= chunk_split(base64_encode($fileStream)).$this->delimiter;
 
             return $header;
         }
@@ -324,6 +329,6 @@ abstract class Email
      */
     protected function sendFail($mail)
     {
-        echo 'Send to ' . $mail . ' fail';
+        echo 'Send to '.$mail.' fail';
     }
 }

@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Created by ax@jentian.com.
+ * Created by ax@csmall.com.
  * Date: 2015/6/5 14:51
  *
- *
+ * @extend ../Config
  */
 new class
 {

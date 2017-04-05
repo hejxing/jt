@@ -1,10 +1,11 @@
 <?php
 
 /**
- * @Copyright jentian.com
+ * @Copyright csmall.com
  * Auth: hejxing
  * Create: 2015/12/7 14:39
  */
+
 namespace jt;
 
 /**
@@ -81,6 +82,7 @@ class Exception extends \Exception
 
     /**
      * 设置在显示错误提示时，忽略前面错误的条数
+     *
      * @param int $count 条数
      */
     public function setIgnoreTraceLine($count = 1)
@@ -91,6 +93,7 @@ class Exception extends \Exception
         $trace = $this->getTrace();
         if($count > \count($trace)){
             $this->file = 'IgnoreTraceLine overflow at '.$this->file;
+
             return;
         }
         $count--;

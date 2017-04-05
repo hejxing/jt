@@ -1,6 +1,6 @@
 <?php
 /**
- * @Copyright jentian.com
+ * @Copyright csmall.com
  * Auth: hejxi
  * Create: 2015/12/10 17:21
  */
@@ -8,7 +8,9 @@
 namespace jt\utils;
 
 
-class UrlTest extends \PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class UrlTest extends TestCase
 {
     public function testPack()
     {

@@ -1,6 +1,6 @@
 <?php
 /**
- * Created by ax@jentian.com.
+ * Created by ax@csmall.com.
  * Date: 2015/6/12 13:19
  *
  * 控制请求的输入输出
@@ -8,6 +8,8 @@
  */
 
 namespace jt;
+
+use jt\utils\HtmlPurifier;
 
 /**
  * 处理外部获取到的参数
@@ -17,7 +19,7 @@ namespace jt;
 class Requester
 {
     protected $originData = [];
-    protected $validate   = [];
+    protected $ruler      = [];
     protected $valueCache = [];
     /**
      * @type array
@@ -26,210 +28,21 @@ class Requester
 
     protected $method = '';
 
-    const CONVERT_TYPE  = ['int', 'float', 'double', 'bool'];
+    const CONVERT_TYPE  = ['int', 'float', 'double', 'bool', 'money', 'datetime', 'timestamp'];
     const VALIDATE_TYPE = ['email', 'mobile', 'phone', 'identityCard', 'number', 'zn_ch', 'uuid'];
 
-    const VALUE_RANGE_TYPE  = ['int', 'float', 'numeric', 'double'];
+    const VALUE_RANGE_TYPE  = ['int', 'float', 'money', 'double'];
     const LENGTH_RANGE_TYPE = ['string'];
 
     const FALSE_VALUE = ['n', 'f', 'no', 'false'];
 
     const TRUE_ITEM     = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw', 'page'];
     const INPUT_TYPE    = ['any', 'get', 'post', 'path'];
-    const VALUE_TYPE    = [
-        'single'    => ['enum', 'bool', 'string', 'int', 'float', 'numeric', 'double', 'json', 'datetime', 'timestamp'],//json为字符串类型
-        'composite' => ['object', 'objectList', 'list']
-    ];
+    const SINGLE_TYPE   = ['enum', 'bool', 'string', 'json', 'xml', 'html'];//合并上CONVERT_TYPE
+    const MULTI_TYPE    = ['object', 'objectList', 'list'];
     const INJECT_VALUE  = ['instance', 'param'];
-    const VALUE_RULE    = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max', 'field'];
-    const FORMAT_ENABLE = ['datetime', 'float', 'string'];
-
-    /**
-     * 获取参数
-     *
-     * @param        $name
-     * @param string $ruler
-     * @return mixed
-     */
-    public function get($name, $ruler = null)
-    {
-        if ($ruler === null) {
-            return $this->__get($name);
-        }else {
-            return $this->value($name, self::parseValidate($ruler, $name));
-        }
-    }
-
-    /**
-     * 验证某值是否合法,如果合法返回值，不合法返回null
-     *
-     * @param mixed  $value
-     * @param string $ruler
-     * @param string $name
-     *
-     * @return mixed
-     */
-    public static function validate($value, $ruler, $name = '')
-    {
-        return self::doProcess($value, self::parseValidate($ruler, $ruler), $name);
-    }
-
-    /**
-     * 检测参数是否合法
-     *
-     * @param mixed  $value
-     * @param array  $option
-     * @param string $name 获取参数的名单项名称
-     *
-     * @return mixed
-     */
-    public static function doProcess($value, array $option, $name)
-    {
-        if (!$option) {
-            return $value;
-        }
-        if ($value === null) {
-            if (isset($option['default'])) {
-                $value = $option['default'];
-            }elseif (isset($option['require'])) {
-                self::error('value_empty', '该项值必填', $name, $option);
-            }else {
-                return null;
-            }
-        }
-
-        if (isset($option['enum']) && !in_array($value, $option['enum'])) {
-            self::error('value_over', '只能从 [' . implode(', ', $option['enum']) . '] 中取值', $name, $option);
-        }
-        if (in_array($option['type'], self::CONVERT_TYPE) || in_array($option['type'], self::VALUE_TYPE['composite'])) { //转换类型
-            $value = self::convert($value, $option['type'], $option['format']);
-        }elseif (isset($option['validate'])) {
-            $result = Validate::check($value, $option['validate']);
-            if ($result === false) {
-                if($option['validate'] === 'uuid' && $value === '0'){
-                    $value =  '00000000-0000-0000-0000-000000000000';
-                }else{
-                    self::error('value_validate_invalid', '值只允许是 [' . $option['validate'] . ']', $name, $option);
-                }
-            }elseif ($result === null) {
-                self::error('value_validate_type_invalid', '验证规则无效 [' . $option['validate'] . '],需要有效的规则或正则表达式', $name, $option);
-            }
-        }else {
-            if (!self::typeCheck($value, $option['type'])) {
-                self::error('value_type_invalid', '需要类型为 [' . $option['type'] . '] 的值', $name, $option);
-            }
-        }
-        if (in_array($option['type'], static::VALUE_RANGE_TYPE)) {
-            if ($option['min'] && $value < $option['min']) {
-                self::error('value_too_less', '值不能小于 ' . $option['min'], $name, $option);
-            }
-            if ($option['max'] && $value > $option['max']) {
-                self::error('value_too_large', '值不能大于 ' . $option['max'], $name, $option);
-            }
-        }
-
-        if (in_array($option['type'], static::LENGTH_RANGE_TYPE)) {//比较长度
-            if ($option['min'] && mb_strlen($value) < $option['min']) {
-                self::error('value_too_less', '值不能少于 ' . $option['min'] . ' 位字符', $name, $option);
-            }
-            if ($option['max'] && mb_strlen($value) > $option['max']) {
-                self::error('value_too_large', '值不能多于 ' . $option['max'] . ' 位字符', $name, $option);
-            }
-        }
-
-        return $value;
-    }
-
-    /**
-     * 数据类型转换
-     *
-     * @param $value
-     * @param $type
-     * @param $format
-     *
-     * @return mixed
-     */
-    static public function convert($value, $type, $format)
-    {
-        if ($value === null) {
-            return null;
-        }
-        switch ($type) {
-            case 'string':
-                switch ($format) {
-                    case 'money':
-                        $value = money_format('%.2n', $value);
-                        break;
-                    default:
-                        if ($format) {
-
-                        }
-                        break;
-                }
-                return (string)$value;
-            case 'int':
-                return intval($value);
-            case 'float':
-                return floatval($value);
-            case 'double':
-                return doubleval($value);
-            case 'bool':
-                return in_array(strtolower($value), self::FALSE_VALUE) ? false : boolval(is_numeric($value) ? floatval($value) : $value);
-            case 'objectList':
-            case 'object':
-            case 'list':
-                if (is_string($value)) {
-                    $arr = json_decode(urldecode($value), true);
-                    if ($arr === null) {
-                        $arr = preg_split('/ *, */', $value);
-                    }
-                }elseif (is_array($value)) {
-                    $arr = $value;
-                }else {
-                    $arr = [];
-                }
-
-                return $arr;
-            case 'timestamp':
-                if (is_numeric($value)) {
-                    return intval($value);
-                }
-
-                return strtotime($value);
-            case 'datetime':
-                $time = is_numeric($value) ? $value : strtotime($value);
-                if ($time === 0) {
-                    return '';
-                }
-
-                return date($format ?: 'Y-m-d H:i:s', $time);
-            default:
-                return $value;
-        }
-    }
-
-    /**
-     * 值类型检查
-     *
-     * @param $value
-     * @param $type
-     * @return bool
-     */
-    static protected function typeCheck($value, $type)
-    {
-        switch ($type) {
-            case 'numeric':
-                return is_numeric($value);
-                break;
-            case 'json':
-                return true;
-                break;
-            default:
-                return true;
-                break;
-        }
-    }
-
+    const VALUE_RULE    = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max'];
+    const FORMAT_ENABLE = ['datetime', 'float', 'money', 'html'];
 
     /**
      * 模型中字段解析器
@@ -243,38 +56,37 @@ class Requester
     {
         $lined = ['rule' => $strRuler, 'type' => 'undefined'];
         $parts = preg_split('/ +/', $strRuler);
-        foreach ($parts as $a) {
-            if ($a) {
+        foreach($parts as $a){
+            if($a){
                 $res = self::attr($a, $name);
-                if (isset($res['type']) && in_array($res['type'], self::VALUE_TYPE['composite']) && $lined['type'] !== 'undefined') {
+                if(isset($res['type']) && in_array($res['type'], self::MULTI_TYPE) && $lined['type'] !== 'undefined'){
                     $lined['inType'] = $lined['type'];
                 }
-                if (in_array($lined['type'], self::VALUE_TYPE['composite']) && isset($res['type'])) {
+                if(in_array($lined['type'], self::MULTI_TYPE) && isset($res['type'])){
                     $lined['inType'] = $res['type'];
                     unset($res['type']);
                 }
-                $lined = \array_merge($lined, $res);
+                $lined = array_merge($lined, $res);
             }
         }
 
-        if ($lined['type'] === 'undefined') {
+        if($lined['type'] === 'undefined'){
             $lined['type'] = 'string';
-            $lined['rule'] = trim('string ' . $lined['rule']);
+            $lined['rule'] = trim('string '.$lined['rule']);
         }
 
-        if (!isset($lined['format'])) {
+        if(!isset($lined['format'])){
             $lined['format'] = null;
         }
 
-        if (in_array($lined['type'], self::VALUE_RANGE_TYPE)
-            || in_array($lined['type'], self::LENGTH_RANGE_TYPE)
-            || (isset($lined['inType']) && (in_array($lined['inType'], self::VALUE_RANGE_TYPE)
-                    || in_array($lined['inType'], self::LENGTH_RANGE_TYPE)))
-        ) {
-            if (!isset($lined['min'])) {
+        if(in_array($lined['type'], self::VALUE_RANGE_TYPE) || in_array($lined['type'],
+                self::LENGTH_RANGE_TYPE) || (isset($lined['inType']) && (in_array($lined['inType'],
+                        self::VALUE_RANGE_TYPE) || in_array($lined['inType'], self::LENGTH_RANGE_TYPE)))
+        ){
+            if(!isset($lined['min'])){
                 $lined['min'] = 0;
             }
-            if (!isset($lined['max'])) {
+            if(!isset($lined['max'])){
                 $lined['max'] = 0;
             }
         }
@@ -292,33 +104,35 @@ class Requester
      */
     private static function attr($a, $name)
     {
-        if (strpos($a, ':')) {
+        if(strpos($a, ':')){
             list($key, $value) = explode(':', $a, 2);
-        }else {
+        }else{
             list($key, $value) = [$a, null];
         }
+
         $result = [];
-        switch (true) {
+        switch(true){
             case in_array($key, self::TRUE_ITEM):
             case in_array($key, self::INPUT_TYPE):
                 $result[$key] = true;
                 break;
-            case in_array($key, self::VALUE_TYPE['composite']):
-            case in_array($key, self::VALUE_TYPE['single']):
-                if ($key === 'enum') {
+            case in_array($key, self::MULTI_TYPE):
+            case in_array($key, self::SINGLE_TYPE):
+            case in_array($key, self::CONVERT_TYPE):
+                if($key === 'enum'){
                     $result[$key] = preg_split('/ *, */', $value);
-                }else {
+                }else{
                     $result['type'] = $key;
-                    if (in_array($key, self::FORMAT_ENABLE) && $value) {
+                    if(in_array($key, self::FORMAT_ENABLE) && $value){
                         $result['format'] = $value;
                     }
                 }
                 break;
             case $key === 'type':
-                $value = $value ?: 'string';
-                if (in_array($value, self::VALUE_TYPE['single']) || in_array($value, self::VALUE_TYPE['composite'])) {
+                $value = $value?: 'string';
+                if(in_array($value, self::SINGLE_TYPE) || in_array($value, self::MULTI_TYPE) || in_array($value, self::CONVERT_TYPE)){
                     $result['type'] = $value;
-                }else {
+                }else{
                     throw new Exception("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 的属性 [{$value}] 有误，请检查");
                 }
                 break;
@@ -329,9 +143,9 @@ class Requester
                 $result['validate'] = $key;
                 break;
             case in_array($key, self::INJECT_VALUE):
-                if ($key === 'param') {
+                if($key === 'param'){
                     $result[$key] = preg_split('/ *, */', $value);
-                }else {
+                }else{
                     $result[$key] = $value;
                 }
                 break;
@@ -344,92 +158,326 @@ class Requester
     }
 
     /**
+     * 获取参数
+     *
+     * @param string $name
+     * @param string $ruler
+     * @return mixed
+     */
+    public function get($name, $ruler = null)
+    {
+        if($ruler === null){
+            return $this->__get($name);
+        }else{
+            return $this->value($name, self::parseValidate($ruler, $name));
+        }
+    }
+
+    /**
+     * @param array  $data
+     * @param array  $ruler
+     * @param string $name
+     * @param bool   $safeCheck
+     *
+     * @return array
+     */
+    private static function compositeConvert(array $data, $ruler, $name = '', $safeCheck)
+    {
+        switch($ruler['type']){
+            case 'object':
+                $buffer = [];
+                foreach($ruler['nodes'] as $field => $r){
+                    $buffer[$field] = self::validate($data[$field]??null, $r, $name.'.'.$field, $safeCheck);
+                }
+
+                return $buffer;
+            case 'objectList':
+                $buffer        = [];
+                $ruler['type'] = 'object';
+                foreach($data as $d){
+                    $buffer[] = self::compositeConvert($d, $ruler, $name, $safeCheck);
+                }
+
+                return $buffer;
+            case 'list':
+                $buffer = [];
+                if(is_array($data)){
+                    foreach($data as $d){
+                        $buffer[] = isset($ruler['inType'])? self::validate($d, $ruler, $name, $safeCheck): $d;
+                    }
+                }
+
+                return $buffer;
+        }
+
+        return [];
+    }
+
+    /**
+     * 验证某值是否合法,如果合法返回值，不合法报错
+     *
+     * @param mixed  $value
+     * @param array  $ruler
+     * @param string $name
+     * @param bool   $safeCheck
+     *
+     * @return mixed
+     */
+    public static function validate($value, $ruler, $name = '', $safeCheck = true)
+    {
+        if(isset($ruler['raw'])){
+            return $safeCheck? self::safeProcess($value): $value;
+        }
+        if($value === null){
+            if(isset($ruler['default'])){
+                $value = $ruler['default'];
+            }elseif(isset($ruler['require'])){
+                self::error('value_empty', '该项值必填', $name, $ruler);
+            }else{
+                return self::fillEmpty($ruler);
+            }
+        }
+
+        if(in_array($ruler['type'], self::MULTI_TYPE)){
+            $value = self::compositeConvert(self::revisionValue($value, $ruler), $ruler, $name, $safeCheck);
+        }elseif(in_array($ruler['type'], self::CONVERT_TYPE)){ //转换类型
+            $value = self::convert($value, $ruler['type'], $ruler['format']);
+        }elseif(isset($ruler['validate'])){
+            $result = Validate::check($value, $ruler['validate'], true);
+            if($result === false){
+                if($ruler['validate'] === 'uuid' && $value === '0'){
+                    $value = '00000000-0000-0000-0000-000000000000';
+                }else{
+                    self::error('value_validate_invalid', '值只允许是 ['.$ruler['validate'].']', $name, $ruler);
+                }
+            }elseif($result === null){
+                self::error('value_validate_type_invalid', '验证规则无效 ['.$ruler['validate'].'],需要有效的规则或正则表达式', $name, $ruler);
+            }
+        }elseif($ruler['type'] === 'html'){
+            $purifier = new HtmlPurifier($ruler['format']);
+            $value    = $purifier->process($value);
+        }else{
+            if(!self::typeCheck($value, $ruler['type'])){
+                self::error('value_type_invalid', '需要类型为 ['.$ruler['type'].'] 的值', $name, $ruler);
+            }
+            if($safeCheck){
+                $value = self::safeProcess($value);
+            }
+        }
+
+        if(isset($ruler['enum']) && !in_array($value, $ruler['enum'])){
+            self::error('value_over', '只能从 ['.implode(', ', $ruler['enum']).'] 中取值', $name, $ruler);
+        }
+
+        if(in_array($ruler['type'], static::VALUE_RANGE_TYPE)){
+            if($ruler['min'] && $value < $ruler['min']){
+                self::error('value_too_less', '值不能小于 '.$ruler['min'], $name, $ruler);
+            }
+            if($ruler['max'] && $value > $ruler['max']){
+                self::error('value_too_large', '值不能大于 '.$ruler['max'], $name, $ruler);
+            }
+        }
+
+        if(in_array($ruler['type'], static::LENGTH_RANGE_TYPE)){//比较长度
+            if($ruler['min'] && mb_strlen($value) < $ruler['min']){
+                self::error('value_too_less', '值不能少于 '.$ruler['min'].' 位字符', $name, $ruler);
+            }
+            if($ruler['max'] && mb_strlen($value) > $ruler['max']){
+                self::error('value_too_large', '值不能多于 '.$ruler['max'].' 位字符', $name, $ruler);
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * 尝试将字符串当json、xml进行解析
+     *
+     * @param $str
+     * @return array|null
+     */
+    private static function tryParseJsonXml($str)
+    {
+        $arr = null;
+        if(substr($str, 0, 1) === '{' && substr($str, -1, 1) === '}'){
+            $arr = json_decode($str, true);
+        }elseif(substr($str, 0, 1) === '<' && substr($str, -1, 1) === '>'){//尝试解析xml
+            $parsed = simplexml_load_string($str);
+            if($parsed){
+                $arr = (array)$parsed;
+            }
+        }
+
+        return $arr;
+    }
+
+    /**
+     * 遍历转换输入的值
+     *
+     * @param array $value
+     * @param array $ruler
+     * @return array
+     */
+    private static function revisionValue($value, $ruler)
+    {
+        $arr = [];
+        if(is_string($value)){
+            $arr = self::tryParseJsonXml($value);
+            if($arr === null && $ruler['type'] === 'list'){
+                $arr = preg_split('/ *, */', $value);
+            }
+        }elseif(is_array($value)){
+            $arr = $value;
+        }
+
+        return $arr;
+    }
+
+    /**
+     * 数据类型转换
+     *
+     * @param mixed  $value
+     * @param string $type
+     * @param string $format
+     *
+     * @return mixed
+     */
+    static public function convert($value, $type, $format = null)
+    {
+        if($value === null){
+            return null;
+        }
+        switch($type){
+            case 'int':
+                return intval($value);
+            case 'float':
+                return floatval($value);
+            case 'double':
+                return doubleval($value);
+            case 'bool':
+                return in_array(strtolower($value), self::FALSE_VALUE)? false: boolval(is_numeric($value)? floatval($value): $value);
+            case 'timestamp':
+                if(is_numeric($value)){
+                    return intval($value);
+                }
+
+                return strtotime($value);
+            case 'datetime':
+                $time = is_numeric($value)? intval($value): strtotime($value);
+                if($time === 0){
+                    return '';
+                }
+
+                return date($format?: 'Y-m-d H:i:s', $time);
+            case 'money':
+                return money_format('%.2n', $value);
+            default:
+                return $value;
+        }
+    }
+
+    /**
+     * 值类型检查
+     *
+     * @param $value
+     * @param $type
+     * @return bool
+     */
+    static protected function typeCheck($value, $type)
+    {
+        switch($type){
+            case 'numeric':
+                return is_numeric($value);
+                break;
+            case 'json':
+                json_decode($value);
+
+                return json_last_error() !== JSON_ERROR_SYNTAX;
+                break;
+            default:
+                return true;
+                break;
+        }
+    }
+
+    /**
+     * 获取输入的值
+     *
+     * @param $str
+     * @return array
+     */
+    private static function parseInput($str)
+    {
+        $str  = urldecode($str);
+        $data = self::tryParseJsonXml($str);
+        if($data === null){
+            parse_str($str, $data);
+        }
+
+        return $data;
+    }
+
+    /**
      * 从输入创建参数获取器
      *
-     * @param array  $validate
+     * @param array  $ruler
      * @param string $source
      *
      * @return \jt\Requester
      */
-    public static function createFromRequest(array $validate, $source)
+    public static function createFromRequest(array $ruler, $source)
     {
         $data = [];
-        if ($source === 'query' || $source === 'request') {
-            $data = self::parseInput(urldecode($_SERVER['QUERY_STRING']));
-        }
-
-        if ($source === 'body' || $source === 'request') {
-            if (\strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') === 0) {
-                $input = self::extractJson($_POST);
-            }else {
-                $input = self::parseInput(\file_get_contents('php://input'));
+        if($source === 'query' || $source === 'request'){
+            if($_GET){
+                $data = $_GET;
+            }else{
+                $data = self::parseInput(htmlspecialchars_decode($_SERVER['QUERY_STRING']));
             }
-            $data = \array_merge($data, $input);
         }
 
-        return static::create($data, $validate, $source);
+        if($source === 'body' || $source === 'request'){
+            if($_POST){
+                $input = $_POST;
+            }else{
+                $input = self::parseInput(file_get_contents('php://input'));
+            }
+            $data = array_merge($data, $input);
+        }
+
+        return static::create($data, $ruler, $source);
+    }
+
+    /**
+     * 清除PHP自动获取的参数，避免被不安全地错误引用
+     */
+    public static function cleanOriginRequest()
+    {
+        $_GET  = [];
+        $_POST = [];
     }
 
     /**
      * 创建实例
      *
      * @param        $data
-     * @param array  $validate
+     * @param array  $ruler
      * @param string $method
      *
      * @return \jt\Requester
      */
-    public static function create($data, $validate = [], $method = '')
+    public static function create($data, $ruler = [], $method = '')
     {
         $requester             = new self();
         $requester->originData = $data;
         $requester->method     = $method;
-        $requester->validate   = $validate;
+        $requester->ruler      = $ruler;
 
         return $requester;
     }
 
     /**
-     * 抽取json
-     *
-     * @param $data
-     * @return array
-     */
-    private static function extractJson($data)
-    {
-        if (isset($data['__json'])) {
-            $d = \json_decode($data['__json'], true);
-            if ($d) {
-                $data = $d + $data;
-                unset($data['__json']);
-            }
-        }
-
-        return $data;
-    }
-
-    /**
-     * 解析获取到的值
-     *
-     * @param $string
-     *
-     * @return array
-     */
-    private static function parseInput($string)
-    {
-        $data = json_decode($string, true);
-        if ($data === null) {
-            parse_str($string, $data);
-            $data = self::extractJson($data);
-        }
-
-        return $data;
-    }
-
-    /**
      * 验证并给出参数值
-     * 如果值不存在返回null
-     * 值不符合规则在严格模式下提示错误，在非严格模式下返回null
      * 当值不存在或值为null时，不满足require要求，要求不许为空需要require与min联合使用
      *
      * @param string $name
@@ -438,7 +486,7 @@ class Requester
      */
     public function __get($name)
     {
-        if (!isset($this->valueCache[$name])) {
+        if(!isset($this->valueCache[$name])){
             $this->valueCache[$name] = $this->value($name, $this->getRuler($name));
         }
 
@@ -455,11 +503,11 @@ class Requester
     private function getRuler($name)
     {
         $ruler = [];
-        if ($name && isset($this->validate[$name])) {
-            $ruler = $this->validate[$name];
-            if (is_string($ruler)) {
-                $ruler                 = self::parseValidate($ruler, $name);
-                $this->validate[$name] = $ruler;
+        if($name && isset($this->ruler[$name])){
+            $ruler = $this->ruler[$name];
+            if(is_string($ruler)){
+                $ruler              = self::parseValidate($ruler, $name);
+                $this->ruler[$name] = $ruler;
             }
         }
 
@@ -477,13 +525,18 @@ class Requester
     {
         $data = [];
         $ns   = preg_split('/ *, */', $names);
-        foreach ($ns as $n) {
-            if ($n === '*') {
-                foreach ($this->validate as $n => $r) {
+        foreach($ns as $n){
+            if($n === '*'){
+                foreach($this->ruler as $n => $r){
                     $data[$n] = $this->__get($n);
                 }
-            }else {
-                $data[$n] = $this->__get($n);
+            }else{
+                if(strpos($n, ' as ') > 0){
+                    list($field, $n) = preg_split('/ +as +/', $n, 2);
+                    $data[$n] = $this->__get($field);
+                }else{
+                    $data[$n] = $this->__get($n);
+                }
             }
         }
 
@@ -496,17 +549,17 @@ class Requester
      */
     protected function collectAsMap()
     {
-        if (is_array($this->useNameMap)) {
+        if(is_array($this->useNameMap)){
             return;
         }
 
         $this->useNameMap = [];
-        foreach ($this->validate as $name => $ruler) {
-            if (\strpos($name, ':')) {
+        foreach($this->ruler as $name => $ruler){
+            if(\strpos($name, ':')){
                 list(, $name) = explode(':', $name);
             }
             $option = $this->getRuler($name);
-            if (isset($option['use'])) {
+            if(isset($option['use'])){
                 $this->useNameMap[$option['use']] = $name;
             }
         }
@@ -515,47 +568,30 @@ class Requester
     /**
      * 获取所有的值(忽略null,当值为null或不符合验证规则时会自动忽略)
      *
+     * @param bool $strict 是否严格模式,在非严格模式下遇到参数不合规不报错，只是返回null
      * @return array
+     * @throws \jt\Exception
      */
-    public function fetchAll()
+    public function fetchAll($strict = true)
     {
         $data = [];
         $this->collectAsMap();
 
-        foreach ($this->originData as $input => $value) {
-            $name  = isset($this->useNameMap[$input]) ? $this->useNameMap[$input] : $input;
-            $value = $this->__get($name);
-            if ($value !== null) {
-                $data[$name] = $value;
+        try{
+            foreach($this->originData as $input => $value){
+                $name        = isset($this->useNameMap[$input])? $this->useNameMap[$input]: $input;
+                $data[$name] = $this->__get($name);
             }
-        }
-        //检查是否含有必填项
-        foreach ($this->validate as $name => $validate) {
-            if (isset($validate['require']) && !isset($data[$name])) {
-                self::error('value_empty', '该项值必填', $name, $validate);
+            //检查是否含有必填项
+            foreach($this->ruler as $name => $ruler){
+                if(isset($ruler['require']) && !isset($data[$name])){
+                    self::error('value_empty', '该项值必填', $name, $ruler);
+                }
             }
-        }
-
-        return $data;
-    }
-
-    /**
-     * 深度获取请求的数据
-     * 目前只支持两级深度
-     *
-     * @return array
-     */
-    public function fetchDepth()
-    {
-        $data       = [];
-        $originData = $this->fetchAll();
-        foreach ($originData as $item) {
-            $d = [];
-            foreach ($item as $input => $value) {
-                $name     = isset($this->useNameMap[$input]) ? $this->useNameMap[$input] : $input;
-                $d[$name] = self::doProcess($value, $this->getRuler($name), $name);
+        }catch(Exception $e){
+            if($strict){
+                throw $e;
             }
-            $data[] = $d;
         }
 
         return $data;
@@ -564,19 +600,17 @@ class Requester
     /**
      * 获取指定列表之外的数据
      *
-     * @param array ...$names 要排除的字段列表(支持逗号分隔)
+     * @param string $names 要排除的字段列表(支持逗号分隔)
      *
      * @return array
      */
-    public function fetchExclude(...$names)
+    public function fetchExclude($names)
     {
-        $data = $this->fetchAll();
-        foreach ($names as $name) {
-            $ns = preg_split('/ *, */', $name);
-            foreach ($ns as $n) {
-                if (isset($data[$n])) {
-                    unset($data[$n]);
-                }
+        $data    = $this->fetchAll(false);
+        $exclude = preg_split('/ *, */', $names);
+        foreach($exclude as $e){
+            if(isset($data[$e])){
+                unset($data[$e]);
             }
         }
 
@@ -594,10 +628,31 @@ class Requester
     public function fetchPage($pageSize = 10, $page = 1)
     {
         $option             = $this->fetch('page, pageSize');
-        $option['pageSize'] = $option['pageSize'] ? intval($option['pageSize']) : $pageSize;
-        $option['page']     = $option['page'] ? intval($option['page']) : $page;
+        $option['pageSize'] = $option['pageSize']? intval($option['pageSize']): $pageSize;
+        $option['page']     = $option['page']? intval($option['page']): $page;
 
         return $option;
+    }
+
+    /**
+     * 对获得的值进行安全化处理
+     *
+     * @param $value
+     * @return mixed
+     */
+    public static function safeProcess($value)
+    {
+        if(is_array($value)){
+            foreach($value as &$v){
+                $v = self::safeProcess($v);
+            }
+        }elseif(is_string($value)){
+            $value = htmlspecialchars($value, ENT_QUOTES);
+        }elseif($value === null){
+            $value = '';
+        }
+
+        return $value;
     }
 
     /**
@@ -611,20 +666,24 @@ class Requester
     protected function value($name, $ruler)
     {
         $field = $name;
-        if ($ruler && isset($ruler['use'])) {
+        if($ruler && isset($ruler['use'])){
             $field = $ruler['use'];
         }
 
-        $value = isset($this->originData[$field]) ? $this->originData[$field] : null;
-        if (!$ruler) {
-            return $value;
+        $value = isset($this->originData[$field])? $this->originData[$field]: null;
+        //需要对$value进行处理 防xss攻击
+
+        if($ruler){
+            $value = self::validate($value, $ruler, $name);
+        }else{
+            $value = self::safeProcess($value);
         }
 
-        return self::doProcess($value, $ruler, $name);
+        return $value;
     }
 
     /**
-     * 是否包含该值（非法的值认为不包含）
+     * 是否包含该值
      *
      * @param string $name
      *
@@ -632,8 +691,7 @@ class Requester
      */
     public function has($name)
     {
-        //寻找规则
-        return self::value($name, $this->getRuler($name)) !== null;
+        return isset($this->originData[$name]);
     }
 
     /**
@@ -647,14 +705,14 @@ class Requester
      */
     private static function error($code, $msg, $name, array $option)
     {
-        $field = isset($option['_desc']) ? $name . ':' . $option['_desc'] : $name;
-        $msg   = '[' . $field . '] ' . $msg;
-        if (RUN_MODE !== 'production') {
-            $line = isset($option['_line']) ? ' At line ' . $option['_line'] : '';
-            $msg .= '.' . $line;
+        $field = isset($option['_desc'])? $name.':'.$option['_desc']: $name;
+        $msg   = '['.$field.'] '.$msg;
+        if(RUN_MODE !== 'production'){
+            $line = isset($option['_line'])? ' At line '.$option['_line']: '';
+            $msg  .= '.'.$line;
         }
 
-        $e = new Exception('inputIll:' . $msg);
+        $e = new Exception('inputIll:'.$msg);
         $e->addData(['field' => $name, 'code' => $code]);
         throw $e;
     }
@@ -667,14 +725,14 @@ class Requester
      *
      * @return bool
      */
-    public function needOne(array $depend, $msg = null)
+    public function needOne(array $depend, $msg = '')
     {
-        foreach ($depend as $name) {
-            if ($this->has($name)) {
+        foreach($depend as $name){
+            if($this->has($name) && $this->get($name)){
                 return true;
             }
         }
-        if (\is_string($msg)) {
+        if($msg){
             static::error('require_value', $msg, implode(', ', $depend), []);
         }
 
@@ -684,45 +742,27 @@ class Requester
     /**
      * 剥一块数据出来，保留验证规则，以便传递给其它方法使用
      *
-     * @param $name
+     * @param string $names
      * @return Requester
      */
-    public function peel($name)
+    public function peel($names)
     {
-        if (!$name) {
-            return $this;
-        }else {
-            return $this;
-        }
-    }
+        $data = $this->fetch($names);
 
-    /**
-     * 直接获取值
-     *
-     * @param string $name 值名称
-     * @param string $source 值来源
-     * @param array  $validate 验证规则
-     * @return mixed
-     */
-    public static function directGet($name, $source = 'any', $validate = [])
-    {
-        $requester = self::createFromRequest($validate, $source);
-
-        return $requester->get($name);
+        return self::create($data);
     }
 
     /**
      * 按列表顺序取出第一个非空值
      *
      * @param array ...$names
-     * @return mixed|null
+     * @return mixed
      */
     public function firstNotEmpty(...$names)
     {
-        foreach ($names as $name) {
-            $v = $this->__get($name);
-            if ($v !== null) {
-                return $v;
+        foreach($names as $name){
+            if($this->has($name)){
+                return $this->__get($name);
             }
         }
 
@@ -733,19 +773,21 @@ class Requester
      * 填充默认值
      *
      * @param $ruler
-     * @return array
+     * @return mixed
      */
     public static function fillEmpty($ruler)
     {
-        switch ($ruler[1]['type']) {
+        switch($ruler['type']){
             case 'string':
                 return '';
             case 'bool':
                 return false;
             case 'object':
                 $buffer = [];
-                foreach ($ruler[3] as $r) {
-                    $buffer[$r[0]] = self::fillEmpty($r);
+                if(isset($ruler[3])){
+                    foreach($ruler[3] as $r){
+                        $buffer[$r[0]] = self::fillEmpty($r);
+                    }
                 }
 
                 return $buffer;
@@ -757,71 +799,26 @@ class Requester
         }
     }
 
-    public static function fieldMap($data, $rule)
-    {
-        if (empty($rule[1]['field'])) {
-            return $data[$rule[0]]??null;
-        }
-
-        $field = $rule[1]['field'];
-        $ns    = explode('.', $field);
-        foreach ($ns as $n) {
-            if (isset($data[$n])) {
-                $data = $data[$n];
-            }else{
-                return null;
-            }
-        }
-        return $data;
-    }
-
     /**
      * 自动根据接口声明的内容和类型换回数据
      *
+     * @param mixed $data
      * @param array $ruler
-     * @param array $data
      *
-     * @return array
+     * @return mixed
      */
-    public static function revisionData($ruler, $data)
+    public static function revisionOutput($data, $ruler)
     {
-        if (isset($ruler[1]['raw'])) {
-            return $data;
+        return self::validate($data, $ruler, 'out: ', false);
+    }
+
+    /**
+     * 将Header中的数据进行安全转义处理
+     */
+    public static function safeHeader()
+    {
+        foreach($_SERVER as $key => $value){
+            $_SERVER[$key] = htmlspecialchars($value, ENT_QUOTES);
         }
-        if ($data === null || $data === []) {
-            return self::fillEmpty($ruler);
-        }
-
-        switch ($ruler[1]['type']) {
-            case 'object':
-                $buffer = [];
-                foreach ($ruler[3] as $r) {
-                    $buffer[$r[0]] = self::revisionData($r, self::fieldMap($data, $r));
-                }
-
-                return $buffer;
-            case 'objectList':
-                $buffer           = [];
-                $ruler[1]['type'] = 'object';
-                if (is_array($data)) {
-                    foreach ($data as $d) {
-                        $buffer[] = self::revisionData($ruler, self::fieldMap([$ruler[0] => $d], $ruler));
-                    }
-                }
-
-                return $buffer;
-            case 'list':
-                $buffer = [];
-                if (is_array($data)) {
-                    foreach ($data as $d) {
-                        $buffer[] = isset($ruler[1]['inType']) ? self::convert($d, $ruler[1]['inType'], $ruler[1]['format']) : $d;
-                    }
-                }
-
-                return $buffer;
-            default:
-                return self::convert($data, $ruler[1]['type'], $ruler[1]['format']);
-        }
-
     }
 }

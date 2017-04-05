@@ -43,13 +43,13 @@ class JsApiPay
     public function GetOpenid()
     {
         //通过code获得openid
-        if (!isset($_GET['code'])) {
+        if(!isset($_GET['code'])){
             //触发微信返回code码
-            $baseUrl = urlencode('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING']);
+            $baseUrl = urlencode('http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?'.$_SERVER['QUERY_STRING']);
             $url     = $this->__CreateOauthUrlForCode($baseUrl);
             Header("Location: $url");
             exit();
-        }else {
+        }else{
             //获取code码，以获取openid
             $code   = $_GET['code'];
             $openid = $this->getOpenidFromMp($code);
@@ -70,17 +70,17 @@ class JsApiPay
      */
     public function GetJsApiParameters($UnifiedOrderResult)
     {
-        if (!array_key_exists("appid", $UnifiedOrderResult) || !array_key_exists("prepay_id",
+        if(!array_key_exists("appid", $UnifiedOrderResult) || !array_key_exists("prepay_id",
                 $UnifiedOrderResult) || $UnifiedOrderResult['prepay_id'] == ""
-        ) {
-            throw new WxPayException(isset($UnifiedOrderResult['err_code_des']) ? $UnifiedOrderResult['err_code_des'] : (isset($UnifiedOrderResult['return_msg']) ? $UnifiedOrderResult['return_msg'] : "参数错误"));
+        ){
+            throw new WxPayException(isset($UnifiedOrderResult['err_code_des'])? $UnifiedOrderResult['err_code_des']: (isset($UnifiedOrderResult['return_msg'])? $UnifiedOrderResult['return_msg']: "参数错误"));
         }
         $jsapi = new WxPayJsApiPay();
         $jsapi->SetAppid($UnifiedOrderResult["appid"]);
         $timeStamp = time();
         $jsapi->SetTimeStamp((string)$timeStamp);
         $jsapi->SetNonceStr(WxPayApi::getNonceStr());
-        $jsapi->SetPackage("prepay_id=" . $UnifiedOrderResult['prepay_id']);
+        $jsapi->SetPackage("prepay_id=".$UnifiedOrderResult['prepay_id']);
         $jsapi->SetSignType("MD5");
         $jsapi->SetPaySign($jsapi->MakeSign());
         $parameters = json_encode($jsapi->GetValues());
@@ -108,7 +108,7 @@ class JsApiPay
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        if (WxPayConfig::CURL_PROXY_HOST != "0.0.0.0" && WxPayConfig::CURL_PROXY_PORT != 0) {
+        if(WxPayConfig::CURL_PROXY_HOST != "0.0.0.0" && WxPayConfig::CURL_PROXY_PORT != 0){
             curl_setopt($ch, CURLOPT_PROXY, WxPayConfig::CURL_PROXY_HOST);
             curl_setopt($ch, CURLOPT_PROXYPORT, WxPayConfig::CURL_PROXY_PORT);
         }
@@ -134,9 +134,9 @@ class JsApiPay
     private function ToUrlParams($urlObj)
     {
         $buff = "";
-        foreach ($urlObj as $k => $v) {
-            if ($k != "sign") {
-                $buff .= $k . "=" . $v . "&";
+        foreach($urlObj as $k => $v){
+            if($k != "sign"){
+                $buff .= $k."=".$v."&";
             }
         }
 
@@ -156,7 +156,7 @@ class JsApiPay
         $getData             = $this->data;
         $data                = [];
         $data["appid"]       = WxPayConfig::$APPID;
-        $data["url"]         = "http://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+        $data["url"]         = "http://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
         $time                = time();
         $data["timestamp"]   = "$time";
         $data["noncestr"]    = "1234568";
@@ -192,10 +192,10 @@ class JsApiPay
         $urlObj["redirect_uri"]  = "$redirectUrl";
         $urlObj["response_type"] = "code";
         $urlObj["scope"]         = "snsapi_base";
-        $urlObj["state"]         = "STATE" . "#wechat_redirect";
+        $urlObj["state"]         = "STATE"."#wechat_redirect";
         $bizString               = $this->ToUrlParams($urlObj);
 
-        return "https://open.weixin.qq.com/connect/oauth2/authorize?" . $bizString;
+        return "https://open.weixin.qq.com/connect/oauth2/authorize?".$bizString;
     }
 
     /**
@@ -214,6 +214,6 @@ class JsApiPay
         $urlObj["grant_type"] = "authorization_code";
         $bizString            = $this->ToUrlParams($urlObj);
 
-        return "https://api.weixin.qq.com/sns/oauth2/access_token?" . $bizString;
+        return "https://api.weixin.qq.com/sns/oauth2/access_token?".$bizString;
     }
 }

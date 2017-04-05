@@ -1,6 +1,6 @@
 <?php
 /**
- * @Copyright jentian.com
+ * @Copyright csmall.com
  * Auth: hejxi
  * Create: 2016/3/25 14:07
  */
@@ -16,6 +16,7 @@ class Saver extends Session
      * @type \Redis
      */
     protected $saver = null;
+
     public function __construct()
     {
         $this->saver = CacheFactory::create(\Config::SESSION['handler']??null);
@@ -50,6 +51,7 @@ class Saver extends Session
     public function destroy($session_id)
     {
         $this->saver->delete('session_'.$session_id);
+
         return true;
     }
 
@@ -69,7 +71,7 @@ class Saver extends Session
      */
     public function gc($maxlifetime)
     {
-
+        return true;
     }
 
     /**
@@ -86,7 +88,9 @@ class Saver extends Session
      */
     public function read($session_id)
     {
-        return $this->saver->get('session_'.$session_id);
+        $serial = $this->saver->get('session_'.$session_id);
+
+        return $serial === false? '': $serial;
     }
 
     /**
@@ -106,9 +110,10 @@ class Saver extends Session
      * Note this value is returned internally to PHP for processing.
      * </p>
      * @since 5.4.0
+     * @return mixed
      */
     public function write($session_id, $session_data)
     {
-        return $this->saver->set('session_'.$session_id, $session_data);
+        $this->saver->set('session_'.$session_id, $session_data);
     }
 }

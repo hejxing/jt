@@ -1,14 +1,14 @@
 <?php
 /**
- * Created by ax@jentian.com.
+ * Created by ax@csmall.com.
  * Date: 2015/6/5 14:39
  *
  *
  */
+
 namespace jt\lib\auth;
 
-use jt\Auth;
-use jt\lib\cache\Memcache;
+use jt\lib\cache\provider\Memcache;
 use jt\utils\Helper;
 
 /**
@@ -87,8 +87,8 @@ abstract class User extends Auth
     public static function loadFromMemcached($token)
     {
         $saver = new Memcache();
-        $data  = $saver->get('list_user_session_' . $token);
-        if ($data && isset($data['websiteMember']) && isset($data['websiteMember']['id'])) {
+        $data  = $saver->get('list_user_session_'.$token);
+        if($data && isset($data['websiteMember']) && isset($data['websiteMember']['id'])){
             $data            = $data['websiteMember'];
             $data['account'] = $data['username'];
             unset($data['username']);
@@ -109,7 +109,7 @@ abstract class User extends Auth
         self::$account    = $data['username'];
         self::$familyName = $data['familyName'];
         self::$name       = $data['name'];
-        if (!self::$name) {
+        if(!self::$name){
             self::$name = self::$account;
         }
         self::$isLogin = true;
@@ -143,7 +143,7 @@ abstract class User extends Auth
      */
     protected static function getSessionId()
     {
-        if (isset($_COOKIE[\Config::SESSION_NAME])) {
+        if(isset($_COOKIE[\Config::SESSION_NAME])){
             return $_COOKIE[\Config::SESSION_NAME];
         }
 
@@ -170,7 +170,7 @@ abstract class User extends Auth
     {
         $token = Helper::uuid();
         $saver = new Memcache();
-        if ($saver->set(self::genSeed($token), $data)) {
+        if($saver->set(self::genSeed($token), $data)){
             self::setUserInfo($data, $token);
 
             return true;
@@ -187,12 +187,12 @@ abstract class User extends Auth
      */
     protected static function genSeed($token = null)
     {
-        if ($token === null) {
+        if($token === null){
             $token = Helper::uuid();
         }
         self::$token = $token;
 
-        return static::$tokenPrefix . self::$token;
+        return static::$tokenPrefix.self::$token;
     }
 
     /**

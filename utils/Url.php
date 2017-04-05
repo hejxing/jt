@@ -1,12 +1,13 @@
 <?php
 /**
- * @Copyright jentian.com
- * Auth: ax@jentian.com
+ * @Copyright csmall.com
+ * Auth: ax@csmall.com
  * Create: 2015/6/4 15:35
  */
 
 namespace jt\utils;
 
+use jt\Controller;
 use jt\Responder;
 
 /**
@@ -25,16 +26,21 @@ class Url
     {
         $pageURL = 'http';
 
-        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === "on") {
+        if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === "on"){
             $pageURL .= "s";
         }
-        $pageURL .= "://" . $_SERVER['HTTP_HOST'];
+        $pageURL .= "://".$_SERVER['HTTP_HOST'];
 
-        if ($_SERVER['SERVER_PORT'] != '80') {
-            $pageURL .= ':' . $_SERVER['SERVER_PORT'];
+        if($_SERVER['SERVER_PORT'] != '80'){
+            $pageURL .= ':'.$_SERVER['SERVER_PORT'];
         }
 
         return $pageURL;
+    }
+
+    public static function domain()
+    {
+        return $_SERVER['HTTP_HOST'];
     }
 
     /**
@@ -42,7 +48,7 @@ class Url
      *
      * @return string
      */
-    public static function current()
+    public static function url()
     {
         $pageURL = self::host();
 
@@ -54,9 +60,29 @@ class Url
     /**
      * 生成当前页面路径
      */
-    public static function currentURI()
+    public static function uri()
     {
         return $_SERVER['REQUEST_URI'];
+    }
+
+    /**
+     * 获取不带QueryString的页面路径
+     *
+     * @return string
+     */
+    public static function scriptName()
+    {
+        return $_SERVER['SCRIPT_NAME'];
+    }
+
+    /**
+     * 获取查询字串
+     *
+     * @return string
+     */
+    public static function queryString()
+    {
+        return $_SERVER['QUERY_STRING'];
     }
 
     /**
@@ -70,13 +96,13 @@ class Url
      */
     public static function make($name, array $param = [], $suffix = '')
     {
-        if (strpos($name, '/') !== false) {//直接地址，不用再生成
+        if(strpos($name, '/') !== false){//直接地址，不用再生成
             return $name;
         }
         $url = '/';
         $url .= self::general($name, $param);
-        if ($suffix) {
-            $url .= '.' . $suffix;
+        if($suffix){
+            $url .= '.'.$suffix;
         }
 
         return $url;
@@ -92,19 +118,20 @@ class Url
      */
     public static function general($action, array $param = [])
     {
-        $uris = [];
-        if (!array_key_exists($action, \Config::$routerMap)) {
+        $uris      = [];
+        $routerMap = Controller::getRouterMap();
+        if(!array_key_exists($action, $routerMap)){
             return 'routerNotExists';
         }
-        $patterns = \explode('/', \Config::$routerMap[$action][0]);
-        foreach ($patterns as $p) {
+        $patterns = \explode('/', $routerMap[$action][0]);
+        foreach($patterns as $p){
             preg_match('/^:(\w*):?(\w*)$/', $p, $match);
-            if (count($match)) {
-                if (!array_key_exists($match[1], $param)) {
+            if(count($match)){
+                if(!array_key_exists($match[1], $param)){
                     return 'paramNotExists';
                 }
                 $uris[] = $param[$match[1]];
-            }else {
+            }else{
                 $uris[] = $p;
             }
         }
@@ -122,18 +149,18 @@ class Url
      *
      * @return string
      */
-    public static function img($path, $spec = '', $size = '170', $original = false)
+    public static function img($path, $spec = 'pic', $size = '200', $original = false)
     {
-        if (!empty($path)) {
-            if (preg_match('/^\/\//', $path) || preg_match('/^http[s]?:/', $path)) {
+        if(!empty($path)){
+            if(preg_match('/^http[s]?:/', $path)){
                 return $path;
             }
-            if ($original) {
-                return \Config::OriginalImgHost . $path;
-            }else {
+            if($original){
+                return \Config::ORIGINAL_IMG_HOST.$path;
+            }else{
                 $pathInfo = pathinfo($path);
 
-                return \Config::ImgHost . $pathInfo['dirname'] . '/' . $spec . '/' . $size . '/' . $pathInfo['basename'];
+                return \Config::IMG_HOST.$pathInfo['dirname'].'/'.$spec.'/'.$size.'/'.$pathInfo['basename'];
             }
         }
     }
@@ -160,19 +187,22 @@ class Url
      */
     public static function addQueryParam($data, $url = '')
     {
-        if (!$url) {
-            $url = self::currentURI();
+        if(!$url){
+            $url = self::uri();
         }
-        if (strpos($url, '?') === false) {
+        if(strpos($url, '?') === false){
             $queryString = '';
-        }else {
+        }else{
             list($url, $queryString) = explode('?', $url, 2);
         }
         parse_str($queryString, $origin);
         $data        = array_merge($origin, $data);
-        $queryString = http_build_query($data);
+        $queryString = '';
+        if($data){
+            $queryString = '?'.http_build_query($data);
+        }
 
-        return $url . '?' . $queryString;
+        return $url.$queryString;
     }
 
     /**
@@ -199,13 +229,14 @@ class Url
 
     /**
      * 解析QueryString
+     *
      * @param $url
      * @return array
      */
     public static function parseQueryString($url)
     {
         $param = [];
-        if (strpos($url, '?')) {
+        if(strpos($url, '?')){
             list(, $queryString) = explode('?', $url, 2);
             parse_str($queryString, $param);
         }
@@ -218,6 +249,6 @@ class Url
      */
     public static function reload()
     {
-        Responder::redirect(self::currentURI());
+        Responder::redirect(self::uri());
     }
 }

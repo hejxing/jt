@@ -1,13 +1,17 @@
 <?php
 /**
- * Auth: ax@jentian.com
+ * Auth: ax@csmall.com
  * Create: 2015/10/17 22:15
  */
+
+namespace jt;
+
+use PHPUnit\Framework\TestCase;
 
 /**
  * 测试启动器
  */
-class BootstrapTest extends \PHPUnit_Framework_TestCase
+class BootstrapTest extends TestCase
 {
     public function testEnvironment()
     {

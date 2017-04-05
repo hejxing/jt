@@ -69,7 +69,7 @@ class WxPayConfig
         self::$KEY       = $config['key'];
         self::$APPSECRET = $config['appSecret'];
 
-        self::$SSLCERT_PATH = $config['sslCertPath'] . '/apiclient_cert.pem';
-        self::$SSLKEY_PATH  = $config['sslCertPath'] . '/apiclient_key.pem';
+        self::$SSLCERT_PATH = $config['sslCertPath'].'/apiclient_cert.pem';
+        self::$SSLKEY_PATH  = $config['sslCertPath'].'/apiclient_key.pem';
     }
 }
