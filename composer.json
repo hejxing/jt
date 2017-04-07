@@ -1,0 +1,9 @@
+{
+    "name": "ax/jt",
+    "description": "A php framework",
+    "require": {
+        "php": "^7.0",
+        "phpunit/phpunit": "^6.0",
+        "ezyang/htmlpurifier": "^4.9"
+    }
+}
