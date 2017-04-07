@@ -1,5 +1,5 @@
 {
-    "name": "ax/jt",
+    "name": "hejxing/jt-framework",
     "description": "A php framework",
     "require": {
         "php": "^7.0",
