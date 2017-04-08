@@ -109,9 +109,12 @@ class Transfer
         }
         $ci   = \curl_init();
         $data = $this->asJson? json_encode($this->data, JSON_UNESCAPED_UNICODE): $this->data;
+
         if($this->method === 'GET'){
             $this->gateway = Url::addQueryParam($data, $this->gateway);
-            $data          = null;
+            $data = null;
+        }elseif($data && is_array($data)){
+            $data = http_build_query($data);
         }
 
         $options = [
