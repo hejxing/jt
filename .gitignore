@@ -2,4 +2,4 @@
 /runtime
 /nbproject/private/
 /log
-/vender
+*vendor/

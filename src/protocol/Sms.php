@@ -112,6 +112,25 @@ abstract class Sms
         $this->channel = array_pop($classInfo);
     }
 
+    /**
+     * 创建短信发送器实例
+     *
+     * @param string $remark 发送短信备注/说明
+     * @param int    $type 短信类型
+     * @return Sms
+     * @throws \jt\Exception
+     */
+    public static function factory($remark, $type = 1)
+    {
+        $class    = \Config::SMS_PROVIDER;
+        $provider = new $class($remark);
+        if($provider instanceof Sms){
+            return $provider;
+        }else{
+            throw new Exception('SmsProviderIll:短信服务类配置错误');
+        }
+    }
+
 
     /**
      * 是否允许该终端发短信

@@ -599,6 +599,14 @@ class Action
     }
 
     /**
+     * 获取权限控制器
+     * @return \jt\auth\Auth
+     */
+    public function getAuthority(){
+        return $this->controller->getAuthority();
+    }
+
+    /**
      * 初始化Action
      *
      * @return bool
