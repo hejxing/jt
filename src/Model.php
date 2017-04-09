@@ -2094,7 +2094,7 @@ abstract class Model
      * @param string $name
      * @param string $value
      *
-     * @return $this
+     * @return $thisg
      */
     public function ngt($name, $value)
     {

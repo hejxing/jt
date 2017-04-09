@@ -37,12 +37,12 @@ class Debug
     public static function runtime($margin = true)
     {
         $now = microtime(true);
-        if(self::$lastTime === null){
+        if (self::$lastTime === null) {
             self::$lastTime = Bootstrap::$startTime;
         }
-        if($margin){
+        if ($margin) {
             $spendTime = $now - self::$lastTime;
-        }else{
+        }else {
             $spendTime = $now - Bootstrap::$startTime;
         }
         self::$lastTime = $now;
@@ -91,7 +91,7 @@ class Debug
         echo '<pre>';
         var_export($var);
         echo '</pre>';
-        if($break){
+        if ($break) {
             exit();
         }
     }
@@ -110,7 +110,7 @@ class Debug
     private static function saveToFile($file, $content)
     {
         $logPath = \Config::DEBUG_LOG_DIR;
-        if(!file_exists($logPath)){
+        if (!file_exists($logPath)) {
             mkdir($logPath, 0777, true);
 
         }
@@ -132,19 +132,19 @@ class Debug
      */
     public static function complete()
     {
-        if(class_exists('\jt\Model', false)){
-            if(self::$isCommit){//代码执行 && 业务成功
+        if (class_exists('\jt\Model', false)) {
+            if (self::$isCommit) {//代码执行 && 业务成功
                 Model::commitAll();
-            }else{
+            }else {
                 Model::rollBack();
             }
         }
         $lastError = error_get_last();
         $action    = Controller::current()->getAction();
-        if($lastError){
+        if ($lastError) {
             echo '---------------------ERROR-----------------', PHP_EOL;
             var_export($lastError);
-        }else{
+        }else {
             $action->setIsRunComplete(true);
         }
 
@@ -190,17 +190,17 @@ class Debug
      */
     public static function entrance($runtimePath = '', $projectRoot = null)
     {
-        if($_SERVER['argv'][4] === '--filter'){
+        if ($_SERVER['argv'][4] === '--filter') {
             $testClass = $_SERVER['argv'][6];
             $testFile  = $_SERVER['argv'][7];
-        }else{
+        }else {
             $testClass = $_SERVER['argv'][4];
             $testFile  = $_SERVER['argv'][5];
         }
 
-        if($projectRoot === null){
+        if ($projectRoot === null) {
+            $testClass = strstr($testClass, '\\');
             $projectRoot = explode(str_replace('\\', DIRECTORY_SEPARATOR, $testClass), $testFile)[0];
-            $projectRoot = substr($projectRoot, 0, -1);
         }
 
         require(__DIR__.'/../Bootstrap.php');
@@ -208,7 +208,8 @@ class Debug
         register_shutdown_function('\jt\utils\Debug::complete');
         Bootstrap::init('develop', [
             'projectRoot' => $projectRoot,
-            'runtimePath' => $runtimePath
+            'runtimePath' => $runtimePath,
+            'moduleName'  => 'jt_framework'
         ]);
         Error::directOutput();
         $_SERVER['HTTP_USER_AGENT'] = 'Cli/debug';

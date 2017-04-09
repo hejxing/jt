@@ -679,15 +679,6 @@ class Controller
     }
 
     /**
-     * 获取本次操作的权限控制器
-     *
-     * @return \jt\auth\Auth
-     */
-    public function getAuthority(){
-        return $this->authority;
-    }
-
-    /**
      * 获取请求对象
      */
     public function getRequester()

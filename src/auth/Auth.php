@@ -55,11 +55,6 @@ abstract class Auth
      * @var AuthConfigurator
      */
     private $configurator = null;
-    /**
-     * 存储附加数据
-     * @var array
-     */
-    private $data = [];
 
     /**
      * 执行权限检查
@@ -260,27 +255,6 @@ abstract class Auth
         }
 
         return $this->operator;
-    }
-
-    /**
-     * 获取产生的附加数据
-     * @param string $name
-     * @return mixed
-     */
-    public function getValue($name = null){
-        if($name){
-            return $this->data[$name]??null;
-        }
-        return $this->data;
-    }
-
-    /**
-     * 存储附加数据
-     * @param string $name
-     * @param mixed $value
-     */
-    public function setValue($name, $value){
-        $this->data[$name] = $value;
     }
 
     /**

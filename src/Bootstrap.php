@@ -23,85 +23,22 @@ class Bootstrap
     public static $now = 0;
 
     /**
-     * 加载类
-     *
-     * @param $className
-     * @return mixed
-     */
-    public static function autoLoad($className)
-    {
-        $classFile = self::getClassFile($className);
-
-        return self::loadClass($classFile, $className);
-    }
-
-    /**
-     * 加载类，加载前会判断文件是否存在
-     *
-     * @param $className
-     * @return bool|mixed
-     */
-    public static function tryLoad($className)
-    {
-        $classFile = self::getClassFile($className);
-        if(file_exists($classFile)){
-            return self::loadClass($classFile, $className);
-        }else{
-            return false;
-        }
-    }
-
-    private static function loadClass($classFile, $className)
-    {
-        if(file_exists($classFile)){
-            /** @noinspection PhpIncludeInspection */
-            /** @type mixed $classFile */
-            $res = require $classFile;
-        }else{
-            return false;
-        }
-
-        if(method_exists($className, '__init')){
-            $className::__init($className);
-        }
-
-        return $res;
-    }
-
-    /**
-     * @param $className
-     * @return string
-     */
-    public static function getClassFile($className)
-    {
-        $prefix = substr($className, 0, strpos($className, '\\'));
-        if($prefix === 'jt'){
-            $root = JT_FRAMEWORK_ROOT;
-        }elseif(isset((\Config::NAMESPACE_PATH_MAP)[$prefix])){
-            $root = \Config::NAMESPACE_PATH_MAP[$prefix];
-        }else{
-            $root = \Config::NAMESPACE_ROOT;
-        }
-
-        return $root.DIRECTORY_SEPARATOR.\str_replace('\\', DIRECTORY_SEPARATOR, $className).'.php';
-    }
-
-    /**
      * 执行结束后执行的任务
      */
     public static function exeComplete()
     {
-        if(Controller::current()->isCompleteAndSuccess()){//代码执行 && 业务成功
-            if(class_exists('\jt\Model', false)){
+        if (Controller::current()->isCompleteAndSuccess()) {//代码执行 && 业务成功
+            if (class_exists('\jt\Model', false)) {
                 Model::commitAll();
             }
-        }else{
-            if(class_exists('\jt\Model', false)){
+        }else {
+            if (class_exists('\jt\Model', false)) {
                 Model::rollBack();
             }
             $lastError = error_get_last();
-            if($lastError){
-                Error::logFatal('FatalError: '.$lastError['type'], $lastError['message'].' in '.$lastError['file'].' line '.$lastError['line']);
+            if ($lastError) {
+                Error::logFatal('FatalError: '.$lastError['type'],
+                    $lastError['message'].' in '.$lastError['file'].' line '.$lastError['line']);
                 //短信、邮件通知负责人
             }
         }
@@ -113,11 +50,33 @@ class Bootstrap
     private static function loadConfig()
     {
         $file = RUNTIME_PATH_ROOT.'/config/'.MODULE.'.php';
-        if(RUN_MODE === 'develop' || !file_exists($file)){ //解析生成配置文件
+        if (!is_file($file) || RUN_MODE === 'develop') { //解析生成配置文件
             compile\config\Config::general($file, PROJECT_ROOT.'/config/'.RUN_MODE.'/Config.php');
         }
         /** @noinspection PhpIncludeInspection */
         include($file);
+    }
+
+    private static function defineEnvironment($option)
+    {
+        $option['projectRoot'] = $option['projectRoot']??'';
+        $option['runtimePath'] = $option['runtimePath']??'runtime';
+
+        if (substr($option['projectRoot'], 0, 1) !== '/') {
+            $option['projectRoot'] = getcwd().($option['projectRoot']? '/'.$option['projectRoot']: '');
+        }
+        if (substr($option['runtimePath'], 0, 1) !== '/') {
+            $option['runtimePath'] = $option['projectRoot'].'/'.$option['runtimePath'];
+        }
+
+        $moduleName = $option['moduleName']??substr(strrchr($option['projectRoot'], '/'), 1);
+        //定义基本常量
+        define('RUN_START_TIME', self::$now);
+        define('RUN_MODE', $option['runMode']);
+        define('PROJECT_ROOT', $option['projectRoot']);
+        define('RUNTIME_PATH_ROOT', $option['runtimePath']);
+        define('MODULE', $moduleName);
+        define('ERRORS_VERBOSE', RUN_MODE !== 'production');
     }
 
     /**
@@ -128,41 +87,17 @@ class Bootstrap
      */
     public static function init($runMode, $option)
     {
-        $option = [
-            'runMode'     => $runMode,
-            'projectRoot' => $option['projectRoot']??'',
-            'runtimePath' => $option['runtimePath']??'runtime'
-        ];
-        //定义扫尾方法
-        register_shutdown_function('\jt\Bootstrap::exeComplete');
         //记录代码执行开始时间
         self::$startTime = microtime(true);
         self::$now       = intval(self::$startTime);
-
-        if(substr($option['projectRoot'], 0, 1) !== '/'){
-            $option['projectRoot'] = getcwd().($option['projectRoot']? '/'.$option['projectRoot']: '');
-        }
-        if(substr($option['runtimePath'], 0, 1) !== '/'){
-            $option['runtimePath'] = $option['projectRoot'].'/'.$option['runtimePath'];
-        }
-
-        //定义基本常量
-        define('RUN_START_TIME', self::$now);
-        define('RUN_MODE', $option['runMode']);
-
-        define('JT_FRAMEWORK_ROOT', substr(__DIR__, 0, -3));
-
-        define('PROJECT_ROOT', $option['projectRoot']);
-        define('RUNTIME_PATH_ROOT', $option['runtimePath']);
-        define('MODULE', implode('_', array_slice(explode('/', PROJECT_ROOT), -2)));
-        define('ERRORS_VERBOSE', RUN_MODE !== 'production');
-
-        //定义自动加载文件方法
-        spl_autoload_register('static::autoLoad');
-        self::loadConfig();
-        //注册错误、异常入口
         ini_set('display_errors', true);
 
+        $option['runMode'] = $runMode;
+        self::defineEnvironment($option);
+        self::loadConfig();
+        //定义扫尾方法
+        register_shutdown_function('\jt\Bootstrap::exeComplete');
+        //注册错误、异常入口
         set_error_handler('\jt\Error::errorHandler');
         set_exception_handler('\jt\Error::exceptionHandler');
 

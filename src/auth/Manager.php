@@ -65,7 +65,7 @@ class Manager extends Action
     {
         if($className === __CLASS__){
             Controller::current()->getResponder()->setTplEngine(new Mind([
-                'basePath' => JT_FRAMEWORK_ROOT.'/jt/view/tpl'
+                'basePath' => __DIR__.'/../developer/view/tpl'
             ]));
         }
     }

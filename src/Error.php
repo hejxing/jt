@@ -245,8 +245,8 @@ class Error extends Action
         $data = $action->getDataStore(false);
         /** @var \jt\Action $errorAction */
         $errorAction = null;
-        $class       = '\action\ErrorHandler';
-        if(Bootstrap::tryLoad($class)){
+        $class       = '\\'.MODULE.'\action\ErrorHandler';
+        if(class_exists($class)){
             $action = new $class();
             if(\method_exists($action, $method)){
                 $errorAction = $action;
