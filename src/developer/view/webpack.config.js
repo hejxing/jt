@@ -131,7 +131,7 @@ webpackConfig.devServer = {
                 return option.match[1];
             }
         }],
-        index: '/index.html'
+        index: '/index.tpl'
     },
     noInfo: true,
     host: '127.0.0.1',

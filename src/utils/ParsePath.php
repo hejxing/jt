@@ -120,4 +120,22 @@ class ParsePath
 
         return $v;
     }
+
+    /**
+     * 解析路径,去除路径中的 ..
+     * @param $path
+     * @return string
+     */
+    public static function realPath($path){
+        $parts = explode('/', $path);
+        $ps = [];
+        foreach($parts as $name){
+            if($name === '..'){
+                array_pop($ps);
+            }else{
+                $ps[] = $name;
+            }
+        }
+        return implode('/', $ps);
+    }
 }
