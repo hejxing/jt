@@ -418,7 +418,8 @@ class Controller
             $action = new $class();
             $action->setController($this);
         }else{
-            throw new Exception('Action '.$class.' not found', 404);
+            //@i18n msg:'Action {$class} not found'
+            throw new Exception(I18n::speak('error.actionNotFound', ['class' => $class]), 404);
         }
 
         if(method_exists($action, $method)){
@@ -679,15 +680,6 @@ class Controller
     }
 
     /**
-     * 获取本次操作的权限控制器
-     *
-     * @return \jt\auth\Auth
-     */
-    public function getAuthority(){
-        return $this->authority;
-    }
-
-    /**
      * 获取请求对象
      */
     public function getRequester()
@@ -705,7 +697,7 @@ class Controller
     public function getResponder()
     {
         if($this->responder === null){
-            $this->responder = new Responder();
+            $this->responder = new Responder($this);
         }
 
         return $this->responder;

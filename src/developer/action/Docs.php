@@ -196,7 +196,7 @@ class Docs extends Base
         $this->prepareClassList();
 
         $this->controller->getResponder()->setTplEngine(new Mind([
-            'basePath' => JT_FRAMEWORK_ROOT.'/jt/developer/view/tpl'
+            'basePath' => __DIR__.'/view/tpl'
         ]));
     }
 }

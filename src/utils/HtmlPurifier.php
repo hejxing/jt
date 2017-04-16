@@ -41,15 +41,7 @@ class HtmlPurifier
     public function createConfig()
     {
         if(static::$baseConfig === null){
-            $contents  = file_get_contents('../lib/htmlPurifier/schema.ser');
-            $prototype = unserialize($contents);
-            if(!$prototype){
-                $hash = sha1($contents);
-                trigger_error("Unserialization of configuration schema failed, sha1 of file was $hash", E_USER_ERROR);
-            }
-
-            $definition = \HTMLPurifier_ConfigSchema::instance($prototype);
-            $config     = new \HTMLPurifier_Config($definition);
+            $config     = \HTMLPurifier_Config::createDefault();
 
             //$cacheDir = RUNTIME_PATH_ROOT.'/cache/htmlPurifier';
             //if(!is_dir($cacheDir)){

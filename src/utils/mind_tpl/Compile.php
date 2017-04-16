@@ -696,7 +696,7 @@ class Compile
                 if(substr($content, 0, 1) === "'" && substr($content, -1) === "'"){
                     $content = substr($content, 1, -1);
                 }else{
-                    $this->error('标签 '.$tag.' 的值应该由单"\'"包包裹。');
+                    $this->error('标签 '.$tag.' 的值应该由"\'"包裹。');
                 }
                 break;
             case 'let'://赋值

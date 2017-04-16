@@ -599,14 +599,6 @@ class Action
     }
 
     /**
-     * 获取权限控制器
-     * @return \jt\auth\Auth
-     */
-    public function getAuthority(){
-        return $this->controller->getAuthority();
-    }
-
-    /**
      * 初始化Action
      *
      * @return bool
@@ -621,14 +613,19 @@ class Action
      *
      * @throws \jt\Exception
      */
-    public function startCache()
+    public function cacheBegin()
     {
-        $method = Controller::current()->getRequestMethod();
+        //@>develop
+        if(RUN_MODE === 'develop'){
+            return;
+        }
+        //@<develop
+        $method = $this->controller->getRequestMethod();
         if($method !== 'get'){
             throw new Exception('NotAllowCache:Request method: '.$method.' not allow cache!');
         }
         $this->isCache = true;
-        $responder     = Controller::current()->getResponder();
+        $responder     = $this->controller->getResponder();
         if($responder->hadCache()){
             $responder->end();
         }

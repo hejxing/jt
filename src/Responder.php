@@ -19,6 +19,15 @@ class Responder
      * @type TemplateInterface
      */
     protected $tplEngine = null;
+    /**
+     * @var \jt\Controller
+     */
+    protected $controller = null;
+
+    public function __construct(Controller $controller)
+    {
+        $this->controller = $controller;
+    }
 
     /**
      * 生成内容
@@ -224,12 +233,12 @@ class Responder
      */
     public function hadCache()
     {
-        if(Controller::current()->getMime() === 'html'){
+        if($this->controller->getMime() === 'html'){
             $this->makeEngine();
             if(!is_subclass_of($this->tplEngine, '\jt\TemplateInterface')){
                 throw new Exception('TemplateEngineError:Cache need Template Engine implements \jt\TemplateInterface');
             }
-            $uri = Controller::current()->getRequestPath();
+            $uri = $this->controller->getRequestPath();
             if($this->tplEngine->hadCache($uri, $_SERVER['QUERY_STRING'])){
                 return 1;
             }

@@ -32,7 +32,7 @@ class Boot extends Controller
             return self::$routerMapPool[$module];
         }
         $routerMapFile = RUNTIME_PATH_ROOT.'/router/'.$module.'.php';
-        $root          = JT_FRAMEWORK_ROOT.'/jt/developer';
+        $root          = __DIR__;
         //加载不成功则生成
         if(RUN_MODE === 'develop'){ //生成路由
             $result = Router::general($routerMapFile, $root, $module);
@@ -71,7 +71,7 @@ class Boot extends Controller
         }
 
         $this->getResponder()->setTplEngine(new Mind([
-            'basePath' => JT_FRAMEWORK_ROOT.'/jt/developer/view/'.self::TPL_DIR,
+            'basePath' => __DIR__.'/view/'.self::TPL_DIR,
             'suffix'   => '.html'
         ]));
 

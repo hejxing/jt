@@ -56,15 +56,15 @@ class Page
         $this->totalCount = $totalCount? $totalCount: 0;
         $this->pageSize   = $pageSize;
         $this->pageCount  = ceil($this->totalCount / $this->pageSize);
-        $this->pageIndex  = $this->setPage();
-        $this->url        = $this->setUrl();
+        $this->pageIndex  = $this->getPage();
+        $this->url        = $this->getUrl();
         $this->bothNum    = $bothNum;
     }
 
     /**
      * 获取当前页码
      */
-    public function setPage()
+    public function getPage()
     {
         if(!empty($_GET['pageIndex'])){
             if($_GET['pageIndex'] > 0){
@@ -84,9 +84,9 @@ class Page
     /**
      * 获取地址
      */
-    private function setUrl()
+    private function getUrl()
     {
-        $url = $this->request_uri();//IIS的$SERVER
+        $url = $this->requestUrl();//IIS的$SERVER
         $par = parse_url($url);
         if(isset($par['query'])){
             parse_str($par['query'], $query);
@@ -103,7 +103,7 @@ class Page
      *
      * @return string
      */
-    private function request_uri()
+    private function requestUrl()
     {
         if(isset($_SERVER['REQUEST_URI'])){
             $uri = $_SERVER['REQUEST_URI'];

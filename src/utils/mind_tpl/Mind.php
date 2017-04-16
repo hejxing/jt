@@ -138,7 +138,7 @@ class Mind implements TemplateInterface
         }
         $uri             .= '.php';
         $this->cacheFile = $this->config['cachePath'].$uri;
-        $this->isCached  = file_exists($this->cacheFile);
+        $this->isCached  = is_file($this->cacheFile);
 
         return $this->isCached;
     }
