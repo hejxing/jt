@@ -17,7 +17,7 @@ class Menu extends Base
     /**
      * 项目首页
      *
-     * @router get /menu
+     * @router get /menu mime:html
      */
     public function loseWay()
     {
@@ -27,7 +27,7 @@ class Menu extends Base
     /**
      * 项目首页
      *
-     * @router get /menu/*path tpl:/menu/index
+     * @router get /menu/*path tpl:/menu/index mime:html
      */
     public function index()
     {
