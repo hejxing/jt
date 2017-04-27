@@ -53,7 +53,7 @@ class Docs extends Base
     /**
      * 项目首页
      *
-     * @router get /docs/index
+     * @router get /docs/index mime:html
      */
     public function projectIndex()
     {
@@ -76,7 +76,7 @@ class Docs extends Base
      *
      * @param string $path
      *
-     * @router get /docs/*path
+     * @router get /docs/*path mime:html
      */
     public function apiDetail($path)
     {
@@ -196,7 +196,7 @@ class Docs extends Base
         $this->prepareClassList();
 
         $this->controller->getResponder()->setTplEngine(new Mind([
-            'basePath' => __DIR__.'/view/tpl'
+            'basePath' => dirname(__DIR__).'/view/tpl'
         ]));
     }
 }
