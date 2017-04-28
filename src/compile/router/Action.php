@@ -717,6 +717,10 @@ abstract class Action extends Loader
         //自动设定模板文件
         if(substr($parsed['tpl'], -1, 1) === '/'){
             $parsed['tpl'] .= substr($parsed['uri'], 1);
+            $lastSlashPos = strrpos($parsed['tpl'], '/') + 1;
+            if(substr($parsed['tpl'], $lastSlashPos, 1) === '*'){
+                $parsed['tpl'] = substr($parsed['tpl'], 0, $lastSlashPos).static::DEFAULT_INDEX;
+            }
         }
     }
 
