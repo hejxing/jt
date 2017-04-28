@@ -178,21 +178,17 @@ abstract class Model
     ];
 
     /**
-     * 类加载后自动执行的方法
-     */
-    public static function __init()
-    {
-        if(static::$columns){
-            //解析表结构和属性
-            self::parseColumns();
-        }
-    }
-
-    /**
      * 构造Model
      */
     public function __construct()
     {
+        //TODO 去除开发时调用的代码
+        //@->develop
+        if(is_string(current(static::$columns))){
+            static::parseColumns();
+        }
+        //@<-develop
+
         $this->connector = new Connector(PROJECT_ROOT, $this->conn);
         $quotes          = $this->connector->getQuotes();
         static::$quotes  = $quotes;
