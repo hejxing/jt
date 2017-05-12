@@ -19,6 +19,11 @@ class Database extends Config
         return $con;
     }
 
+    protected static function findDefaultConfig($file)
+    {
+        return '';
+    }
+
     protected static function genCacheFileName()
     {
         self::$cacheFile = RUNTIME_PATH_ROOT.'/cache/config/db_'.MODULE.'.php';

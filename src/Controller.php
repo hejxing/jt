@@ -74,6 +74,10 @@ class Controller
      */
     protected $authority = null;
     /**
+     * @var \jt\log\Writer;
+     */
+    protected $logWriter = null;
+    /**
      * @type int 重试的次数
      */
     private static $retryTimes = 10;
@@ -133,7 +137,7 @@ class Controller
             $this->action->cleanData();
             //Error::cleanData();
 
-            Model::rollBack();
+            Model::rollBackAll();
             $this->execute();
         }
     }
@@ -147,10 +151,6 @@ class Controller
      */
     private function checkAuthority($author)
     {
-        if(!$author){
-            $author = [\Config::DEFAULT_AUTH_CHECKER, null];
-        }
-
         list($className, $mark) = $author;
 
         if($className === 'public'){
@@ -161,6 +161,25 @@ class Controller
         $this->authority->setMark($mark);
 
         return $this->authority->inCheck();
+    }
+
+    /**
+     * @param array $info
+     * @return \jt\log\Writer
+     */
+    public function getLogWriter(array $info = []){
+        if($this->logWriter === null){
+            $writerClass = $this->ruler[7];
+            $this->logWriter = new $writerClass(array_replace([
+
+            ], $info));
+        }
+
+        foreach($info as $name => $value){
+            $this->logWriter->set($name, $value);
+        }
+
+        return $this->logWriter;
     }
 
     /**
@@ -215,7 +234,7 @@ class Controller
             return;
         }
 
-        if(strpos($this->ruler[7], 'output_quiet') !== false){
+        if(strpos($this->ruler[8], 'output_quiet') !== false){
             $this->action->quiet();
         }
 
@@ -289,7 +308,6 @@ class Controller
             $action->setController($this);
             $this->action = $action;
         }
-
         return $this->action;
     }
 
@@ -419,7 +437,8 @@ class Controller
             $action->setController($this);
         }else{
             //@i18n msg:'Action {$class} not found'
-            throw new Exception(I18n::speak('error.actionNotFound', ['class' => $class]), 404);
+            //throw new Exception(I18n::speak('error.actionNotFound', ['class' => $class]), 404);
+            throw new Exception('Router not found ['.$class.']', 404);
         }
 
         if(method_exists($action, $method)){
@@ -428,7 +447,7 @@ class Controller
 
             return true;
         }else{
-            throw new Exception('Method not found '.$class.'::'.$method, 404);
+            throw new Exception('Method not found ['.$class.'/:/:'.$method.']', 404);
         }
     }
 
@@ -677,6 +696,14 @@ class Controller
         }else{
             return new auth\Operator('public', '', '');
         }
+    }
+
+    /**
+     * 获取权限控制器
+     * @return \jt\auth\Auth
+     */
+    public function getAuthority(){
+        return $this->authority;
     }
 
     /**

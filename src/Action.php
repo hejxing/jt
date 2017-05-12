@@ -6,6 +6,8 @@
 
 namespace jt;
 
+use jt\utils\Helper;
+
 /**
  * Action基类
  * 负责处理客户端的调用
@@ -21,6 +23,7 @@ class Action
     const FILL_JOIN_RIGHT   = 5;
     const FILL_JOIN_LEFT    = 6;
     const FILL_IGNORE_EMPTY = 7;
+
     /**
      * 参数验证规则
      *
@@ -84,7 +87,7 @@ class Action
      * 需要输出的数据
      *
      * @param string $key
-     * @param string $value
+     * @param mixed $value
      * @param int    $model
      *
      * @return bool
@@ -396,56 +399,7 @@ class Action
      */
     protected function map(array $map, array $data, $ignoreEmpty = false)
     {
-        $result     = [];
-        $indexAssoc = false;
-        foreach($map as $n => $v){
-            if(\is_int($n)){
-                $n          = $v;
-                $indexAssoc = true;
-            }
-            $type = 'string';
-            \preg_match('/^\((.*)\)(.+)/', $n, $matched);
-            if(\count($matched) > 2){
-                $type = $matched[1];
-                $n    = $matched[2];
-                if($indexAssoc){
-                    $v = $n;
-                }
-            }
-            $vns   = \explode('.', $v);
-            $value = $data;
-            foreach($vns as $vn){
-
-                if(isset($value[$vn])){
-                    $value = $value[$vn];
-                }elseif(\substr($vn, 0, 1) === '"' && \substr($vn, -1, 1) === '"'){
-                    $value = \substr($vn, 1, -1);
-                }else{
-                    $value = null;
-                    break;
-                }
-            }
-            if($value === null && $ignoreEmpty){
-                continue;
-            }
-            switch($type){
-                case 'int':
-                    $value = intval($value?: 0);
-                    break;
-                case 'float':
-                    $value = floatval($value?: 0);
-                    break;
-                case 'bool':
-                    $value = boolval($value);
-                    break;
-                default:
-                    $value = $value === null? '': $value;
-                    break;
-            }
-            $result[$n] = $value;
-        }
-
-        return $result;
+        return Helper::map($map, $data, $ignoreEmpty);
     }
 
     /**

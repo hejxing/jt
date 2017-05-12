@@ -55,6 +55,7 @@ header .header-bar{
     position:relative;
     height:100%;
     border-right:1px solid #dddddd;
+    padding:5px;
 }
 
 .menu-list .search-input{
@@ -85,7 +86,7 @@ header .header-bar{
 .node-container{
     position:absolute;
     top:0.5em;
-    left:260px;
+    left:280px;
     right:0;
     bottom:0;
     overflow:auto;
@@ -94,45 +95,122 @@ header .header-bar{
 .ant-modal{
     text-align:left;
 }
-
 .editable .edit-btn{
-    visibility:hidden;
+    /*visibility:hidden;*/
+    margin:0 0 0 5px;
 }
-
 .editable:hover .edit-btn{
     visibility:visible;
 }
-
-.node-item > div{
+.node-item>div,.node-item .editable>div{
     padding:0 8px 10px 8px;
 }
 
 .node-item .desc{
-    color:#999999;
+    color:#999;
 }
-
+.node-item .response{
+    padding:2px 5px;
+    margin:3px;
+    border:1px solid #9acfea;
+}
 .node-item .node-operation{
-    margin:10px 2px;
-    border-top:1px solid #dddddd;
-    padding:10px 6px;
+    margin:10px 0;
+    padding:10px 0;
 }
-
+.node-item .feature-container{
+    padding:10px;
+    margin:10px 2px;
+    border-top:1px solid #ddd;
+}
+.node-item .feature-container .ant-card-head{
+    line-height:36px;
+    height:36px;
+}
+.node-item .feature-container .ant-card-extra{
+    top:8px;
+}
+.node-item .feature-container .ant-card-body {
+    padding: 6px 24px;
+    line-height: 24px;
+}
 .toolbar{
     text-align:center;
     padding:5px;
-    bottom:0;
+    top:5px;
     position:absolute;
-    right:0;
-    left:0;
-    border-top:1px solid #dddddd;
-    width:100%;
+    right:5px;
 }
-
 .edit-area{
     text-align:center;
     padding:5px;
 }
-
 .edit-area .ant-input-group-addon{
     width:28px;
+}
+
+.api-select .ant-cascader-menu{
+    height:auto;
+    max-height:80%;
+    text-align:left;
+}
+
+.choose-feature{
+    padding:10px 0;
+}
+
+.choose-feature .page-title{
+    font-size:1.2em;
+    line-height:2em;
+}
+
+.choose-feature h3{
+    font-weight:normal;
+}
+.choose-feature .ant-cascader-picker{
+    margin:5px 0;
+}
+.choose-feature .master-feature .ant-cascader-picker-label{
+    padding-left:2em;
+}
+.choose-feature .choose-feature-dependent{
+    margin:10px 0;
+    border:1px solid #e8e8e8;
+    border-radius:3px;
+    float:left;
+}
+.choose-feature .choose-feature-dependent .page-title{
+    border-radius:3px 3px 0 0;
+    padding:0 1em;
+    background:#f9f2f4;
+    border-bottom:1px solid #e8e8e8;
+}
+.choose-feature .choose-feature-dependent .dependent-box{
+    padding:0 10px;
+}
+.choose-feature .ant-input-suffix .anticon:hover{
+    color:#0b57bd;
+}
+.choose-feature .ant-input-suffix .anticon{
+    display:none;
+}
+.choose-feature .ant-input-affix-wrapper:hover .anticon{
+    display: inherit;
+}
+.choose-feature .choose-feature-dependent .ant-cascader-picker{
+    margin:10px 0;
+    padding-right:0;
+}
+.choose-feature .choose-feature-dependent .ant-btn{
+    margin:10px 0;
+}
+
+.choose-feature .choose-feature-dependent .ant-input-group-compact input {
+    border-radius:4px 0 0 4px;
+}
+.choose-feature .choose-feature-dependent .ant-input-group-compact input:hover {
+    z-index:1;
+}
+.feature-container .ant-card{
+    margin: 10px 0;
 }

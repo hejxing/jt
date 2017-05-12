@@ -96,8 +96,32 @@ class Error extends Action
     {
         $msg  = $e->getMessage();
         $code = $e->getCode();
-        if(strpos($msg, ':') !== false){
-            list($code, $msg) = explode(':', $msg, 2);
+
+        $offset = strpos($msg, ':');
+        $pos = 0;
+        while($offset){
+            $pos = 1;
+            while(substr($msg, $offset - $pos, 1) === '/'){
+                $pos++;
+            }
+            if($pos % 2 === 1){
+                if(substr($msg, $offset+1, 1) === ':' && substr($msg, $offset+2, 1) !== ':'){
+                    $offset+=1;
+                }else{
+                    $code = substr($msg, 0, $offset);
+                    $msg = substr($msg, $offset+1);
+                    $code = strtr($code, [
+                        '/:' => ':'
+                    ]);
+                    break;
+                }
+            }
+            $offset = strpos($msg, ':', $offset+1);
+        }
+        if($pos && $pos % 2 === 0){
+            $msg = strtr($msg, [
+                '/:' => ':'
+            ]);
         }
 
         if($code == 404){
@@ -221,7 +245,7 @@ class Error extends Action
             $ruler = Controller::current()->getRuler();
             echo $e->getMessage(), "<br>\n";
             echo $code.':'.$msg, "<br>\n";
-            echo "<i>Access entry: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[8]})</i>";
+            echo "<i>Access entry: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[9]})</i>";
         }
     }
 
@@ -357,7 +381,7 @@ class Error extends Action
 
             $ruler = Controller::current()->getRuler();
             if(!empty($ruler)){
-                $header['entrance'] = "{$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[8]})";
+                $header['entrance'] = "{$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[9]})";
             }
         }
 

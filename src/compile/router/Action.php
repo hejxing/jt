@@ -15,13 +15,13 @@ abstract class Action extends Loader
 {
     const MODEL_ACTION = '\jt\ModelAction';
 
-    const RULER_ORDER          = ['method', 'uri', 'tpl', 'auth', 'mime', 'affix'];//affix:doc_hidden,output_quiet
+    const RULER_ORDER          = ['method', 'uri', 'tpl', 'auth', 'log', 'mime', 'affix'];//affix:doc_hidden,output_quiet
     const METHODS              = ['get', 'post', 'put', 'delete', 'head', 'options', 'any', 'cli'];//支持的动作
     const ANY_AS_METHODS       = ['get', 'post', 'put', 'delete'];//any 所代表的动作
     const REQUEST_PARAM        = [
         '\jt\Requester' => ['body', 'query', 'request', 'header'],
         '\jt\Cookie'    => ['cookie'],
-        'array'         => ['session']
+        '\jt\Session'   => ['session']
     ];
     const ENABLE_QUOTE         = ['session'];
     const VALUE_PARAM          = ['int', 'string', 'array', 'float', 'bool'];
@@ -30,8 +30,22 @@ abstract class Action extends Loader
     const GLOBAL_BASE_PATH     = ['basePath', 'baseTplPath'];
 
     const METHOD_ATTRIBUTES  = [
-        'methods', 'uri', 'class', 'param', 'return', 'method', 'path',
-        'tpl', 'mime', 'auth', 'affix', 'name', 'desc', 'notice', 'line'
+        'methods',
+        'uri',
+        'class',
+        'param',
+        'return',
+        'method',
+        'path',
+        'tpl',
+        'mime',
+        'auth',
+        'log',
+        'affix',
+        'name',
+        'desc',
+        'notice',
+        'line'
     ];
     const DEFAULT_INDEX      = 'index';
     const TAB_AS_SPACE_COUNT = 4;
@@ -42,7 +56,8 @@ abstract class Action extends Loader
     protected $defaultRuler = [
         'method' => 'get',
         'tpl'    => '',
-        'auth'   => null,
+        'auth'   => \Config::DEFAULT_AUTH_CHECKER,
+        'log'    => \Config::DEFAULT_LOG_WRITER,
         'mime'   => '',
         'affix'  => ''
     ];
@@ -61,27 +76,27 @@ abstract class Action extends Loader
      */
     protected function collectGlobalValue()
     {
-        foreach($this->commentBlocks as $key => $commentBlock){
+        foreach ($this->commentBlocks as $key => $commentBlock) {
             $this->commentLines = $commentBlock;
             unset($this->commentBlocks[$key]);
             break;
         }
-        if(empty($this->commentLines)){
+        if (empty($this->commentLines)) {
             return;
         }
         $ignore = $this->getValue('parseIgnore');
-        if($ignore !== null && $ignore !== 'false'){
+        if ($ignore !== null && $ignore !== 'false') {
             $this->classInfo['parseIgnore'] = true;
 
             return;
         }
-        foreach(static::GLOBAL_BASE_PATH as $name){
+        foreach (static::GLOBAL_BASE_PATH as $name) {
             $value = $this->getValue($name);
-            if($value){
-                if(substr($value, 0, 1) !== '/'){
+            if ($value) {
+                if (substr($value, 0, 1) !== '/') {
                     $this->error($name.'Error', 'Action Presets ['.$name.'] 没有以 / 开始，请修正');
                 }
-                if(substr($value, -1, 1) !== '/'){
+                if (substr($value, -1, 1) !== '/') {
                     $this->error($name.'Error', 'Action Presets ['.$name.'] 没有以 / 结束，请修正');
                 }
                 $this->$name = $value;
@@ -92,24 +107,24 @@ abstract class Action extends Loader
         $this->collectDocParam();
         $this->defaultParam = $this->parsed['param']??[];
 
-        foreach($this->defaultRuler as $name => &$ov){
+        foreach ($this->defaultRuler as $name => &$ov) {
             $value = $this->getValue('default'.ucfirst($name));
-            if($value){
+            if ($value) {
                 $ov = $value;
             }
         }
 
-        foreach(static::CLASS_INFO_NAMES as $name){
-            if($name === 'desc'){
+        foreach (static::CLASS_INFO_NAMES as $name) {
+            if ($name === 'desc') {
                 $this->classInfo[$name][] = $this->getValue($name);
-                foreach($this->getCommentList(['string']) as list(, $desc)){
+                foreach ($this->getCommentList(['string']) as list(, $desc)) {
                     $this->classInfo[$name][] = $desc;
                 }
                 $last = array_pop($this->classInfo[$name]);
-                if($last){
+                if ($last) {
                     $this->classInfo[$name][] = $last;
                 }
-            }else{
+            }else {
                 $this->classInfo[$name] = $this->getValue($name);
             }
         }
@@ -125,10 +140,10 @@ abstract class Action extends Loader
     protected function parseComment()
     {
         $this->parseScheme();
-        if($this->parsed && $this->parsed['scheme']){
+        if ($this->parsed && $this->parsed['scheme']) {
             $this->parseDoc();
             $routers = $this->parseRouter();
-            foreach($routers as $router){
+            foreach ($routers as $router) {
                 $this->parsed = array_merge($this->parsed, $router);
                 $this->pack();
             }
@@ -161,35 +176,35 @@ abstract class Action extends Loader
     {
         preg_match('/(\+?\w*)\:?([\w\\\\]*)(?: +\[([^\]]*)\])? *(.*)/', $line, $match);
         array_shift($match);
-        if(strpos($match[2], '[') !== false){
+        if (strpos($match[2], '[') !== false) {
             $posList = [];
             $pos     = -1;
-            while($pos !== false){
+            while ($pos !== false) {
                 $posList[$pos] = 1;
                 $pos           = strpos($match[3], '[', $pos + 1);
             }
             $pos = -1;
-            while($pos !== false){
+            while ($pos !== false) {
                 $posList[$pos] = -1;
                 $pos           = strpos($match[3], ']', $pos + 1);
             }
             unset($posList[-1]);
             $count = 1;
-            foreach($posList as $pos => $d){
+            foreach ($posList as $pos => $d) {
                 $count += $d;
-                if($count <= 0){
+                if ($count <= 0) {
                     $match[2] .= ']'.substr($match[3], 0, $pos);
                     $match[3] = trim(substr($match[3], $pos + 1));
                     break;
                 }
             }
-            if($count > 0){
+            if ($count > 0) {
                 $match[3] = $match[2].$match[3];
                 $match[2] = '';
             }
         }
         $type = $match[1];
-        if(strpos($match[0], '+') === 0){
+        if (strpos($match[0], '+') === 0) {
             $list     = preg_split('/ *, */', $match[2]?: '*');
             $match[0] = substr($match[0], 1);
             $match[2] = [
@@ -198,15 +213,15 @@ abstract class Action extends Loader
                 'rule'   => 'in'
             ];
             $match[1] = '__reference';
-        }else{
+        }else {
             $ruler = trim($type.' '.$match[2]);
             try{
                 $match[2] = Requester::parseValidate($ruler, 'paramNode:'.$ruler);
-            }catch(Exception $e){
+            }catch (Exception $e){
                 $this->throwError($e);
             }
         }
-        if(!$type && isset($match[2]['type'])){
+        if (!$type && isset($match[2]['type'])) {
             $match[1] = $match[2]['type'];
         }
         $match[] = $this->line;
@@ -226,31 +241,31 @@ abstract class Action extends Loader
     {
         $parsedList = [];
         $parsed     = [];
-        while(($item = array_shift($lines))){
+        while (($item = array_shift($lines))) {
             $line          = $item[1];
             $lineNo        = $item[2];
             $currentIndent = $this->countIndent($line);//缩进数量
-            if($currentIndent !== $indent){
+            if ($currentIndent !== $indent) {
                 array_unshift($lines, $item);
             }
-            if($currentIndent > $indent){//进入下一级
+            if ($currentIndent > $indent) {//进入下一级
                 //判断是否允许降级,若不允许则报错
-                if(!in_array($parsed['ruler']['type'], static::HAS_CHILD_PARAM_TYPE)){
+                if (!in_array($parsed['ruler']['type'], static::HAS_CHILD_PARAM_TYPE)) {
                     $this->line = $lineNo;
                     $this->error('indentNotAllow', '不允许的缩进，上一参数类型不支持有下级元素');
                 }
                 $parsedList[count($parsedList) - 1]['nodes'] = $this->collectParseParam($lines, $currentIndent, $parentIndent);
                 continue;
-            }elseif($currentIndent < $indent){//退出到上一级
+            }elseif ($currentIndent < $indent) {//退出到上一级
                 $parentIndent = $currentIndent;
                 break;
             }
 
-            if($parentIndent){//判断对齐$parentIndent了没
-                if($parentIndent < $indent){
+            if ($parentIndent) {//判断对齐$parentIndent了没
+                if ($parentIndent < $indent) {
                     $this->line = $lineNo;
                     $this->error('paramIndentNotAlignStart', '此处缩进未能对齐开始处');
-                }elseif($parentIndent > $indent){
+                }elseif ($parentIndent > $indent) {
                     break;
                 }
             }
@@ -279,7 +294,7 @@ abstract class Action extends Loader
      */
     private function parseParam($lines)
     {
-        if(!$lines){
+        if (!$lines) {
             return [];
         }
         $indent = $this->countIndent($lines[0][1]);//缩进数量
@@ -298,11 +313,11 @@ abstract class Action extends Loader
      */
     private function parseParamRuler($ruler, $type)
     {
-        if(in_array($type, Requester::CONVERT_TYPE) || in_array($type, Requester::SINGLE_TYPE) || in_array($type, Requester::MULTI_TYPE)){
+        if (in_array($type, Requester::CONVERT_TYPE) || in_array($type, Requester::SINGLE_TYPE) || in_array($type, Requester::MULTI_TYPE)) {
             $ruler = $type.' '.$ruler;
-        }elseif(isset(self::REQUEST_PARAM[$type])){
+        }elseif (isset(self::REQUEST_PARAM[$type])) {
             $ruler = 'type:object '.$ruler;
-        }else{
+        }else {
             $ruler = 'type:'.$type.' '.$ruler;
         }
 
@@ -323,8 +338,8 @@ abstract class Action extends Loader
 
     private function findParamType($name)
     {
-        foreach(self::REQUEST_PARAM as $type => $item){
-            if(in_array($name, $item)){
+        foreach (self::REQUEST_PARAM as $type => $item) {
+            if (in_array($name, $item)) {
                 return $type;
             }
         }
@@ -338,16 +353,17 @@ abstract class Action extends Loader
     private function collectDocParam()
     {
         reset($this->commentLines);
-        while(($param = $this->getValue('param', false))){
+        while (($param = $this->getValue('param', false))) {
             preg_match('/([\w\\\\]*) *\$([a-z]\w*)(?: +\[([^\]]*)\])? *(.*)/', $param, $match);
             array_shift($match);
             $type = $this->prefixNamespace($match[0]);
             $name = $match[1];
-            if(!isset($this->parsed['param'][$name])){//忽略在方法参数中不存在的参数
-                if($this->parsed['scheme'] === 'router'){
-                    $this->error('docParamNotInMethod', '注解中的参数 ['.$name.'] 在方法 ['.$this->parsed['class'].'::'.$this->parsed['method'].'] 中不存在');
+            if (!isset($this->parsed['param'][$name])) {//忽略在方法参数中不存在的参数
+                if ($this->parsed['scheme'] === 'router') {
+                    $this->error('docParamNotInMethod',
+                        '注解中的参数 ['.$name.'] 在方法 ['.$this->parsed['class'].'::'.$this->parsed['method'].'] 中不存在');
                     continue;
-                }else{
+                }else {
                     $this->parsed['param'][$name] = [
                         'type' => null
                     ];
@@ -356,10 +372,10 @@ abstract class Action extends Loader
             $mp   = &$this->parsed['param'][$name];
             $type = $type?: $mp['type'];
 
-            if($type && !$mp['type']){
+            if ($type && !$mp['type']) {
                 $mp['type'] = $type;
                 $mp['line'] = $this->line; //标明此处的类型定义来自注解
-            }elseif($type !== $mp['type']){
+            }elseif ($type !== $mp['type']) {
                 $this->error('paramTypeDiscord', '参数类型不一致。['.$type.']的参数类型['.$name.'] 与方法声明中的类型['.$mp[0].'] 不一致');
             }
             $ruler = $this->parseParamRuler($match[2], $type);
@@ -367,13 +383,13 @@ abstract class Action extends Loader
             $nodes = [];
 
             $paramType = $this->findParamType($name);
-            if($paramType){
-                if($type && $type !== $paramType){
+            if ($paramType) {
+                if ($type && $type !== $paramType) {
                     $this->error('commentParamTypeIll', '注释中参数类型错误，期待 ['.$paramType.'],此处为 ['.$type.']');
                 }
                 $lines = $this->getCommentList(['string']);
                 $nodes = $this->parseParam($lines);
-            }elseif(isset(self::REQUEST_PARAM[$type])){
+            }elseif (isset(self::REQUEST_PARAM[$type])) {
                 $this->error('commentParamTypeIll', '注释中参数名错误，期待为 ['.implode(', ', self::REQUEST_PARAM[$type]).'] 之一,此处为 ['.$name.']');
             }
             $mp['ruler'] = $ruler;
@@ -388,7 +404,7 @@ abstract class Action extends Loader
     private function collectDocReturn()
     {
         $return = $this->getValue('return');
-        if($return === null){
+        if ($return === null) {
             $this->parsed['return'] = [];
 
             return;
@@ -404,22 +420,22 @@ abstract class Action extends Loader
         $ruler  .= $match[1];
         try{
             $parsed['ruler'] = Requester::parseValidate($ruler, 'return:'.$ruler);
-        }catch(Exception $e){
-            if($this->parsed['scheme'] === 'router'){
+        }catch (Exception $e){
+            if ($this->parsed['scheme'] === 'router') {
                 $this->throwError($e);
-            }else{
+            }else {
                 return;
             }
         }
 
-        if($parsed['ruler']['type'] === 'string'){
+        if ($parsed['ruler']['type'] === 'string') {
             $parsed['ruler']['type'] = 'object';
         }
 
         $lines = $this->getCommentList(['string']);
 
         $type = $parsed['ruler']['type'];
-        if(in_array($type, Requester::MULTI_TYPE)){
+        if (in_array($type, Requester::MULTI_TYPE)) {
             $parsed['nodes'] = $this->parseParam($lines);
         }
 
@@ -449,7 +465,7 @@ abstract class Action extends Loader
      */
     private function applyPage(&$parsed)
     {
-        if(isset($parsed['ruler']['page'])){
+        if (isset($parsed['ruler']['page'])) {
             $parsed['ruler']['rule'] = preg_replace('/(?:^| )page(?: |$)/', ' ', $parsed['ruler']['rule']);
             $parsed['nodes']         = [
                 [
@@ -465,11 +481,11 @@ abstract class Action extends Loader
             ];
             $parsed['ruler']['type'] = 'object';
             $nodes                   = &$parsed['nodes'][0]['nodes'];
-        }else{
+        }else {
             $nodes = &$parsed['nodes'];
         }
-        if(is_array($nodes)){
-            foreach($nodes as &$node){
+        if (is_array($nodes)) {
+            foreach ($nodes as &$node) {
                 $this->applyPage($node);
             }
         }
@@ -483,7 +499,7 @@ abstract class Action extends Loader
         //获取说明
         $this->parsed['name'] = $this->getValue('string');
         $this->parsed['desc'] = [];
-        foreach($this->getCommentList(['string']) as list(, $desc)){
+        foreach ($this->getCommentList(['string']) as list(, $desc)) {
             $this->parsed['desc'][] = $desc;
         }
         $this->parsed['notice'] = $this->getValue('notice');
@@ -497,7 +513,7 @@ abstract class Action extends Loader
      */
     private function parseDoc()
     {
-        switch($this->parsed['scheme']){
+        switch ($this->parsed['scheme']) {
             case 'model':
                 $this->parseModelDoc();
                 break;
@@ -527,34 +543,34 @@ abstract class Action extends Loader
         ], [T_WHITESPACE], ['useful']);
 
         $type = $this->collect([T_FUNCTION], [T_WHITESPACE]);
-        if($type === 'function'){
-            if($scheme === ''){
+        if ($type === 'function') {
+            if ($scheme === '') {
                 $scheme = 'public';
             }
-        }else{
+        }else {
             return;
         }
 
-        if($this->collect([T_STATIC], [T_WHITESPACE])){
+        if ($this->collect([T_STATIC], [T_WHITESPACE])) {
             return;
         }
 
         $model = $this->getValue('model');
-        if(!$model && $scheme === 'use'){//查看 use 或 method
+        if (!$model && $scheme === 'use') {//查看 use 或 method
             $model = $this->collect([T_STRING, T_NS_SEPARATOR], [T_WHITESPACE]);
         }
 
-        if($model){
-            if(strpos($model, '\\') !== 0){
+        if ($model) {
+            if (strpos($model, '\\') !== 0) {
                 $model = '\\'.$model;
             }
             $this->parsed['scheme'] = 'model';
             $this->parsed['model']  = $model;
             $this->parsed['access'] = $this->getValue('access');
-        }elseif($scheme === 'public'){
+        }elseif ($scheme === 'public') {
             $this->parsed['scheme'] = 'router';
             $this->collectMethodParam();
-        }elseif($scheme === 'private' || $scheme === 'protected'){
+        }elseif ($scheme === 'private' || $scheme === 'protected') {
             $this->parsed['scheme'] = 'method';
             $this->collectMethodParam();
         }
@@ -564,16 +580,16 @@ abstract class Action extends Loader
     {
         $res     = [];
         $routers = $this->getCommentList(['router'], ['all'], [], true);
-        foreach($routers as $router){
+        foreach ($routers as $router) {
             $this->parsed['line'] = $router[2];
             $this->line           = $router[2];
             $item                 = $this->parseRouterRuler($router[1]);
-            if($this->parsed['scheme'] === 'method'){
+            if ($this->parsed['scheme'] === 'method') {
                 $this->error('VisibleNotAllow', '该方法不存在或可见性不为 public');
             }
             $res[] = $item;
         }
-        if(!$res){
+        if (!$res) {
             $res[] = [
                 'scheme'  => 'method',
                 'uri'     => '',
@@ -593,17 +609,17 @@ abstract class Action extends Loader
      */
     private function prefixNamespace($name)
     {
-        if(!$name){
+        if (!$name) {
             return '';
         }
-        if(in_array($name, static::VALUE_PARAM)){
+        if (in_array($name, static::VALUE_PARAM)) {
             return $name;
         }
-        if(strpos($name, '\\') === 0){
+        if (strpos($name, '\\') === 0) {
             return $name;
         }
 
-        if(array_key_exists($name, $this->useList)){
+        if (array_key_exists($name, $this->useList)) {
             return $this->useList[$name];
         }
 
@@ -616,7 +632,7 @@ abstract class Action extends Loader
     private function collectMethodParam()
     {
         $method = $this->collect([T_STRING], [T_WHITESPACE, T_FUNCTION]);
-        if(!$method){//不是方法上的注释
+        if (!$method) {//不是方法上的注释
             return;
         }
         $this->parsed['class']  = $this->class;
@@ -624,14 +640,14 @@ abstract class Action extends Loader
 
         $this->collect(['('], [T_WHITESPACE], ['(']);
         $params = [];
-        do{
+        do {
             $type      = $this->collect([T_STRING, T_NS_SEPARATOR, T_ARRAY], [T_WHITESPACE, ','], [T_VARIABLE]);
             $reference = $this->collect(['&'], [T_WHITESPACE]);
             $name      = substr($this->collect([T_VARIABLE], [T_WHITESPACE], [T_VARIABLE]), 1);
-            if($reference && !in_array($name, self::ENABLE_QUOTE)){
+            if ($reference && !in_array($name, self::ENABLE_QUOTE)) {
                 $this->error('paramNotAllowByReference', 'Action ['.$this->class.'] 中的参数 ['.$name.'] 不允许通过引用传值，请检查');
             }
-            if($name){
+            if ($name) {
                 $default       = $this->collect([T_STRING], [T_WHITESPACE, '=']);
                 $params[$name] = [
                     'type'    => $this->prefixNamespace($type),
@@ -639,7 +655,7 @@ abstract class Action extends Loader
                     'line'    => $this->line
                 ];
             }
-        }while($name);
+        }while ($name);
         $this->parsed['param'] = $params;
     }
 
@@ -653,34 +669,37 @@ abstract class Action extends Loader
     {
         $res = [];
         $as  = preg_split('/ +/', $ruler);
-        foreach($as as $index => $a){
-            if(strpos($a, ':')){
+        foreach ($as as $index => $a) {
+            if (strpos($a, ':')) {
                 list($type, $name) = \explode(':', $a, 2);
-                if(in_array($type, self::RULER_ORDER)){
+                if (in_array($type, self::RULER_ORDER)) {
                     $res[$type] = $name;
-                }elseif($index === 1){
+                }elseif ($index === 1) {
                     $res['uri'] = $a;
-                }else{
+                }else {
                     $this->error('routerRulerNameError', 'Action ['.$this->class.'] 中的规则 ['.$ruler.'] 的规则名 ['.$type.'] 不正确，请检查');
                 }
-            }else{
-                if($a && count(self::RULER_ORDER) > $index){
+            }else {
+                if ($a && count(self::RULER_ORDER) > $index) {
                     $res[self::RULER_ORDER[$index]] = $a;
-                }else{
+                }else {
                     $this->error('routerRulerOverflow', 'Action ['.$this->class.'] 中的规则 ['.$ruler.'] 数量太多，请检查');
                 }
             }
         }
 
+        if ($res['uri'] === './') {
+            $res['uri'] = '';
+        }
 
-        if(isset($res['method'])){
+        if (isset($res['method'])) {
             $methods = explode(',', $res['method']);
             unset($res['method']);
-        }else{
+        }else {
             $methods = ['get'];
         }
-        foreach($methods as $method){
-            if(!in_array($method, static::METHODS)){
+        foreach ($methods as $method) {
+            if (!in_array($method, static::METHODS)) {
                 $this->error('routerMethodIll', 'Action ['.$this->class.'] 中的规则 ['.$ruler.'] 的method值 ['.$method.'] 错误，请检查');
             }
         }
@@ -697,26 +716,30 @@ abstract class Action extends Loader
      */
     protected function applyDefaultValue(&$parsed)
     {
-        foreach(static::RULER_ORDER as $name){
-            if(!isset($parsed[$name])){
+        foreach (static::RULER_ORDER as $name) {
+            if (!isset($parsed[$name])) {
                 $parsed[$name] = $this->defaultRuler[$name]??'';
             }
         }
         //为路径加上前缀
-        if(substr($parsed['uri'], 0, 1) !== '/'){
+        if (substr($parsed['uri'], 0, 1) !== '/') {
             $parsed['uri'] = $this->basePath.$parsed['uri'];
         }
         //为路径加上index
-        if(substr($parsed['uri'], -1, 1) === '/'){
+        if (substr($parsed['uri'], -1, 1) === '/') {
             $parsed['uri'] .= static::DEFAULT_INDEX;
         }
         //加上模板前缀
-        if(substr($parsed['tpl'], 0, 1) !== '/'){
+        if (substr($parsed['tpl'], 0, 1) !== '/') {
             $parsed['tpl'] = $this->baseTplPath.$parsed['tpl'];
         }
         //自动设定模板文件
-        if(substr($parsed['tpl'], -1, 1) === '/'){
+        if (substr($parsed['tpl'], -1, 1) === '/') {
             $parsed['tpl'] .= substr($parsed['uri'], 1);
+            $lastSlashPos  = strrpos($parsed['tpl'], '/') + 1;
+            if (substr($parsed['tpl'], $lastSlashPos, 1) === '*') {
+                $parsed['tpl'] = substr($parsed['tpl'], 0, $lastSlashPos).static::DEFAULT_INDEX;
+            }
         }
     }
 
@@ -734,12 +757,12 @@ abstract class Action extends Loader
         $paths     = [];
         $pathParam = [];
 
-        foreach($uris as $u){
-            if(strpos($u, ':') !== false){//是一个变量
+        foreach ($uris as $u) {
+            if (strpos($u, ':') !== false) {//是一个变量
                 list($type, $name) = \explode(':', $u, 2);
                 $pathParam[$name] = $type;
                 $u                = '__var';
-            }elseif(strpos($u, '*') === 0){
+            }elseif (strpos($u, '*') === 0) {
                 $pathParam[substr($u, 1)] = '';
                 $u                        = '__*';
             }
@@ -758,11 +781,22 @@ abstract class Action extends Loader
      */
     protected function checkParsedValue(array $attr)
     {
-        if($attr['auth'] && $attr['auth'] !== 'public' && strpos($attr['auth'], '\\') !== 0){
+        if (strpos($attr['auth'], '.') === 0) {
+            $attr['auth'] = $this->defaultRuler['auth'].$attr['auth'];
+        }
+        if ($attr['auth'] !== 'public' && strpos($attr['auth'], '\\') !== 0) {
             $attr['auth'] = self::$namespaceRoot.'\\auth\\'.$attr['auth'];
         }
 
-        if($attr['methods'] === ['cli'] && strpos($attr['affix'], 'output_') === false){
+        if ($attr['log'] === 'none') {
+            $attr['log'] = '\jt\lib\log\DarkHole';
+        }
+
+        if (strpos($attr['log'], '\\') !== 0) {
+            $attr['log'] = self::$namespaceRoot.'\\log\\'.$attr['log'];
+        }
+
+        if ($attr['methods'] === ['cli'] && strpos($attr['affix'], 'output_') === false) {
             $attr['affix'] .= 'output_quiet';
         }
 
@@ -791,51 +825,51 @@ abstract class Action extends Loader
 
         $processPathParamCount = 0;
         $pathParamKeys         = array_keys($pathParam);
-        foreach($pathParamKeys as $key){
-            if(!isset($parsed['param'][$key]) && isset($this->defaultParam[$key])){
+        foreach ($pathParamKeys as $key) {
+            if (!isset($parsed['param'][$key]) && isset($this->defaultParam[$key])) {
                 $parsed['param'][$key] = $this->defaultParam[$key];
             }
         }
 
-        foreach($parsed['param'] as $name => $item){
+        foreach ($parsed['param'] as $name => $item) {
             $this->line = $item['line'];
             $type       = $item['type'];
             $paramType  = $this->findParamType($name);
-            if($paramType){
-                if($type && $paramType !== $type){
+            if ($paramType) {
+                if ($type && $paramType !== $type) {
                     $this->error('paramTypeIll', '参数 ['.$name.'] 的类型此处为 ['.$type.'], 应该为 ['.$paramType.']');
                 }
                 $item['behave'] = $paramType;
-            }elseif($type && !in_array($type, static::VALUE_PARAM)){
+            }elseif ($type && !in_array($type, static::VALUE_PARAM)) {
                 $item['behave'] = 'inject';
-            }elseif(isset($pathParam[$name])){
-                if($type && $pathParam[$name] && $pathParam[$name] !== $type){
+            }elseif (isset($pathParam[$name])) {
+                if ($type && $pathParam[$name] && $pathParam[$name] !== $type) {
                     $this->error('pathParamTypeIll', '路径中的参数 ['.$name.'] 的类型与规则中声明的不一致');
                 }
-                if(!$type){
+                if (!$type) {
                     $item['type'] = $pathParam[$name]?: 'string';
                 }
                 $item['ruler']  = trim(isset($item['ruler'])? $item['ruler']: ''.' '.$item['type']);
                 $item['behave'] = 'value';
                 $item['pos']    = array_search($name, $pathParamKeys);//在参数中出现的顺序，便于后序生成参数
                 $processPathParamCount++;
-            }elseif($this->parsed['scheme'] !== 'method'){
+            }elseif ($this->parsed['scheme'] !== 'method') {
                 $this->error('routerMapNameError', $action.' 对应的参数名 ['.$name.'] 不一致，请检查');
             }
-            if(isset($item['ruler']) && $item['ruler']){
+            if (isset($item['ruler']) && $item['ruler']) {
                 try{
                     $item['ruler'] = Requester::parseValidate($item['ruler'], 'param['.$name.']:'.$item['ruler']);
-                }catch(Exception $e){
+                }catch (Exception $e){
                     $this->throwError($e);
                 }
 
-            }else{
+            }else {
                 $item['ruler'] = [];
             }
             $param[$name] = $item;
         }
 
-        if(count($pathParam) < $processPathParamCount){//参数数量不一致
+        if (count($pathParam) < $processPathParamCount) {//参数数量不一致
             $this->error('routerMapCountError', $action.'路径中的参数不足，请检查');
         }
 
@@ -843,7 +877,7 @@ abstract class Action extends Loader
         $parsed['param'] = $param;
 
         $res = [];
-        foreach(self::METHOD_ATTRIBUTES as $name){
+        foreach (self::METHOD_ATTRIBUTES as $name) {
             $res[$name] = isset($parsed[$name])? $parsed[$name]: '';
         }
 
@@ -861,7 +895,7 @@ abstract class Action extends Loader
     {
         $as    = preg_split('/ *, */', $access);
         $ruler = [];
-        foreach($as as $v){
+        foreach ($as as $v) {
             $vs            = explode(':', $v);
             $ruler[$vs[0]] = $vs[1];
         }
@@ -906,23 +940,23 @@ abstract class Action extends Loader
             'uri'     => $this->parsed['uri'].($list? 'list': '')
         ]);
 
-        if($list){
-            if($method === 'post' || $method === 'put'){
+        if ($list) {
+            if ($method === 'post' || $method === 'put') {
                 $router['param']['body'] = $this->buildModelParam();
-            }else{
+            }else {
                 $router['param']['query'] = $this->buildModelParam();
             }
-        }else{
-            if($method !== 'post'){
+        }else {
+            if ($method !== 'post') {
                 $router['uri']         .= ':id';
                 $router['param']['id'] = $this->buildModelParam('string');
             }
-            if($method === 'post' || $method === 'put'){
+            if ($method === 'post' || $method === 'put') {
                 $router['param']['body'] = $this->buildModelParam();
             }
         }
 
-        if(isset($access[$method.$list])){
+        if (isset($access[$method.$list])) {
             $router['auth'] = $access[$method.$list];
         }
         $router['method'] = $method.$list;
@@ -941,17 +975,17 @@ abstract class Action extends Loader
         unset($this->parsed['access']);
         $methods = $this->parsed['methods'];
 
-        if(substr($this->parsed['uri'], 0, -1) !== '/'){
+        if (substr($this->parsed['uri'], 0, -1) !== '/') {
             $this->parsed['uri'] .= '/';
         }
 
         $parsedPatch = [];
 
-        foreach($methods as $m){
-            if(!isset($access[$m]) || $access[$m] !== 'block'){
+        foreach ($methods as $m) {
+            if (!isset($access[$m]) || $access[$m] !== 'block') {
                 $parsedPatch[$m] = $this->buildModelRouter($m, '');
             }
-            if(!isset($access[$m.'List']) || $access[$m.'List'] !== 'block'){
+            if (!isset($access[$m.'List']) || $access[$m.'List'] !== 'block') {
                 $parsedPatch[$m.'List'] = $this->buildModelRouter($m, 'List');
             }
         }
@@ -964,14 +998,14 @@ abstract class Action extends Loader
      */
     protected function pack()
     {
-        if($this->parsed['scheme'] === 'model'){
+        if ($this->parsed['scheme'] === 'model') {
             $ps = $this->expansionModel();
-            foreach($ps as $method => $parsed){
+            foreach ($ps as $method => $parsed) {
                 $this->method = $method;
                 $this->parsed = $parsed;
                 $this->pack();
             }
-        }else{
+        }else {
             $this->parsedContainer['methods'][] = $this->packParsed();
         }
     }

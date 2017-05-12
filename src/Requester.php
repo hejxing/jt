@@ -28,7 +28,7 @@ class Requester
 
     protected $method = '';
 
-    const CONVERT_TYPE  = ['int', 'float', 'double', 'bool', 'money', 'datetime', 'timestamp'];
+    const CONVERT_TYPE  = ['string', 'int', 'float', 'double', 'bool', 'money', 'datetime', 'timestamp'];
     const VALIDATE_TYPE = ['email', 'mobile', 'phone', 'identityCard', 'number', 'zn_ch', 'uuid'];
 
     const VALUE_RANGE_TYPE  = ['int', 'float', 'money', 'double'];
@@ -132,8 +132,10 @@ class Requester
                 $value = $value?: 'string';
                 if(in_array($value, self::SINGLE_TYPE) || in_array($value, self::MULTI_TYPE) || in_array($value, self::CONVERT_TYPE)){
                     $result['type'] = $value;
+                }elseif($value === 'array'){
+                    $result['type'] = 'objectList';
                 }else{
-                    throw new Exception("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 的属性 [{$value}] 有误，请检查");
+                    throw new Exception("actionRulerValueError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 的属性 [{$value}] 有误，请检查");
                 }
                 break;
             case in_array($key, self::VALUE_RULE):
@@ -186,8 +188,10 @@ class Requester
         switch($ruler['type']){
             case 'object':
                 $buffer = [];
-                foreach($ruler['nodes'] as $field => $r){
-                    $buffer[$field] = self::validate($data[$field]??null, $r, $name.'.'.$field, $safeCheck);
+                if(isset($ruler['nodes'])){
+                    foreach($ruler['nodes'] as $field => $r){
+                        $buffer[$field] = self::validate($data[$field]??null, $r, $name.'.'.$field, $safeCheck);
+                    }
                 }
 
                 return $buffer;
@@ -348,6 +352,8 @@ class Requester
             return null;
         }
         switch($type){
+            case 'string':
+                return (string)$value;
             case 'int':
                 return intval($value);
             case 'float':

@@ -69,24 +69,8 @@ abstract class Loader
 
     private static function collectModules($projectRoot, $module)
     {
-        $modules = [];
-        if(\substr($module, 0, 4) === 'app\\'){
-            $appRoot = $projectRoot.'/app';
-            $hd      = \opendir($appRoot);
-            if(\is_dir($projectRoot.'/sys')){
-                $modules = ['sys' => [$projectRoot.'/sys', 'sys']];
-            }
-            while(($file = readdir($hd))){
-                if(in_array(strtolower($file), self::$ignoreFiles)){
-                    continue;
-                }
-                if(is_dir($appRoot.'/'.$file)){
-                    $modules['app_'.$file] = [$appRoot.'/'.$file, 'app\\'.$file];
-                }
-            }
-        }else{
-            $modules = [$module => [$projectRoot, '']];
-        }
+        $namespaceRoot = substr(strrchr($projectRoot, '/'), 1);
+        $modules = [$module => [$projectRoot, '\\'.$namespaceRoot]];
 
         return $modules;
     }
@@ -111,7 +95,7 @@ abstract class Loader
         //全局生成新的解析结果
         $modules = self::collectModules($projectRoot, $module);
 
-        $cacheRoot    = RUNTIME_PATH_ROOT.'/cache/router';
+        $cacheRoot    = self::genCacheFileName();
         $currentCache = [];
         foreach($modules as $moduleName => $config){
             list($dir, self::$namespaceRoot) = $config;
@@ -132,6 +116,17 @@ abstract class Loader
         }
 
         static::$cacheStore = $currentCache;
+    }
+
+    protected static function genCacheFileName(){
+        return RUNTIME_PATH_ROOT.'/cache/router';
+    }
+
+    public static function cleanCache(){
+        $cacheDir = self::genCacheFileName();
+        if(is_dir($cacheDir)){
+            exec('rm -rf '.$cacheDir);
+        }
     }
 
     private static function diffCache()

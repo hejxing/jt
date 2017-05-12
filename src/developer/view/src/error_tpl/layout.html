@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{{$projectName}}</title>
-    {{if $baseHref}}
-    <base href="{{$baseHref}}">
-    {{/if}}
+    {{if $baseHref}}<base href="{{$baseHref}}">{{/if}}
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- 新 Bootstrap 核心 CSS 文件 -->
     <link rel="stylesheet" href="//docs-resource.51ydgymall.cn/css/bootstrap.min.css">
@@ -35,36 +33,30 @@
 <div class="body-box">
     <div class="col-md-2 classList">
         {{foreach $pathList as $className => $methods}}
-        <div class="collect class-group">
-            <div class="list-title list-group-item">
-                <span class="expand disabled" title="展开">+</span>
-                <a href="./class/{{str_replace('\\', '/', $className)}}.html">{{$classInfo.$className.title||$className}}</a>
+            <div class="collect class-group">
+                <div class="list-title list-group-item">
+                    <span class="expand disabled" title="展开">+</span>
+                    <a href="./class/{{str_replace('\\', '/', $className)}}.html">{{$classInfo.$className.title||$className}}</a>
+                </div>
+                {{foreach $methods as $path => $ms}}
+                    {{foreach $ms as $method => $info}}
+                        <a class="list-group-item" href="./{{$method . $path}}.html">{{$info.name}}<br>{{$method}} {{$path}}</a>
+                    {{/foreach}}
+                {{/foreach}}
             </div>
-            {{foreach $methods as $path => $ms}}
-            {{foreach $ms as $method => $info}}
-            <a class="list-group-item" href="./{{$method . $path}}.html">{{$info.name}}<br>{{$method}} {{$path}}</a>
-            {{/foreach}}
-            {{/foreach}}
-        </div>
         {{/foreach}}
     </div>
     <!-- 内容 -->
     <div class="col-md-10 main-stash">
         <div class="panel-heading">{{block 'body-header'}}{{/block}}</div>
         <div class="detail-box">
-            {{block 'body'}}
-            <div class="panel-heading"></div>
-            {{/block}}
+            {{block 'body'}}<div class="panel-heading"></div>{{/block}}
             <p class="copyright">&copy;{{date('Y')}} csmall.com</p>
         </div>
     </div>
 </div>
 <script>
-    {
-        {
-            literal
-        }
-    }
+    {{literal}}
     $('.classList .expand').click(function(){
         var trigger = $(this);
         trigger.toggleClass('disabled');
@@ -84,11 +76,7 @@
     $('a[href^="http"]').each(function(){
         $(this).attr('target', '_blank');
     });
-    {
-        {/
-            literal
-        }
-    }
+    {{/literal}}
 </script>
 </body>
 </html>

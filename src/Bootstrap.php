@@ -27,19 +27,22 @@ class Bootstrap
      */
     public static function exeComplete()
     {
-        if (Controller::current()->isCompleteAndSuccess()) {//代码执行 && 业务成功
+        $controller = Controller::current();
+        if ($controller->isCompleteAndSuccess()) {//代码执行 && 业务成功
             if (class_exists('\jt\Model', false)) {
                 Model::commitAll();
             }
+            $controller->getLogWriter()->success();
         }else {
             if (class_exists('\jt\Model', false)) {
-                Model::rollBack();
+                Model::rollBackAll();
             }
             $lastError = error_get_last();
             if ($lastError) {
                 Error::logFatal('FatalError: '.$lastError['type'],
                     $lastError['message'].' in '.$lastError['file'].' line '.$lastError['line']);
                 //短信、邮件通知负责人
+
             }
         }
     }

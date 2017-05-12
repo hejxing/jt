@@ -4,7 +4,6 @@
  * User: ax
  * Date: 2016/11/26 12:27
  */
-
 namespace jt\developer;
 
 use jt\Action;
@@ -27,12 +26,17 @@ class Base extends Action
      * @var int 功能菜单最大嵌套层级
      */
     protected $maxMenuLevel = 2;
+    /**
+     * @var bool 是否允许功能结点不出现在组织末端
+     */
+    protected $mixing = false;
 
     private $configList = [
         'projectCode',
         'projectName',
         'maxMenuLevel',
-        'grantMenuListFile'
+        'grantMenuListFile',
+        'mixing'
     ];
 
     protected function doAction($uri)
@@ -55,8 +59,8 @@ class Base extends Action
 
     public function setConfig($config)
     {
-        foreach($config as $name => $value){
-            if(property_exists($this, $name)){
+        foreach ($config as $name => $value) {
+            if (property_exists($this, $name)) {
                 $this->$name = $value;
             }
         }

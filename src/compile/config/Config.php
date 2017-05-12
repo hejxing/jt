@@ -8,6 +8,8 @@
 
 namespace jt\compile\config;
 
+use jt\compile\router\Router;
+
 class Config
 {
     protected static $parseFile = '';
@@ -32,6 +34,7 @@ class Config
         self::$parseFile = $file;
         self::loadCache();
         self::parse($file);
+
         self::writeResult();
     }
 
@@ -75,6 +78,13 @@ class Config
         }
     }
 
+    protected static function findDefaultConfig($file)
+    {
+        $defaultConfigFile = __DIR__.'/DefaultConfig.php';
+
+        return $file === $defaultConfigFile? '': $defaultConfigFile;
+    }
+
     protected static function parseExtend(array $tokens, $file)
     {
         foreach($tokens as $token){
@@ -98,7 +108,7 @@ class Config
             }
         }
 
-        return '';
+        return static::findDefaultConfig($file);
     }
 
     protected static function checkFileExists($file)
@@ -269,6 +279,8 @@ class Config
         }
         file_put_contents(self::$saveAs, $con, LOCK_EX);
         chmod(self::$saveAs, 0777);
+
+        Router::cleanCache();
     }
 
     public static function lastWords($words)

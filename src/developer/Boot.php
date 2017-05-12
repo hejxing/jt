@@ -17,7 +17,7 @@ class Boot extends Controller
     /**
      * @var string 模板目录
      */
-    const TPL_DIR = 'build';
+    const TPL_DIR = '/build';
     /**
      * @var string 模块名称
      */
@@ -71,7 +71,7 @@ class Boot extends Controller
         }
 
         $this->getResponder()->setTplEngine(new Mind([
-            'basePath' => __DIR__.'/view/'.self::TPL_DIR,
+            'basePath' => __DIR__.'/view'.self::TPL_DIR,
             'suffix'   => '.html'
         ]));
 

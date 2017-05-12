@@ -6,11 +6,9 @@
 
 namespace jt\compile\router;
 
-use jt\utils\Helper;
-
 class Router extends Action
 {
-    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'affix', 'line'];
+    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'log', 'affix', 'line'];
 
     /**
      * 清理参数子结点数据
@@ -37,7 +35,7 @@ class Router extends Action
      * 清理参数
      *
      * @param array $value
-     * @return string
+     * @return array
      */
     private function clearParam(array $value)
     {
@@ -169,7 +167,7 @@ class Router extends Action
         file_put_contents($saveAs, "<?php\nreturn ".var_export($routerMap, true).';', LOCK_EX);
         //>debug
         if(RUN_MODE === 'develop'){
-            Helper::modifyFilePerms(RUNTIME_PATH_ROOT, 0777);
+            exec('chmod -R 777 '.RUNTIME_PATH_ROOT);
         }
 
         //debug<

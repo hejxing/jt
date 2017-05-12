@@ -1,9 +1,8 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: Administrator
- * Date: 2015/5/22
- * Time: 14:02
+ * User: ax
+ * Date: 2017/5/2 14:02
  */
 
 namespace jt\lib\database;
@@ -69,6 +68,7 @@ class Connector
     {
         $this->connSeed = $module.$conn;
         $this->config   = self::loadConfig($module, $conn);
+
         if(!isset(self::$quotesList[$this->config['type']])){
             throw new \ErrorException('DatabaseTypeIll:数据库类型 ['.$this->config['type'].'] 错误，不存在此种数据库或未实现对此种数据库的支持');
         }
@@ -93,13 +93,12 @@ class Connector
      */
     protected function createPDO($persistent = true)
     {
-        $pdo = new \PDO($this->generateDsn(), $this->config['user'], $this->config['password']);
-        $pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true); //不使用数据库提供的prepares
-        $pdo->setAttribute(\PDO::ATTR_PERSISTENT, $persistent); //长连接
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION); //抛出异常
-        $pdo->setAttribute(\PDO::ATTR_TIMEOUT, $this->config['timeout']);
-
-        //$pdo->setAttribute(\PDO::ATTR_CASE, \PDO::CASE_NATURAL);
+        $pdo = new \PDO($this->generateDsn(), $this->config['user'], $this->config['password'], [
+            \PDO::ATTR_EMULATE_PREPARES => true,//不使用数据库提供的prepares
+            \PDO::ATTR_PERSISTENT       => $persistent,//长连接
+            \PDO::ATTR_ERRMODE          => \PDO::ERRMODE_EXCEPTION,//抛出异常
+            \PDO::ATTR_TIMEOUT          => $this->config['timeout']
+        ]);
         return $pdo;
     }
 
@@ -116,7 +115,7 @@ class Connector
         /** @type \PDO $pdo */
         $pdo = self::$pdoList[$this->connSeed];
 
-        if(!$pdo->inTransaction()){
+        if($this->config['transaction'] && !$pdo->inTransaction()){
             $pdo->beginTransaction();
         }
 
@@ -128,8 +127,8 @@ class Connector
      *
      * @param $module
      * @param $conn
-     *
      * @return array
+     * @throws \ErrorException
      */
     protected static function loadConfig($module, $conn)
     {
@@ -144,7 +143,11 @@ class Connector
             $modelConfig                      = static::readConfig();
             static::$configModelPool[$module] = $modelConfig;
         }
-        $config = \array_replace_recursive($modelConfig['__base'], $modelConfig[$conn]);
+        if(isset($modelConfig[$conn])){
+            $config = \array_replace_recursive($modelConfig['__base'], $modelConfig[$conn]);
+        }else{
+            throw new \ErrorException('ModelConnIll:数据库连接类型 ['.$conn.'] 的配置不存在或不正确，请检查');
+        }
 
         static::$configPool[$connSeed] = $config;
 

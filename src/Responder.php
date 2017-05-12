@@ -116,7 +116,7 @@ class Responder
             $sqlList = "\n        ".implode("\n        ", $hData['querySqlList']);
             $content .= "
 <!--
-    Entrance: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[8]})
+    Entrance: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[9]})
     SqlQueryTimes: {$hData['queryCount']}
     LoadFiles: {$hData['loadFilesCount']}
     UseMemory: {$hData['useMemory']}

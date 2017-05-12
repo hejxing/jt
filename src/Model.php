@@ -148,6 +148,10 @@ abstract class Model
      */
     private $notCondition = false;
     /**
+     * @var bool 是否自动开启事务
+     */
+    private $restartTransaction = false;
+    /**
      * 控制是否输出sql
      *
      * @type bool
@@ -178,21 +182,11 @@ abstract class Model
     ];
 
     /**
-     * 类加载后自动执行的方法
-     */
-    public static function __init()
-    {
-        if(static::$columns){
-            //解析表结构和属性
-            self::parseColumns();
-        }
-    }
-
-    /**
      * 构造Model
      */
     public function __construct()
     {
+        static::parseColumns();
         $this->connector = new Connector(PROJECT_ROOT, $this->conn);
         $quotes          = $this->connector->getQuotes();
         static::$quotes  = $quotes;
@@ -206,8 +200,11 @@ abstract class Model
      */
     private static function parseColumns()
     {
+        if (is_array(current(static::$columns))) {
+            return;
+        }
         $parsed = [];
-        foreach(static::$columns as $name => $column){
+        foreach (static::$columns as $name => $column) {
             $parsed[$name] = self::line($column, $name);
         }
         static::$columns = self::tidyParsed($parsed);
@@ -221,10 +218,10 @@ abstract class Model
      */
     private static function tidyParsed($parsed)
     {
-        if(!static::$primary){
+        if (!static::$primary) {
             self::error('primaryEmpty', '未指定主键');
         }
-        if(isset($parsed[static::$primary]['increment'])){
+        if (isset($parsed[static::$primary]['increment'])) {
             static::$primaryType = 'increment';
         }
 
@@ -238,19 +235,19 @@ abstract class Model
      */
     private static function tidyParsedLine(&$lined)
     {
-        if(!isset($lined['type']) && (isset($lined['createAt']) || isset($lined['updateAt']))){
+        if (!isset($lined['type']) && (isset($lined['createAt']) || isset($lined['updateAt']))) {
             $lined['type'] = 'timestamp';
         }
-        if($lined['type'] === 'array' && empty($lined['typeField'])){
+        if ($lined['type'] === 'array' && empty($lined['typeField'])) {
             $lined['typeField'] = 'text';
         }
         //fieldType不允许为空
-        if(empty($lined['type'])){
+        if (empty($lined['type'])) {
             self::error('typeEmpty', '未指定字段类型');
         }
 
         //将del行默认设为hidden
-        if(!empty($lined['del']) && !isset($lined['hidden'])){
+        if (!empty($lined['del']) && !isset($lined['hidden'])) {
             $lined['hidden'] = true;
         }
     }
@@ -266,7 +263,7 @@ abstract class Model
     {
         $lined = [];
         $parts = \preg_split('/ +/', $str);
-        foreach($parts as $a){
+        foreach ($parts as $a) {
             self::attr($a, $name, $lined);
         }
         self::tidyParsedLine($lined);
@@ -285,18 +282,18 @@ abstract class Model
      */
     private static function attr($a, $name, &$result)
     {
-        if(\strpos($a, ':')){
+        if (\strpos($a, ':')) {
             list($key, $value) = \explode(':', $a, 2);
-        }else{
+        }else {
             list($key, $value) = [$a, null];
         }
 
-        switch(true){
+        switch (true) {
             case in_array($key, self::$parseDict['bool']):
-                if($key === 'primary'){
+                if ($key === 'primary') {
                     static::$primary = $name;
                 }
-                if($key === 'del'){
+                if ($key === 'del') {
                     $result['type'] = 'bool';
                 }
                 $result[$key] = true;
@@ -307,7 +304,7 @@ abstract class Model
                 break;
             case in_array($key, self::$parseDict['string']):
                 $result['fieldType'] = $key;
-                if(!isset($result['type'])){
+                if (!isset($result['type'])) {
                     $result['type'] = 'string';
                 }
                 $result['length'] = intval($value);
@@ -332,13 +329,13 @@ abstract class Model
                 $result['type'] = $key;
                 break;
             case in_array($key, self::$parseDict['value']):
-                if($key === 'field'){
+                if ($key === 'field') {
                     self::$fieldMap[$value] = $name;
                 }
-                if($key === 'filter' && !method_exists(get_called_class(), $value)){
+                if ($key === 'filter' && !method_exists(get_called_class(), $value)) {
                     self::error('filterNotExists', "配置表中 filter 方法[{$value}]不存在，请检查");
                 }
-                if($key === 'stuffer' && !method_exists(get_called_class(), $value)){
+                if ($key === 'stuffer' && !method_exists(get_called_class(), $value)) {
                     self::error('stufferNotExists', "配置表中 stuffer 方法[{$value}]不存在，请检查");
                 }
                 $result[$key] = $value;
@@ -351,26 +348,26 @@ abstract class Model
     }
 
     /**
-     * 提交事务
+     * 提交所有事务
      */
     public static function commitAll()
     {
-        foreach(Connector::getPdoList() as $pdo){
+        foreach (Connector::getPdoList() as $pdo) {
             self::restartTransaction($pdo);
         }
     }
 
     /**
-     * 提交指连接的事务
+     * 提交指定连接的事务
      *
      * @param \PDO $pdo
      */
     private static function commitTransaction(\PDO $pdo)
     {
-        if(self::$debugMode){
+        if (self::$debugMode) {
             (new Action())->header('_db_debug_mode', true);
             $pdo->rollBack();
-        }else{
+        }else {
             $pdo->commit();
         }
     }
@@ -380,28 +377,38 @@ abstract class Model
      */
     private static function restartTransaction($pdo)
     {
-        if(!$pdo){
+        if (!$pdo) {
             return;
         }
-        if($pdo->inTransaction()){
+        if ($pdo->inTransaction()) {
             self::commitTransaction($pdo);
         }
-        if(!$pdo->inTransaction()){
+        if (!$pdo->inTransaction()) {
             $pdo->beginTransaction();
         }
     }
 
     /**
-     * 开始自动事务
+     * 关闭事务
+     *
+     * @param bool $commitQueue 是否提交之前未提交的事务,注意！！！：如不提交则会清空之前未提交的事务
+     * @param bool $restart 是否本次执行结束后又自动开启事务
+     * @return $this
      */
-    public static function autoCommit()
+    public function closeTransaction($commitQueue, $restart = true)
     {
-        foreach(Connector::getPdoList() as $pdo){
-            /* @var $pdo \PDO */
-            if($pdo->inTransaction()){
+        $this->connectDb();
+        /* @var $pdo \PDO */
+        if ($this->pdo && $this->pdo->inTransaction()) {
+            if ($commitQueue) {
                 self::commitTransaction($pdo);
+            }else {
+                $this->pdo->rollBack();
             }
         }
+        $this->restartTransaction = $restart;
+
+        return $this;
     }
 
     /**
@@ -409,22 +416,50 @@ abstract class Model
      */
     public static function beginTransaction()
     {
-        foreach(Connector::getPdoList() as $pdo){
+        foreach (Connector::getPdoList() as $pdo) {
             /* @var $pdo \PDO */
-            if(!$pdo->inTransaction()){
+            if (!$pdo->inTransaction()) {
                 $pdo->beginTransaction();
             }
         }
     }
 
     /**
+     * 提交本连接上未提交的事务
+     *
+     * @return $this
+     */
+    public function commit()
+    {
+        if ($this->pdo && $this->pdo->inTransaction()) {
+            self::restartTransaction($this->pdo);
+        }
+
+        return $this;
+    }
+
+    /**
+     * 回滚本连接上未提交的事务
+     *
+     * @return $this
+     */
+    public function rollBack()
+    {
+        if ($this->pdo && $this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+
+        return $this;
+    }
+
+    /**
      * 回滚事务
      */
-    public static function rollBack()
+    public static function rollBackAll()
     {
-        foreach(Connector::getPdoList() as $pdo){
+        foreach (Connector::getPdoList() as $pdo) {
             /* @var $pdo \PDO */
-            if($pdo->inTransaction()){
+            if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
         }
@@ -435,7 +470,7 @@ abstract class Model
      */
     private function connectDb()
     {
-        if($this->pdo === null){
+        if ($this->pdo === null) {
             $this->pdo = $this->connector->open();
         }
     }
@@ -467,7 +502,7 @@ abstract class Model
 
     private function processError(\PDOException $e, $sql)
     {
-        switch($e->getCode()){
+        switch ($e->getCode()) {
             /** @noinspection PhpMissingBreakStatementInspection */
             case '7': //数据库不存在
                 $creator = new Schema(PROJECT_ROOT, $this->conn);
@@ -495,7 +530,7 @@ abstract class Model
      */
     private function applyExecutableToPreSql($sql, $data)
     {
-        foreach($data as $name => $value){
+        foreach ($data as $name => $value) {
             $value = is_string($value)? "'".$value."'": $value;
             $sql   = str_replace(':'.$name, $value, $sql);
         }
@@ -519,20 +554,25 @@ abstract class Model
             $this->connectDb();
             $sth = $this->prepare($preSql);
             $sth->execute($data);
-        }catch(\PDOException $e){
-            self::restartTransaction($this->pdo);
+        }catch (\PDOException $e){
+            $this->rollBack();
             $this->processError($e, $this->applyExecutableToPreSql($preSql, $data));
             $sth = $this->query($preSql, $data);
         }
         //TODO: $this->logs[] = $sth->queryString; //写入文件
         $this->preSql = '';
 
-        if(RUN_MODE != 'production' && self::$debugSql){
+        if (RUN_MODE != 'production' && self::$debugSql) {
             $executeSql = $this->applyExecutableToPreSql($preSql, $data);
             Debug::collect('sql', $executeSql);
         }
-        if($this->isCleanSqlCollect){
+        if ($this->isCleanSqlCollect) {
             $this->cleanSqlCollect();
+        }
+
+        if ($this->restartTransaction && $this->pdo && !$this->pdo->inTransaction()) {
+            $this->pdo->beginTransaction();
+            $this->restartTransaction = false;
         }
 
         return $sth;
@@ -559,13 +599,13 @@ abstract class Model
      */
     private function combQueryResult(array &$list, array $stack)
     {
-        if(empty($stack) || empty($list)){
+        if (empty($stack) || empty($list)) {
             return $list;
         }
 
-        foreach($list as &$item){
-            foreach($stack as $name => $process){
-                foreach($process as $p){
+        foreach ($list as &$item) {
+            foreach ($stack as $name => $process) {
+                foreach ($process as $p) {
                     $item[$name] = $p($item[$name]);
                 }
             }
@@ -577,25 +617,25 @@ abstract class Model
     private function genCombStack()
     {
         $stack = [];
-        foreach($this->queryNames as $name){
+        foreach ($this->queryNames as $name) {
             $column = static::$columns[$name];
 
-            if(isset($column['type']) !== 'string'){
+            if (isset($column['type']) !== 'string') {
                 $type           = $column['type'];
-                $stack[$name][] = function($value) use ($type){
+                $stack[$name][] = function ($value) use ($type){
                     return $this->outType($value, $type);
                 };
             }
-            if(isset($column['filter'])){
+            if (isset($column['filter'])) {
                 $m              = $column['filter'];
-                $stack[$name][] = function($value) use ($m){
+                $stack[$name][] = function ($value) use ($m){
                     return $this->$m($value);
                 };
             }
         }
-        if($this->currentFetchStyle === \PDO::FETCH_NUM){
+        if ($this->currentFetchStyle === \PDO::FETCH_NUM) {
             $indexStack = [];
-            foreach($stack as $name => $item){
+            foreach ($stack as $name => $item) {
                 $indexStack[array_search($name, $this->queryNames)] = $item;
             }
             $stack = $indexStack;
@@ -632,7 +672,7 @@ abstract class Model
     public function insert($preSql, array $data = [])
     {
         $this->query('INSERT INTO '.$preSql, $data);
-        if($this->insertId === null && static::$primaryType === 'increment'){
+        if ($this->insertId === null && static::$primaryType === 'increment') {
             $this->insertId = $this->pdo->lastInsertId($this->table.'_'.static::$primary.'_seq');
         }
 
@@ -698,11 +738,11 @@ abstract class Model
      */
     private function mergeSerial($type)
     {
-        if(!isset($this->sqlCollect[$type])){
+        if (!isset($this->sqlCollect[$type])) {
             return [];
         }
         $list = [];
-        foreach($this->sqlCollect[$type] as $serial){
+        foreach ($this->sqlCollect[$type] as $serial) {
             $list = array_merge($list, \preg_split('/ *, */', $serial));
         }
 
@@ -714,7 +754,7 @@ abstract class Model
      */
     private function collectNames()
     {
-        if(!isset($this->sqlCollect['names'])){
+        if (!isset($this->sqlCollect['names'])) {
             $this->sqlCollect['names'] = ['*'];
         }
         $collectedNames = [];
@@ -723,27 +763,27 @@ abstract class Model
         $fieldNameList  = $this->mergeSerial('names');
         $excludeFields  = $this->collectExclude();
 
-        if(in_array('**', $fieldNameList)){//强制要求列出所有,包含隐藏字段
-            foreach(static::$columns as $name => $v){
+        if (in_array('**', $fieldNameList)) {//强制要求列出所有,包含隐藏字段
+            foreach (static::$columns as $name => $v) {
                 $collectedNames[] = $name;
             }
-        }else{
-            foreach($fieldNameList as $n){
-                if($n === '*'){ //如果需要映射到字段，需要在sql中使用as,则不能直接使用"*"
-                    foreach(static::$columns as $name => $v){
-                        if(isset($v['hidden']) && (!in_array($name, $showHiddenList) && !in_array('*', $showHiddenList))){
+        }else {
+            foreach ($fieldNameList as $n) {
+                if ($n === '*') { //如果需要映射到字段，需要在sql中使用as,则不能直接使用"*"
+                    foreach (static::$columns as $name => $v) {
+                        if (isset($v['hidden']) && (!in_array($name, $showHiddenList) && !in_array('*', $showHiddenList))) {
                             continue;
                         }
                         $collectedNames[] = $name;
                     }
-                }else{
+                }else {
                     $collectedNames[] = $n;
                 }
             }
         }
 
         $collectedNames = array_unique($collectedNames);
-        foreach($excludeFields as $name){
+        foreach ($excludeFields as $name) {
             $index = array_search($name, $collectedNames);
             unset($collectedNames[$index]);
         }
@@ -762,28 +802,28 @@ abstract class Model
         $this->collectNames();
         $names  = $this->queryNames;
         $quotes = static::$quotes;
-        foreach($names as &$name){
+        foreach ($names as &$name) {
             $field = $name;
             $out   = null;
 
-            if(strpos($name, ' AS ')){
+            if (strpos($name, ' AS ')) {
                 list($name, $out) = preg_split('/ +AS +/', 2);
             }
 
-            if(isset(static::$columns[$name]['field'])){
+            if (isset(static::$columns[$name]['field'])) {
                 $field = static::$columns[$name]['field'];
                 $out   = $out?: $name;
             }
 
-            if($out){
+            if ($out) {
                 $name = $quotes.$field.$quotes.' AS '.$quotes.$out.$quotes;
-            }elseif($name !== '*'){
+            }elseif ($name !== '*') {
                 $name = $quotes.$name.$quotes;
             }
         }
 
-        if($this->needFullFieldName){
-            foreach($names as &$name){
+        if ($this->needFullFieldName) {
+            foreach ($names as &$name) {
                 $name = $this->quotesTable.'.'.$name;
             }
         }
@@ -802,18 +842,18 @@ abstract class Model
      */
     private function checkData($value, $columns, $name)
     {
-        if(isset($column['validate'])){
-            if(!Validate::check($value, $column['validate'])){
+        if (isset($column['validate'])) {
+            if (!Validate::check($value, $column['validate'])) {
                 Error::fatal('DataFormatError', '数据项 ['.$name.'] 格式不正确，期望是一个 ['.$column['validate'].'],当前给的值为: ['.$value.']');
             }
-            if($column['validate'] === 'mobile'){
+            if ($column['validate'] === 'mobile') {
                 $value = str_replace('-', '', $value);
             }
         }
-        if($columns['type'] === 'array'){
-            if(is_array($value)){
+        if ($columns['type'] === 'array') {
+            if (is_array($value)) {
                 $value = json_encode($value, JSON_UNESCAPED_UNICODE);
-            }else{
+            }else {
                 Error::fatal('DataFormatError', '数据项 ['.$name.'] 期望是一个 [数组],当前给的值为: ['.var_export($value, true).']');
             }
         }
@@ -833,12 +873,20 @@ abstract class Model
      */
     private function inType($value, $type)
     {
-        switch($type){
+        switch ($type) {
             case 'timestamp':
-                if(is_numeric($value)){
+                if (is_numeric($value)) {
                     $date = new \DateTime();
                     $date->setTimestamp($value);
                     $value = $date->format('Y-m-d\TH:i:s.uP');
+                }
+
+                return $value;
+            case 'date':
+                if (is_numeric($value)) {
+                    $date = new \DateTime();
+                    $date->setTimestamp($value);
+                    $value = $date->format('Y-m-d');
                 }
 
                 return $value;
@@ -859,7 +907,7 @@ abstract class Model
      */
     private function outType($value, $type)
     {
-        switch($type){
+        switch ($type) {
             case 'timestamp':
                 return strtotime($value);
             case 'bool':
@@ -885,12 +933,12 @@ abstract class Model
         $partLength = [8, 4, 4, 4, 12];
         $default    = [];
 
-        foreach($partLength as $i => $length){
-            if(isset($default[$i])){
+        foreach ($partLength as $i => $length) {
+            if (isset($default[$i])) {
                 $default[$i] = str_pad(substr($default[$i], 0, $length), $length, '0', STR_PAD_LEFT);
-            }else{
+            }else {
                 $default[$i] = '';
-                while(strlen($default[$i]) < $length){
+                while (strlen($default[$i]) < $length) {
                     $default[$i] .= str_pad(base_convert(mt_rand(0, 65535), 10, 16), 4, '0', STR_PAD_LEFT);
                 }
             }
@@ -908,28 +956,28 @@ abstract class Model
      */
     private function genDefaultValue($column)
     {
-        if(isset($column['default'])){
+        if (isset($column['default'])) {
             return $column['default'];
         }
 
-        if(isset($column['stuffer'])){
+        if (isset($column['stuffer'])) {
             $stuffer = $column['stuffer'];
 
             return $this->$stuffer();
         }
 
-        if(isset($column['at'])){
+        if (isset($column['at'])) {
             return microtime(true);
         }
-        if($column['type'] === 'uuid'){
+        if ($column['type'] === 'uuid') {
             return isset($column['primary'])? self::genUuid(): self::UUID_ZERO;
         }
-        if($column['type'] === 'array'){
+        if ($column['type'] === 'array') {
             return [];
         }
 
         $type = isset($column['type'])? $column['type']: '';
-        switch($type){
+        switch ($type) {
             case 'float':
             case 'int':
             case 'bool':
@@ -948,35 +996,35 @@ abstract class Model
     private function genInsertNames()
     {
         $data = $this->sqlCollect['data'];
-        if(count($data) === 0){
+        if (count($data) === 0) {
             return;
         }
         $fields         = [];
         $this->insertId = null;
-        foreach(static::$columns as $name => $column){
+        foreach (static::$columns as $name => $column) {
             //将属性名与字段名进行映射
             $field = $name;
-            if(isset($column['field'])){
+            if (isset($column['field'])) {
                 $fields[] = $column['field'];
-            }else{
+            }else {
                 $fields[] = $field;
             }
 
-            if(isset($column['increment'])){//自增类型
-                if(!empty($data[$field])){
+            if (isset($column['increment'])) {//自增类型
+                if (!empty($data[$field])) {
                     self::error('IncrementFieldNotAllowAssignValue', '自增类型字段不允许给值');
                 }
                 array_pop($fields);
                 continue;
             }
-            if(empty($data[$field])){
-                if(isset($column['require'])){
+            if (empty($data[$field])) {
+                if (isset($column['require'])) {
                     self::error('InsertToDataBaseRequire', "表 [{$this->table}] 此项 [{$name}] 不允许为空");
                 }
                 $data[$field] = $this->genDefaultValue($column);
             }
             $this->data[] = $this->checkData($data[$field], $column, $name);
-            if(isset($column['primary'])){
+            if (isset($column['primary'])) {
                 $this->insertId = $data[$field];
             }
         }
@@ -1000,36 +1048,36 @@ abstract class Model
         $bracketLevel = 0;
         $symbol       = [];
         $index        = 0;
-        foreach($this->sqlCollect['where'] as $index => &$where){ //通观全局
+        foreach ($this->sqlCollect['where'] as $index => &$where) { //通观全局
             $symbol[$index]    = ['', '', ' '];
             $symbol[$index][1] = $where[2]? 'OR ': 'AND ';
-            if($where[3] & self::BOUND_BEGIN){ //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
+            if ($where[3] & self::BOUND_BEGIN) { //括号不关闭 为前一个加括号，如当前为第一个，则为自身加括号
                 $symbol[$index][0] = '(';
                 $bracketLevel++;
             }
-            if($where[3] & self::BOUND_END && $bracketLevel > 0){ //括号关闭 当前括号未关闭时关闭
+            if ($where[3] & self::BOUND_END && $bracketLevel > 0) { //括号关闭 当前括号未关闭时关闭
                 $symbol[$index][2] = ') ';
                 $bracketLevel--;
             }
-            if($where[3] & self::BOUND_OTHER && $index > 0){ //需要将自身独立出来，将前面where用括号括起来
+            if ($where[3] & self::BOUND_OTHER && $index > 0) { //需要将自身独立出来，将前面where用括号括起来
                 $symbol[0][0] .= '(';
-                for(; $bracketLevel > 0; $bracketLevel--){//将前面未关闭的括号全关闭
+                for (; $bracketLevel > 0; $bracketLevel--) {//将前面未关闭的括号全关闭
                     $symbol[$index - 1][2] .= ')';
                 }
                 $symbol[$index - 1][2] .= ') ';
-                if(!empty($this->sqlCollect['where'][$index + 1])){
+                if (!empty($this->sqlCollect['where'][$index + 1])) {
                     $this->sqlCollect['where'][$index + 1][3] = self::BOUND_BEGIN;
                 }
             }
-            if($where[4]){
+            if ($where[4]) {
                 $where[0] = $this->matchFieldForWhere($where[0]);
             }
         }
 
-        if($symbol){
+        if ($symbol) {
             $symbol[0][1] = '';
         }
-        for(; $bracketLevel > 0; $bracketLevel--){
+        for (; $bracketLevel > 0; $bracketLevel--) {
             $symbol[$index][2] .= ')';
         }
 
@@ -1044,13 +1092,13 @@ abstract class Model
      */
     private function findColumnByName($name)
     {
-        if(isset(static::$columns[$name])){ //找到了属性
+        if (isset(static::$columns[$name])) { //找到了属性
             $column = static::$columns[$name];
-        }else{
-            if(isset(static::$fieldMap[$name])){
+        }else {
+            if (isset(static::$fieldMap[$name])) {
                 $column = static::$columns[static::$fieldMap[$name]];
                 //TODO 警告不应在此处使用字段名
-            }else{
+            }else {
                 $column = null;
             }
         }
@@ -1066,8 +1114,8 @@ abstract class Model
     private function collectExclude()
     {
         $list = [];
-        if(isset($this->sqlCollect['exclude'])){
-            foreach($this->sqlCollect['exclude'] as $exclude){
+        if (isset($this->sqlCollect['exclude'])) {
+            foreach ($this->sqlCollect['exclude'] as $exclude) {
                 $list = \array_merge($list, \preg_split('/ *, */', $exclude));
             }
         }
@@ -1082,13 +1130,13 @@ abstract class Model
      */
     private function genUpdateTime(&$data)
     {
-        if(isset($this->sqlCollect['ignoreUpdateTime']) && $this->sqlCollect['ignoreUpdateTime']){
+        if (isset($this->sqlCollect['ignoreUpdateTime']) && $this->sqlCollect['ignoreUpdateTime']) {
             return;
         }
 
-        foreach(static::$columns as $name => $column){
-            if(isset($column['at']) && $column['at'] === 'update'){
-                if(!isset($data[$name])){
+        foreach (static::$columns as $name => $column) {
+            if (isset($column['at']) && $column['at'] === 'update') {
+                if (!isset($data[$name])) {
                     $data[$name] = \microtime(true);
                 }
             }
@@ -1101,7 +1149,7 @@ abstract class Model
     private function genUpdateNames()
     {
         $data = $this->sqlCollect['data'];
-        if(count($data) === 0){
+        if (count($data) === 0) {
             return;
         }
         $fields = [];
@@ -1111,43 +1159,43 @@ abstract class Model
         $fieldValues   = [];
         $excludeFields = $this->collectExclude();
         $fieldNameList = $this->mergeSerial('names');
-        if(empty($fieldNameList) || in_array('*', $fieldNameList) || in_array('**', $fieldNameList)){
+        if (empty($fieldNameList) || in_array('*', $fieldNameList) || in_array('**', $fieldNameList)) {
             $fieldNameList = null;
         }
 
-        foreach($excludeFields as $name){
-            if(isset($data[$name])){
+        foreach ($excludeFields as $name) {
+            if (isset($data[$name])) {
                 unset($data[$name]);
             }
         }
 
-        foreach($data as $name => $value){
-            if($value === null){
+        foreach ($data as $name => $value) {
+            if ($value === null) {
                 continue;
             }
-            if($fieldNameList && !in_array($name, $fieldNameList)){
+            if ($fieldNameList && !in_array($name, $fieldNameList)) {
                 continue;
             }
             //将属性名与字段名进行映射
             $column = $this->findColumnByName($name);
-            if($column === null || isset($column['primary'])){//不允许更新主键的内容
+            if ($column === null || isset($column['primary'])) {//不允许更新主键的内容
                 continue;
             }
             $field    = $column['field']??$name;
             $quotes   = static::$quotes;
             $fields[] = $quotes.$field.$quotes;
-            if(is_string($value) && substr($value, 0, 1) === '`' && substr($value, -1, 1) === '`'){//值为可执行代码
+            if (is_string($value) && substr($value, 0, 1) === '`' && substr($value, -1, 1) === '`') {//值为可执行代码
                 $value = trim($value, '` ');
-                if(in_array($column['type'], ['int', 'float']) && preg_match('/^=([\+\-]) *(\d) *$/', $value, $match)){
+                if (in_array($column['type'], ['int', 'float']) && preg_match('/^=([\+\-]) *(\d) *$/', $value, $match)) {
                     $fieldValues[] = "{$quotes}$field{$quotes} {$match[1]} {$match[2]}";
-                }else{
+                }else {
                     preg_match_all('/(\\\\*)\:(\w+[a-z0-9_\-]*)/i', $value, $matches, PREG_SET_ORDER);//处理转义符
-                    foreach($matches as $match){
-                        if($match[1]){
-                            if(strlen($match[1]) % 2 === 1){
+                    foreach ($matches as $match) {
+                        if ($match[1]) {
+                            if (strlen($match[1]) % 2 === 1) {
                                 $value = str_replace($match[0], substr($match[1], 0, intval(strlen($match[1]) / 2)).':'.$match[2], $value);
                                 continue;
-                            }else{
+                            }else {
                                 $match[1] = substr($match[1], 0, strlen($match[1]) / 2);
                             }
                         }
@@ -1156,8 +1204,8 @@ abstract class Model
                     }
                     $fieldValues[] = $value;
                 }
-            }else{
-                if(is_string($value) && substr($value, 0, 2) === '\`'){
+            }else {
+                if (is_string($value) && substr($value, 0, 2) === '\`') {
                     $value = substr($value, 1);
                 }
                 $fieldValues[]           = ':u_'.$field;
@@ -1168,7 +1216,7 @@ abstract class Model
         //TODO: 数据完整性检查
         //TODO: 验证数据
         $buffer = [];
-        foreach($fields as $index => $f){
+        foreach ($fields as $index => $f) {
             $buffer[] = "{$f} = {$fieldValues[$index]}";
         }
         $this->preSql .= ' SET '.implode(', ', $buffer);
@@ -1184,8 +1232,8 @@ abstract class Model
     private function matchFieldForWhere($sql)
     {
         $conditions = preg_split('/( +and +| +or +)/i', $sql, -1, PREG_SPLIT_DELIM_CAPTURE);
-        for($i = 0, $l = count($conditions); $i < $l; $i += 2){
-            $conditions[$i] = preg_replace_callback('/^([\( ]*)([\w_]+)(.*?)(:?[\w_,: ]+)([\) ]*)$/', function($match){
+        for ($i = 0, $l = count($conditions); $i < $l; $i += 2) {
+            $conditions[$i] = preg_replace_callback('/^([\( ]*)([\w_]+)(.*?)(:?[\w_,: ]+)([\) ]*)$/', function ($match){
                 $bracketStart = str_replace(' ', '', $match[1]);
                 $name         = $match[2];
                 $sign         = strtoupper(trim($match[3]));
@@ -1193,14 +1241,14 @@ abstract class Model
                 $bracketEnd   = str_replace(' ', '', $match[5]);
 
                 $fullField = $this->nameMapField($name);
-                if(isset(static::$columns[$name]['lower'])){
+                if (isset(static::$columns[$name]['lower'])) {
                     $fullField = "lower({$fullField})";
                     $value     = "lower({$value})";
                 }
 
                 return "{$bracketStart}{$fullField} {$sign} {$value}{$bracketEnd}";
             }, $conditions[$i]);
-            if($l > $i + 1){
+            if ($l > $i + 1) {
                 $conditions[$i + 1] = trim($conditions[$i + 1]);
             }
         }
@@ -1215,16 +1263,16 @@ abstract class Model
      */
     private function genWhere()
     {
-        if(empty($this->sqlCollect['where'])){
+        if (empty($this->sqlCollect['where'])) {
             return '';
         }
         $symbol = $this->preParseWhere();
 
         $collectedData = [];
         $whereSql      = '';
-        foreach($this->sqlCollect['where'] as $index => $where){
+        foreach ($this->sqlCollect['where'] as $index => $where) {
             $sql = $where[0];
-            foreach($where[1] as $k => $v){
+            foreach ($where[1] as $k => $v) {
                 $sql = str_replace(":{$k}", ":w_{$index}_{$k}", $sql);
 
                 $collectedData["w_{$index}_{$k}"] = $v;
@@ -1232,8 +1280,8 @@ abstract class Model
             $whereSql .= $symbol[$index][1].$symbol[$index][0].$sql.$symbol[$index][2];
         }
 
-        if(isset($this->sqlCollect['subCondition'])){
-            foreach($this->sqlCollect['subCondition'] as $id => $condition){
+        if (isset($this->sqlCollect['subCondition'])) {
+            foreach ($this->sqlCollect['subCondition'] as $id => $condition) {
                 $whereSql = str_replace($id, $condition, $whereSql);
             }
         }
@@ -1253,11 +1301,11 @@ abstract class Model
      */
     private function nameMapField($name)
     {
-        if(isset(static::$columns[$name]['field'])){
+        if (isset(static::$columns[$name]['field'])) {
             $name = static::$columns[$name]['field'];
         }
         $name = static::$quotes.$name.static::$quotes;
-        if($this->needFullFieldName){
+        if ($this->needFullFieldName) {
             $name = $this->quotesTable.'.'.$name;
         }
 
@@ -1272,7 +1320,7 @@ abstract class Model
      */
     private function quotesFiledName($name)
     {
-        if(strpos($name, '.')){
+        if (strpos($name, '.')) {
             $ns     = explode('.', $name);
             $quotes = static::$quotes;
 
@@ -1292,7 +1340,7 @@ abstract class Model
     {
         $list = explode(',', $names);
         $buf  = [];
-        foreach($list as $name){
+        foreach ($list as $name) {
             $buf[] = $this->nameMapField(trim($name));
         }
 
@@ -1306,11 +1354,11 @@ abstract class Model
      */
     private function genGroup()
     {
-        if(!isset($this->sqlCollect['group'])){
+        if (!isset($this->sqlCollect['group'])) {
             return '';
         }
         $groupSql = '';
-        foreach($this->sqlCollect['group'] as $field){
+        foreach ($this->sqlCollect['group'] as $field) {
             $groupSql .= ' GROUP BY '.$this->namesMapField($field);
         }
         $this->preSql .= $groupSql;
@@ -1323,15 +1371,15 @@ abstract class Model
      */
     private function genOrder()
     {
-        if(!isset($this->sqlCollect['order'])){
+        if (!isset($this->sqlCollect['order'])) {
             return;
         }
         $sqlBuffer = [];
-        foreach($this->sqlCollect['order'] as $oa){
+        foreach ($this->sqlCollect['order'] as $oa) {
             $sqlBuffer[] = $this->nameMapField($oa[0]).' '.strtoupper($oa[1]);
         }
 
-        if($sqlBuffer){
+        if ($sqlBuffer) {
             $this->preSql .= ' ORDER BY '.implode(', ', $sqlBuffer);
         }
     }
@@ -1341,7 +1389,7 @@ abstract class Model
      */
     private function applyLimitForEdit()
     {
-        if(isset($this->sqlCollect['limit']) && $this->sqlCollect['limit'][0]){
+        if (isset($this->sqlCollect['limit']) && $this->sqlCollect['limit'][0]) {
             $model             = new static();
             $model->sqlCollect = $this->sqlCollect;
             $model->field(static::$primary, true);
@@ -1355,11 +1403,11 @@ abstract class Model
      */
     private function genLimit()
     {
-        if(isset($this->sqlCollect['limit'])){
+        if (isset($this->sqlCollect['limit'])) {
             $length       = $this->sqlCollect['limit'][0];
             $this->preSql .= " LIMIT {$length}";
 
-            if($this->sqlCollect['limit'][1] >= 2){
+            if ($this->sqlCollect['limit'][1] >= 2) {
                 $offset       = ($this->sqlCollect['limit'][1] - 1) * $length;
                 $this->preSql .= " OFFSET {$offset}";
             }
@@ -1371,9 +1419,9 @@ abstract class Model
      */
     private function genLock()
     {
-        if(isset($this->sqlCollect['lock'])){
+        if (isset($this->sqlCollect['lock'])) {
             $this->preSql .= ' FOR UPDATE';
-            if($this->sqlCollect['lockSkip']){
+            if ($this->sqlCollect['lockSkip']) {
                 $this->preSql .= ' SKIP LOCKED';
             }
         }
@@ -1385,17 +1433,17 @@ abstract class Model
     private function applyTrashed()
     {
         $sign = 'hidden';
-        if(isset($this->sqlCollect['trashed'])){ //标记为删除的也列出
+        if (isset($this->sqlCollect['trashed'])) { //标记为删除的也列出
             $sign = $this->sqlCollect['trashed'];
         }
-        if($sign === 'with'){
+        if ($sign === 'with') {
             return;
         }
-        foreach(static::$columns as $name => $column){
-            if(isset($column['del'])){
-                if($sign === 'only'){
+        foreach (static::$columns as $name => $column) {
+            if (isset($column['del'])) {
+                if ($sign === 'only') {
                     $this->where("$name=true", [], self::BOUND_OTHER);
-                }else{
+                }else {
                     $this->where("$name=false", [], self::BOUND_OTHER);
                 }
                 break;
@@ -1487,7 +1535,7 @@ abstract class Model
         $this->limit(1);
 
         $res = $this->fetch($names);
-        if($res){
+        if ($res) {
             return $res[0];
         }
 
@@ -1527,7 +1575,7 @@ abstract class Model
 
         $this->lastPageInfo = null;
 
-        if(isset($this->sqlCollect['needTotal']) && $this->sqlCollect['needTotal'] && isset($this->sqlCollect['limit'])){
+        if (isset($this->sqlCollect['needTotal']) && $this->sqlCollect['needTotal'] && isset($this->sqlCollect['limit'])) {
             $pageSize  = $this->sqlCollect['limit'][0];
             $pageIndex = $this->sqlCollect['limit'][1];
 
@@ -1599,15 +1647,15 @@ abstract class Model
      */
     public function getLastPageInfo()
     {
-        if($this->lastPageInfo){
-            if($this->lastPageInfo[0] === -1){
+        if ($this->lastPageInfo) {
+            if ($this->lastPageInfo[0] === -1) {
                 $this->lastPageInfo[0] = $this->select($this->lastPageInfo[3], $this->lastPageInfo[4])[0]['count'];
                 unset($this->lastPageInfo[3]);
                 unset($this->lastPageInfo[4]);
             }
 
             return $this->lastPageInfo;
-        }else{
+        }else {
             return [];
         }
     }
@@ -1622,10 +1670,10 @@ abstract class Model
      */
     public function field($field, $clean = false)
     {
-        if($clean){
+        if ($clean) {
             $this->sqlCollect['names'] = [];
         }
-        if($field){
+        if ($field) {
             $this->sqlCollect['names'][] = $field;
         }
 
@@ -1647,7 +1695,7 @@ abstract class Model
         $sth   = $this->query('SELECT '.$this->preSql, $this->data);
         $stack = $this->genCombStack();
 
-        while($item = $sth->fetch()){
+        while ($item = $sth->fetch()) {
             $list = [$item];
             yield $this->combQueryResult($list, $stack)[0];
         }
@@ -1679,7 +1727,7 @@ abstract class Model
     public function addMass(array $data)
     {
         $insertIds = [];
-        foreach($data as $d){
+        foreach ($data as $d) {
             $insertIds[] = $this->add($d)['insertId'];
         }
 
@@ -1726,21 +1774,21 @@ abstract class Model
      */
     public function pushData(array $data, $recursive = false, $overwrite = true)
     {
-        if(empty($this->sqlCollect['data'])){
+        if (empty($this->sqlCollect['data'])) {
             $this->sqlCollect['data'] = $data;
 
             return $this;
         }
-        if($recursive){
-            if($overwrite){
+        if ($recursive) {
+            if ($overwrite) {
                 $this->sqlCollect['data'] = array_replace_recursive($this->sqlCollect['data'], $data);
-            }else{
+            }else {
                 $this->sqlCollect['data'] = array_replace_recursive($data, $this->sqlCollect['data']);
             }
-        }else{
-            if($overwrite){
+        }else {
+            if ($overwrite) {
                 $this->sqlCollect['data'] = array_merge($this->sqlCollect['data'], $data);
-            }else{
+            }else {
                 $this->sqlCollect['data'] = array_merge($data, $this->sqlCollect['data']);
             }
         }
@@ -1771,12 +1819,12 @@ abstract class Model
     public function increment($name, $value = 1)
     {
         $symbol = '+';
-        if($value < 0){
+        if ($value < 0) {
             $symbol = '-';
             $value  = abs($value);
         }
         $field = $this->nameMapField($name);
-        if($field){
+        if ($field) {
             $this->pushData([$name => "`{$field}{$symbol}{$value}`"]);
         }
 
@@ -1793,12 +1841,12 @@ abstract class Model
      */
     public function replace(array $data, $name = null)
     {
-        if($name === null){
+        if ($name === null) {
             $name = static::$primary;
         }
-        if(!empty($data[$name])){
+        if (!empty($data[$name])) {
             $row = $this->equals($name, $data[$name])->first($name);
-            if($row){
+            if ($row) {
                 $value = $data[$name];
                 unset($data[$name]);
 
@@ -1817,13 +1865,13 @@ abstract class Model
     public function remove()
     {
         $data = [];
-        foreach(static::$columns as $name => $column){
-            if(isset($column['del'])){
+        foreach (static::$columns as $name => $column) {
+            if (isset($column['del'])) {
                 $data[$name] = true;
                 $this->where("{$name}=false", [], self::BOUND_OTHER);
             }
         }
-        if(!count($data)){
+        if (!count($data)) {
             Error::fatal('notDefinedDelField', "表 [{$this->table}] 未定义逻辑删除字段,请检查");
         }
 
@@ -1838,13 +1886,13 @@ abstract class Model
     public function restore()
     {
         $data = [];
-        foreach(static::$columns as $name => $column){
-            if(isset($column['del'])){
+        foreach (static::$columns as $name => $column) {
+            if (isset($column['del'])) {
                 $data[$name] = false;
                 $this->where("{$name}=true", [], self::BOUND_OTHER);
             }
         }
-        if(!count($data)){
+        if (!count($data)) {
             Error::fatal('notDefinedDelField', "表 [{$this->table}] 未定义逻辑删除字段,请检查");
         }
 
@@ -1860,9 +1908,9 @@ abstract class Model
      */
     public function destroy($force = false)
     {
-        if($force === true){
+        if ($force === true) {
             $this->hiddenTrashed();
-        }else{
+        }else {
             $this->onlyTrashed();
         }
         $this->applyTrashed();
@@ -1895,12 +1943,15 @@ abstract class Model
     /**
      * 计算字段的和
      *
+     * @param string $name 要计算的属性名
+     *
      * @return int
      */
-    public function sum($filed)
+    public function sum($name)
     {
+        $field = $this->nameMapField($name);
         $this->applyTrashed();
-        $this->preSql .= " SUM({$filed}) as num";
+        $this->preSql .= " SUM({$field}) as num";
         $this->preSql .= ' FROM '.$this->quotesTable;
         $this->genWhere();
         $this->genGroup();
@@ -1949,10 +2000,35 @@ abstract class Model
      */
     public function where($sql, array $data = [], $bound = self::BOUND_NONE, $matchField = true)
     {
-        $this->sqlCollect['where'][] = [$sql, $data, $this->isEither(), $bound, $matchField];
+        $this->sqlCollect['where'][] = [$sql, $data, $this->isEitherCondition(), $bound, $matchField];
 
         return $this;
     }
+
+    private function whereMake($sql, $name, $data)
+    {
+        if ($this->isNotCondition()) {
+            $sql = strtr($sql, [
+                ' >= ' => ' < ',
+                ' <= ' => ' > ',
+                ' > '  => ' <= ',
+                ' < '  => ' >= ',
+                ' = '  => ' != '
+            ]);
+        }
+
+        $column = static::$columns[$name]??null;
+        if ($column) {
+            if ($column['type'] === 'timestamp' || $column['type'] === 'date') {
+                foreach ($data as &$v) {
+                    $v = $this->inType($v, $column['type']);
+                }
+            }
+        }
+
+        $this->where($sql, $data);
+    }
+
 
     /**
      * 下一个条件与前一个条件间采用OR连接
@@ -1971,9 +2047,9 @@ abstract class Model
      *
      * @return bool
      */
-    public function isEither()
+    private function isEitherCondition()
     {
-        if($this->connectByOr){
+        if ($this->connectByOr) {
             $this->connectByOr = false;
 
             return true;
@@ -2001,7 +2077,7 @@ abstract class Model
      */
     private function isNotCondition()
     {
-        if($this->notCondition){
+        if ($this->notCondition) {
             $this->notCondition = false;
 
             return true;
@@ -2020,85 +2096,73 @@ abstract class Model
      */
     public function equals($name, $value)
     {
-        if($this->isNotCondition()){
-            $this->where("$name!=:$name", [$name => $value]);
-        }else{
-            $this->where("$name=:$name", [$name => $value]);
-        }
+        $this->whereMake("$name = :value", $name, ['value' => $value]);
 
         return $this;
     }
 
+    /**
+     * 字段相等
+     *
+     * @param $name
+     * @param $filed
+     * @return $this
+     */
     public function fieldEquals($name, $filed)
     {
         $filed = $this->quotesFiledName($filed);
         $name  = $this->nameMapField($name);
 
-        if($this->isNotCondition()){
-            $this->where("$name!={$filed}");
-        }else{
-            $this->where("$name={$filed}");
-        }
+        $this->whereMake("$name = {$filed}", $name, []);
 
         return $this;
     }
 
     /**
-     * 大于
+     * 大于某值
      *
-     * @param string $name
-     * @param string $value
-     *
+     * @param string           $name 要比较的属性名
+     * @param int|float|string $value 日期可以是字符串
+     * @param bool             $contain 是否包含起点
      * @return $this
      */
-    public function gt($name, $value)
+    public function more($name, $value, $contain = true)
     {
-        $this->where("$name>:$name", [$name => $value]);
+        $equ = $contain? '=': '';
+        $this->whereMake("$name >{$equ} :value", $name, ['value' => $value]);
 
         return $this;
     }
 
     /**
-     * 小于
+     * 小于某值
      *
-     * @param string $name
-     * @param string $value
-     *
+     * @param string           $name 要比较的属性名
+     * @param int|float|string $value 日期可以是字符串
+     * @param bool             $contain 是否包含止点
      * @return $this
      */
-    public function lt($name, $value)
+    public function less($name, $value, $contain = true)
     {
-        $this->where("$name<:$name", [$name => $value]);
+        $equ = $contain? '=': '';
+        $this->whereMake("$name <{$equ} :value", $name, ['value' => $value]);
 
         return $this;
     }
 
     /**
-     * 不小于
+     * 限定在某范围内
      *
-     * @param string $name
-     * @param string $value
-     *
+     * @param string           $name 要比较的属性名
+     * @param int|float|string $start 日期可以是字符串
+     * @param int|float|string $end 日期可以是字符串
+     * @param bool             $contain 是否包含起始点
      * @return $this
      */
-    public function nlt($name, $value)
+    public function between($name, $start, $end, $contain = true)
     {
-        $this->where("$name>=:$name", [$name => $value]);
-
-        return $this;
-    }
-
-    /**
-     * 不大于
-     *
-     * @param string $name
-     * @param string $value
-     *
-     * @return $thisg
-     */
-    public function ngt($name, $value)
-    {
-        $this->where("$name<=:$name", [$name => $value]);
+        $equ = $contain? '=': '';
+        $this->whereMake("$name <{$equ} :start AND $name >{$equ} :end", $name, ['start' => $start, 'end' => $end]);
 
         return $this;
     }
@@ -2107,21 +2171,21 @@ abstract class Model
      * 相等条件
      *
      * @param array  $list
-     * @param string $glue
+     * @param string $link
      * @param int    $bound
      *
      * @return $this
      */
-    public function equalsMulti($list, $glue = 'and', $bound = self::BOUND_NONE)
+    public function equalsMulti(array $list, $link = 'and', $bound = self::BOUND_NONE)
     {
-        $glue   = strtoupper($glue);
+        $glue   = strtoupper($link);
         $buffer = [];
-        if(!$this->isNotCondition()){
-            foreach($list as $name => $value){
+        if (!$this->isNotCondition()) {
+            foreach ($list as $name => $value) {
                 $buffer[] = "$name=:$name";
             }
-        }else{
-            foreach($list as $name => $value){
+        }else {
+            foreach ($list as $name => $value) {
                 $buffer[] = "$name!=:$name";
             }
         }
@@ -2141,10 +2205,10 @@ abstract class Model
      **/
     private function preParseLike($name, $keyword, $model, $glue)
     {
-        if($model & self::LIKE_LEFT){
+        if ($model & self::LIKE_LEFT) {
             $keyword = '%'.$keyword;
         }
-        if($model & self::LIKE_RIGHT){
+        if ($model & self::LIKE_RIGHT) {
             $keyword = $keyword.'%';
         }
 
@@ -2152,15 +2216,15 @@ abstract class Model
 
         $sqlBuilder = [];
 
-        if(is_array($name)){
-            foreach($name as $n){
+        if (is_array($name)) {
+            foreach ($name as $n) {
                 $sqlBuilder[] = "{$n} like :keywords";
             }
-        }else{
+        }else {
             $sqlBuilder[] = "{$name} like :keywords";
         }
 
-        $glue = $glue === 1? 'or': 'and';
+        $glue = $glue === self::LINK_OR? 'or': 'and';
 
         $sql = implode(" {$glue} ", $sqlBuilder);
 
@@ -2212,10 +2276,10 @@ abstract class Model
      */
     public function page($pageSize, $page = null, $needTotal = true)
     {
-        if($pageSize === null){
-            if(isset($this->sqlCollect['limit'])){
+        if ($pageSize === null) {
+            if (isset($this->sqlCollect['limit'])) {
                 $pageSize = $this->sqlCollect['limit'][1];
-            }else{
+            }else {
                 $pageSize = 1;
             }
         }
@@ -2326,7 +2390,7 @@ abstract class Model
     public function exists(Model $model, $bound = self::BOUND_NONE)
     {
         $model->needFullFieldName = true;
-        if(empty($model->sqlCollect['names'])){
+        if (empty($model->sqlCollect['names'])) {
             $model->field($model::$primary);
         }
         $sql = ($this->isNotCondition()? 'NOT ': '').'EXISTS (SELECT '.$model->getSelectSql().')';
@@ -2346,9 +2410,9 @@ abstract class Model
      */
     public function in($field, $list, $bound = self::BOUND_NONE)
     {
-        if(is_array($list)){
+        if (is_array($list)) {
             $keys = [];
-            foreach($list as $k => $v){
+            foreach ($list as $k => $v) {
                 $keys[] = ":{$k}";
             }
             $instr   = implode(',', $keys);
@@ -2358,7 +2422,7 @@ abstract class Model
 
             $this->where($sql, $list, $bound);
 
-        }elseif($list instanceof Model){
+        }elseif ($list instanceof Model) {
             $list->field($list::$primary, true);
             $sql = $this->nameMapField($field).' '.($this->isNotCondition()? 'NOT ': '').'IN (SELECT '.$list->getSelectSql().')';
             $this->where($sql, $list->data, $bound, false);
@@ -2393,7 +2457,7 @@ abstract class Model
     public function order($attr, $order = 'asc', $model = null)
     {
         $fields = preg_split('/ *, */', $attr);
-        foreach($fields as $field){
+        foreach ($fields as $field) {
             $this->sqlCollect['order'][] = [$field, $order, $model];
         }
 
@@ -2511,7 +2575,7 @@ abstract class Model
     public function genSql($method = 'select')
     {
         $sql = '';
-        switch($method){
+        switch ($method) {
             case 'select':
                 $this->parseSelectSql();
                 $sql = 'SELECT '.$this->applyExecutableToPreSql($this->preSql, $this->data);
@@ -2519,7 +2583,7 @@ abstract class Model
         }
 
         $this->preSql = '';
-        if($this->isCleanSqlCollect){
+        if ($this->isCleanSqlCollect) {
             $this->cleanSqlCollect();
         }
 
