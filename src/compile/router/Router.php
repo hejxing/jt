@@ -8,7 +8,7 @@ namespace jt\compile\router;
 
 class Router extends Action
 {
-    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'log', 'affix', 'line'];
+    const RULER_ORDER_MAP = ['class', 'method', 'param', 'tpl', 'auth', 'mime', 'return', 'log', 'affix', 'key', 'line'];
 
     /**
      * 清理参数子结点数据
@@ -118,6 +118,7 @@ class Router extends Action
                             "[{$conflictRuler[0]}::{$conflictRuler[1]}] 对应的路由规则与 [ {$ruler['class']} :: {$ruler['method']} ] 冲突，请检查! in {$ef} line {$el} &");
                     }else{
                         $action = [];
+                        $ruler['key'] = implode('|', $ruler['methods']).':'.$ruler['uri'];
                         foreach(self::RULER_ORDER_MAP as $name){
                             $value = $ruler[$name];
                             if($name === 'param'){

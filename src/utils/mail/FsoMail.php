@@ -18,7 +18,7 @@ class FsoMail extends Email
      *
      * @type string
      */
-    private $smtpServer = 'test.51ydgymall.cn';
+    private $smtpServer = 'test.csmall.com';
     /**
      * 邮件服务器端口
      *
@@ -31,7 +31,7 @@ class FsoMail extends Email
      * @type bool
      */
     private $mailAuth   = false;
-    private $authDomain = '51ydgymall.cn';
+    private $authDomain = 'csmall.com';
     private $user       = '';
     private $password   = '';
 

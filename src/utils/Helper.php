@@ -181,6 +181,17 @@ class Helper
     }
 
     /**
+     * 判断当前打开的浏览器是否是微信浏览器
+     * @return boolean true/false
+     */
+    public static function isWeixinBrowser(){
+        if(strpos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger') !== false) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * 简单属性映射，带索引的内容将进行映射
      *
      * @param array $map
@@ -215,26 +226,35 @@ class Helper
         $result     = [];
         $indexAssoc = false;
         foreach($map as $n => $v){
-            if(\is_int($n)){
+            if(is_int($n)){
                 $n          = $v;
                 $indexAssoc = true;
             }
+
+            if(is_callable($v)){
+                $result[$n] = call_user_func_array($v, [$data]);
+                continue;
+            }
+
             $type = 'string';
-            \preg_match('/^\((.*)\)(.+)/', $n, $matched);
-            if(\count($matched) > 2){
-                $type = $matched[1];
-                $n    = $matched[2];
-                if($indexAssoc){
-                    $v = $n;
+            if(strpos($n, '(') === 0){
+                preg_match('/^\((.*)\)(.+)/', $n, $matched);
+                if(count($matched) > 2){
+                    $type = $matched[1];
+                    $n    = $matched[2];
+                    if($indexAssoc){
+                        $v = $n;
+                    }
                 }
             }
-            $vns   = \explode('.', $v);
+
+            $vns   = explode('.', $v);
             $value = $data;
             foreach($vns as $vn){
                 if(isset($value[$vn])){
                     $value = $value[$vn];
-                }elseif(\substr($vn, 0, 1) === '"' && \substr($vn, -1, 1) === '"'){
-                    $value = \substr($vn, 1, -1);
+                }elseif(substr($vn, 0, 1) === '"' && substr($vn, -1, 1) === '"'){
+                    $value = substr($vn, 1, -1);
                 }else{
                     $value = null;
                     break;
@@ -323,6 +343,29 @@ class Helper
         }
 
         return $long? ip2long($ip): $ip;
+    }
+
+    /**
+     * 获取IP地址所在的城市
+     * @param string $ip IP地址
+     * @return string 城市
+     */
+    public static function getIpCity($ip){
+        $city = '';
+        if($ip){
+            $res = \jt\utils\Transfer::getContent('http://int.dpool.sina.com.cn/iplookup/iplookup.php?format=js&ip='. $ip);
+            if(!empty($res)){
+                $jsonMatches = [];
+                preg_match('#\{.+?\}#', $res, $jsonMatches);
+                if(isset($jsonMatches[0])){
+                    $json = json_decode($jsonMatches[0], true);
+                    if(isset($json['ret']) && $json['ret'] == 1){
+                        $city = $json['country'] . $json['province'] . $json['city'] . $json['isp'];
+                    }
+                }
+            }
+        }
+        return $city;
     }
 
     /**

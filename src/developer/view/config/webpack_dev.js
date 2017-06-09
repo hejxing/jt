@@ -6,7 +6,7 @@ const path = require('path'),
 module.exports = {
     path: {
         src: path.resolve(__basename, "src"),
-        dist: path.resolve(__basename, "build"),
+        dist: path.resolve(__basename, "build/menu"),
         pub: path.resolve(__basename, "build/pub")
     },
     htmlPath: '',

@@ -8,9 +8,9 @@
 namespace jt\lib\session;
 
 use jt\lib\cache\CacheFactory;
-use jt\Session;
+use SessionHandlerInterface;
 
-class Saver extends Session
+class Saver implements SessionHandlerInterface
 {
     /**
      * @type \Redis
@@ -114,6 +114,23 @@ class Saver extends Session
      */
     public function write($session_id, $session_data)
     {
-        $this->saver->set('session_'.$session_id, $session_data);
+        return $this->saver->set('session_'.$session_id, $session_data);
+    }
+
+    /**
+     * Initialize session
+     *
+     * @link http://php.net/manual/en/sessionhandlerinterface.open.php
+     * @param string $save_path The path where to store/retrieve the session.
+     * @param string $name The session name.
+     * @return bool <p>
+     * The return value (usually TRUE on success, FALSE on failure).
+     * Note this value is returned internally to PHP for processing.
+     * </p>
+     * @since 5.4.0
+     */
+    public function open($save_path, $name)
+    {
+        return true;
     }
 }

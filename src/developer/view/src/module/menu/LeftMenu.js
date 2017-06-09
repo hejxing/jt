@@ -76,7 +76,7 @@ class LeftMenu extends React.Component {
             return;
         }
 
-        if(dragItem.type === 'node' && dropItem.level < Data.maxLevel + (info.dropToGap? 1: 0)){
+        if(dragItem.type === 'node' && dropItem.level < Data.maxLevel + (info.dropToGap? 0: 1)){
             message.error('该结点只能位于最末级，操作无效');
             return;
         }

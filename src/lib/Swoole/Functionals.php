@@ -453,7 +453,7 @@ function swoole_timer_add($interval, $callback)
  * 单次定时器，在N毫秒后执行回调函数
  *
  * @param $ms
- * @param $callback  function ($user_param)｛｝
+ * @param callable $callback  function ($user_param)｛｝
  * @param $user_param
  * @return int
  */
@@ -484,8 +484,8 @@ function swoole_timer_clear($timer_id)
  * 添加TICK定时器
  *
  * @param      $ms
- * @param      $callback  function($timmerID, $params){}
- * @param null $params
+ * @param closure     $callback  function($timmerID, $params){}
+ * @param mixed $params
  * @return int
  */
 function swoole_timer_tick($ms, $callback, $params = null)

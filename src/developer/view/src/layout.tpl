@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>{{$pageTitle}}</title>
   <base href="{{$baseHref}}">
-  <script src="//jt-static.test.csmall.com/static/js/pace.min.js"></script>
+  <script src="//docs-resource.csmall.com/js/pace.min.js"></script>
 </head>
 <body>
 <header></header>

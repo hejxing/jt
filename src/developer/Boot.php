@@ -17,7 +17,7 @@ class Boot extends Controller
     /**
      * @var string 模板目录
      */
-    const TPL_DIR = '/build';
+    const TPL_DIR = '/static';
     /**
      * @var string 模块名称
      */

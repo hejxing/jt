@@ -119,7 +119,7 @@ abstract class Auth
         if (Controller::current()->getMime() === 'html') {
             $this->loginPage();
         }else {
-            $this->action->fail('未登录或登录失败，请重登录', 401);
+            $this->action->fail('未登录或登录失败，请重登录', 401, ['loginUrl' => $this->loginUrl]);
         }
     }
 
@@ -202,7 +202,7 @@ abstract class Auth
      */
     public static function hold($data)
     {
-        $token            = Session::start(true);
+        $token            = Session::start(true, '', true);
         $data['token']    = $token;
         $_SESSION['user'] = $data;
         Controller::current()->getAction()->header('token', $token);
@@ -217,7 +217,6 @@ abstract class Auth
     public static function userInfo()
     {
         Session::start();
-
         return $_SESSION['user']??[];
     }
 

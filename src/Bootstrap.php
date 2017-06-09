@@ -32,7 +32,6 @@ class Bootstrap
             if (class_exists('\jt\Model', false)) {
                 Model::commitAll();
             }
-            $controller->getLogWriter()->success();
         }else {
             if (class_exists('\jt\Model', false)) {
                 Model::rollBackAll();

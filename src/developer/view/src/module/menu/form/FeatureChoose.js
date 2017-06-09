@@ -15,7 +15,11 @@ export default Form.create()(React.createClass({
                 label: '正在加载，请稍候...'
             }],
             featureName: '',
-            selectedFeatureName: '',
+            selectedFeature: {
+                name: '',
+                code: '',
+                desc: ''
+            },
             index: 0
         };
     },
@@ -26,10 +30,16 @@ export default Form.create()(React.createClass({
             });
         });
     },
-    format(label, nodes){
-        const node = nodes.length? nodes[nodes.length - 1]: {value: '', name: ''};
-        this.state.selectedFeatureName = node.name;
-        return label.join(' / ') + (node.value? ' [' + node.value + ']': '');
+    format(isMaster){
+        return (label, nodes) => {
+            const node = nodes.length? nodes[nodes.length - 1]: {value: '', name: ''};
+            if(isMaster){
+                ['name', 'code', 'desc', 'notice'].forEach((name)=>{
+                    this.state.selectedFeature[name] = node[name];
+                });
+            }
+            return label.join(' / ');
+        };
     },
     addDependent(){
         feature.depend.push({});
@@ -43,9 +53,12 @@ export default Form.create()(React.createClass({
         if(nodes.length){
             const node = nodes[nodes.length - 1];
             feature.value = value;
-            if(!feature.name || feature.name === this.state.selectedFeatureName){
-                feature.name = node.name;
-            }
+            node.code = node.value;
+            ['name', 'code', 'desc', 'notice'].forEach((name)=>{
+                if(!feature[name] || feature[name] === this.state.selectedFeature[name]){
+                    feature[name] = node[name];
+                }
+            });
         }else{
             feature.value = [];
         }
@@ -53,20 +66,27 @@ export default Form.create()(React.createClass({
     },
     dependFeatureChange(index){
         return (value, nodes) =>{
+            const node = nodes.length? nodes[nodes.length - 1]: {
+                name: ''
+            };
             feature.depend[index] = {
-                value: nodes.length? value: [],
-                name: nodes.length? nodes[nodes.length - 1].name: '',
+                value: value.length? value: [],
+                name: node.name
             };
             this.setState({});
         }
     },
-    featureNameChange(e){
-        feature.name = e.target.value;
-        this.setState({});
+    featureChange(name){
+        return e =>{
+            feature[name] = e.target.value;
+            this.setState({});
+        }
     },
-    resetFeatureName(){
-        feature.name = this.state.selectedFeatureName;
-        this.setState({});
+    resetFeature(name){
+        return () =>{
+            feature[name] = this.state.selectedFeature[name];
+            this.setState({});
+        }
     },
     saveFeature(){
         if(!item.feature){
@@ -90,7 +110,7 @@ export default Form.create()(React.createClass({
             featureIndex = parseInt(pi, 10);
         }
 
-        if(!feature){
+        if(!feature || !feature.name){
             feature = item.feature && item.feature[featureIndex] || {
                 name: '',
                 value: ''
@@ -107,7 +127,7 @@ export default Form.create()(React.createClass({
                 <Col span="20" key={index}>
                     <Input.Group compact style={{paddingLeft: '30px'}}>
                         <Cascader style={{width: '100%', marginLeft: '-30px'}} popupClassName="api-select" options={this.state.options}
-                                  value={item.value} showSearch={true} displayRender={this.format} notFoundContent="怎么也找不到呀"
+                                  value={item.value} showSearch={true} displayRender={this.format(false)} notFoundContent="怎么也找不到呀"
                                   onChange={this.dependFeatureChange(index)}
                                   placeholder="输入关键字 快速定位"/>
                         <Button
@@ -125,14 +145,39 @@ export default Form.create()(React.createClass({
             <h3 className="page-title">选择主功能</h3>
             <Cascader className="master-feature" prefix={<Icon type="api" style={{fontSize: 13}}/>} style={{width: '100%'}}
                       popupClassName="api-select" options={this.state.options}
-                      value={feature.value} showSearch={true} displayRender={this.format} notFoundContent="怎么也找不到呀"
+                      value={feature.value} showSearch={true} displayRender={this.format(true)} notFoundContent="怎么也找不到呀"
                       onChange={this.masterFeatureChange}
                       placeholder="输入关键字 快速定位"/>
-            <Input value={feature.name} onChange={this.featureNameChange} placeholder="功能名称" style={{width: '60%'}}
+            <Input value={feature.code} onChange={this.featureChange('code')} placeholder="功能标识" style={{width: '60%', marginBottom: '5px'}}
+                   prefix={<Icon type="key" style={{fontSize: 13}}/>}
+                   suffix={<Icon
+                       type="reload"
+                       onClick={this.resetFeature('code')}
+                   />}
+                />
+            <Input value={feature.name} onChange={this.featureChange('name')} placeholder="功能名称" style={{width: '60%',marginBottom: '5px'}}
                    prefix={<Icon type="tag-o" style={{fontSize: 13}}/>}
                    suffix={<Icon
                        type="reload"
-                       onClick={this.resetFeatureName}
+                       onClick={this.resetFeature('name')}
+                   />}/>
+            <Input value={feature.notice}
+                   onChange={this.featureChange('notice')}
+                   prefix={<Icon type="exclamation-circle-o" style={{fontSize: 13}}/>}
+                   placeholder="注意事项"
+                   style={{width: '100%',marginBottom: '5px'}}
+                   suffix={<Icon
+                       type="reload"
+                       onClick={this.resetFeature('notice')}
+                   />}/>
+            <Input value={feature.desc}
+                   onChange={this.featureChange('desc')}
+                   prefix={<Icon type="info-circle-o" style={{fontSize: 13}}/>}
+                   placeholder="功能说明/介绍"
+                   style={{width: '100%'}}
+                   suffix={<Icon
+                       type="reload"
+                       onClick={this.resetFeature('desc')}
                    />}/>
             <Col span="24" className="choose-feature-dependent">
                 <h3 className="page-title">选择依赖的其它功能</h3>

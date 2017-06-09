@@ -36,12 +36,12 @@ class Requester
 
     const FALSE_VALUE = ['n', 'f', 'no', 'false'];
 
-    const TRUE_ITEM     = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw', 'page'];
+    const TRUE_ITEM     = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw', 'page', 'unreal'];
     const INPUT_TYPE    = ['any', 'get', 'post', 'path'];
     const SINGLE_TYPE   = ['enum', 'bool', 'string', 'json', 'xml', 'html'];//合并上CONVERT_TYPE
     const MULTI_TYPE    = ['object', 'objectList', 'list'];
     const INJECT_VALUE  = ['instance', 'param'];
-    const VALUE_RULE    = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max'];
+    const VALUE_RULE    = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max', 'filter'];
     const FORMAT_ENABLE = ['datetime', 'float', 'money', 'html'];
 
     /**
@@ -176,15 +176,18 @@ class Requester
     }
 
     /**
-     * @param array  $data
+     * @param mixed  $data
      * @param array  $ruler
      * @param string $name
      * @param bool   $safeCheck
      *
      * @return array
      */
-    private static function compositeConvert(array $data, $ruler, $name = '', $safeCheck)
+    private static function compositeConvert($data, $ruler, $name = '', $safeCheck)
     {
+        if(isset($ruler['raw']) && $ruler['raw']){
+            return $data;
+        }
         switch($ruler['type']){
             case 'object':
                 $buffer = [];
@@ -229,9 +232,6 @@ class Requester
      */
     public static function validate($value, $ruler, $name = '', $safeCheck = true)
     {
-        if(isset($ruler['raw'])){
-            return $safeCheck? self::safeProcess($value): $value;
-        }
         if($value === null){
             if(isset($ruler['default'])){
                 $value = $ruler['default'];
@@ -240,6 +240,10 @@ class Requester
             }else{
                 return self::fillEmpty($ruler);
             }
+        }
+
+        if(isset($ruler['raw'])){
+            return $safeCheck? self::safeProcess($value): $value;
         }
 
         if(in_array($ruler['type'], self::MULTI_TYPE)){
@@ -318,8 +322,8 @@ class Requester
     /**
      * 遍历转换输入的值
      *
-     * @param array $value
-     * @param array $ruler
+     * @param array|string $value
+     * @param array        $ruler
      * @return array
      */
     private static function revisionValue($value, $ruler)
@@ -332,6 +336,22 @@ class Requester
             }
         }elseif(is_array($value)){
             $arr = $value;
+        }
+
+        if($ruler['type'] === 'object'){
+            foreach($ruler['nodes'] as $name => $node){
+                if(isset($node['use'])){
+                    $arr[$name] = $arr[$node['use']];
+                }
+            }
+        }elseif($ruler['type'] === 'objectList'){
+            foreach($ruler['nodes'] as $name => $node){
+                if(isset($node['use'])){
+                    foreach($arr as &$item){
+                        $item[$name] = $item[$node['use']];
+                    }
+                }
+            }
         }
 
         return $arr;
@@ -582,7 +602,6 @@ class Requester
     {
         $data = [];
         $this->collectAsMap();
-
         try{
             foreach($this->originData as $input => $value){
                 $name        = isset($this->useNameMap[$input])? $this->useNameMap[$input]: $input;
@@ -678,11 +697,12 @@ class Requester
 
         $value = isset($this->originData[$field])? $this->originData[$field]: null;
         //需要对$value进行处理 防xss攻击
-
-        if($ruler){
-            $value = self::validate($value, $ruler, $name);
-        }else{
-            $value = self::safeProcess($value);
+        if($value){
+            if($ruler){
+                $value = self::validate($value, $ruler, $name);
+            }else{
+                $value = self::safeProcess($value);
+            }
         }
 
         return $value;

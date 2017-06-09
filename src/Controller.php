@@ -280,6 +280,7 @@ class Controller
             return;
         }
         $this->action->setIsRunComplete(true);
+        $this->getLogWriter()->success();
     }
 
     /**
@@ -588,6 +589,9 @@ class Controller
                     break;
                 case '\jt\Cookie':
                     $this->param[] = Cookie::create(\Config::COOKIE);
+                    break;
+                case '\jt\Responder':
+                    $this->param[] = new Responder($this);
                     break;
                 case 'array':
                     Session::start();

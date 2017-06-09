@@ -345,12 +345,12 @@ class Action
      *
      * @param string $msg 失败原因
      * @param string $code 错误代码
-     * @param array  $param 传递的参数
+     * @param array  $data 输出的内容
      * @param int    $status 错误状态
      * @param bool   $responseEnd 是否结束响应，立即返回
      * @throws Exception
      */
-    public function fail($msg, $code = 'fail', $param = [], $status = null, $responseEnd = true)
+    public function fail($msg, $code = 'fail', $data = [], $status = null, $responseEnd = true)
     {
         $this->taskSuccess = false;
         if($status){
@@ -359,7 +359,7 @@ class Action
         if($responseEnd){
             $e = new Exception("{$code}:{$msg}");
             $e->setType('taskFail');
-            $e->setParam($param);
+            $e->addData($data);
             $e->setIgnoreTraceLine(1);
             throw $e;
         }else{

@@ -145,7 +145,7 @@ export default React.createClass({
             </div>
             <div>
                 <Input.Group compact>
-                    <Input style={{width: '10em'}} value={item.icon} onChange={this.valueChange('icon')} placeholder="图标"/>
+                    <Input style={{width: '10em'}} value={item.icon} onChange={this.valueChange('icon')} placeholder="图标" prefix={<Icon type={item.icon || 'inbox'}/>}/>
                     <Input style={{width: '32em'}} value={item.name} onChange={this.valueChange('name')} placeholder="名称"
                            prefix={<Icon type="tag-o" style={{fontSize: 13}}/>}
                            suffix={<Icon

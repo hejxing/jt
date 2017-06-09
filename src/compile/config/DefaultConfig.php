@@ -14,6 +14,6 @@ new class
     const JSON_FORMAT = JSON_UNESCAPED_UNICODE;
 
     const ACCEPT_MIME = ['json', 'html'];
-    const DEFAULT_AUTH_CHECKER = 'Block';
+    const DEFAULT_AUTH_CHECKER = '\jt\auth\Lost';
     const DEFAULT_LOG_WRITER = '\jt\log\DarkHole';
 };

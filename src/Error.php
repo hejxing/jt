@@ -225,7 +225,7 @@ class Error extends Action
         $method = '_'.$code;
         $action = self::getAction($method, $fatal);
         $action->cleanData();
-        if(is_numeric($code) && preg_match('/[34]{1}\d{2}/', $code)){
+        if(is_numeric($code) && preg_match('/^[34]{1}\d{2}$/', $code)){
             $action->status(intval($code), $msg, [], false);
         }
         $action->header('code', $code);
@@ -245,7 +245,7 @@ class Error extends Action
             $ruler = Controller::current()->getRuler();
             echo $e->getMessage(), "<br>\n";
             echo $code.':'.$msg, "<br>\n";
-            echo "<i>Access entry: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[9]})</i>";
+            echo "<i>Access entry: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[10]})</i>";
         }
     }
 
@@ -381,7 +381,7 @@ class Error extends Action
 
             $ruler = Controller::current()->getRuler();
             if(!empty($ruler)){
-                $header['entrance'] = "{$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[9]})";
+                $header['entrance'] = "{$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[10]})";
             }
         }
 

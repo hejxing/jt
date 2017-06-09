@@ -23,10 +23,10 @@ const webpackConfig = {
     },
     plugins: [
         new CommonsChunkPlugin({
-            filename: "js/layout" + config.chunkhash + ".js",
+            filename: "js/comm" + config.chunkhash + ".js",
             //children:  true,
             name: "comm",
-            //minChunks: 1
+            minChunks: 2
         }),
         new ExtractTextPlugin({
             "filename": "css/[name]" + config.contenthash + ".css"
@@ -114,12 +114,11 @@ if(process.env.NODE_ENV === 'production'){
         }
     });
     webpackConfig.addPlugins(webpack.optimize.OccurrenceOrderPlugin);
-    webpackConfig.addPlugins(CleanPlugin, './release');
+    webpackConfig.addPlugins(CleanPlugin, config.path.dist);
 }else if(process.env.NODE_ENV === 'debugging'){
     webpackConfig.addPlugins(webpack.optimize.OccurrenceOrderPlugin);
+    webpackConfig.addPlugins(CleanPlugin, config.path.dist);
 }
-
-webpackConfig.addPlugins(CleanPlugin, config.path.dist);
 
 // webpackConfig.plugins.push(new CopyWebpackPlugin([
 //     {from: 'from/file.txt', to: 'to/file.txt'}

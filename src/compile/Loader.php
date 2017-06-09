@@ -16,7 +16,7 @@ use jt\Exception;
  */
 abstract class Loader
 {
-    protected static $ignoreCache = false;
+    protected static $ignoreCache = true;
 
     protected static $root          = '';
     protected static $cacheFile     = '';
@@ -162,7 +162,7 @@ abstract class Loader
 
     protected static function traverseRootNode(&$root, $className, $type)
     {
-        if(isset($root['nodes'])){
+        if(!empty($root['nodes'])){
             foreach($root['nodes'] as $index => &$node){
                 self::traverseForReference($node, $className, $type, $root['nodes'], $index);
             }
@@ -179,13 +179,14 @@ abstract class Loader
                         $class  = $className;
                         $method = $origin;
                     }else{
-                        list($class, $method) = explode('::', $list['ruler']['origin']);
+                        list($class, $method) = explode('::', $origin);
                     }
 
                     //TODO: 解决循环引用
 
                     foreach(self::$cacheStore['action'][$class]['methods'] as $router){
                         if($router['method'] === $method){
+                            self::traverseRootNode($router[$type], $className, $type);
                             $replacement = $router[$type]['nodes'];
                             array_splice($parent, $index, 1, $replacement);
                         }
