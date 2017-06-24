@@ -2,4 +2,5 @@
 /runtime
 /nbproject/private/
 /log
+*build/
 *vendor/
