@@ -51,11 +51,12 @@ class ErrorCode
     /**
      * 生成错误消息
      *
-     * @param            $type
-     * @param \Exception $e
-     * @param            $msgList
-     * @param string     $sql
+     * @param \jt\Model                $model
+     * @param \Exception|\PDOException $e
+     * @param string                   $sql
      * @return string
+     * @internal param $type
+     * @internal param $msgList
      */
     public static function getMessage(\jt\Model $model, \PDOException $e, $sql = '')
     {

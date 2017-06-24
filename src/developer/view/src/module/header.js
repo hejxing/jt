@@ -1,8 +1,8 @@
 require('../style/base.less');
 
-import React from "react";
-import {render} from "react-dom";
-import {Col, Icon, Menu, Row} from "antd";
+import React from 'react'
+import {render} from 'react-dom'
+import {Row, Col, Menu, Icon} from 'antd'
 
 const Header = React.createClass({
     getInitialState() {

@@ -23,10 +23,10 @@ const webpackConfig = {
     },
     plugins: [
         new CommonsChunkPlugin({
-            filename: "js/layout" + config.chunkhash + ".js",
+            filename: "js/comm" + config.chunkhash + ".js",
             //children:  true,
             name: "comm",
-            //minChunks: 1
+            minChunks: 2
         }),
         new ExtractTextPlugin({
             "filename": "css/[name]" + config.contenthash + ".css"
@@ -47,27 +47,31 @@ const webpackConfig = {
             {
                 test: /\.js|\.jsx$/,
                 exclude: /node_modules/,
-                loader: "react-hot!babel"
+                loader: "react-hot-loader!babel-loader"
             },
             {
                 test: /\.css$/,
-                loader: ExtractTextPlugin.extract({fallbackLoader: 'style-loader', loader: 'css!postcss'})
+                loader: ExtractTextPlugin.extract({fallback: 'style-loader', use: 'css-loader!postcss-loader'})
             },
             {
                 test: /\.sass/,
-                loader: ExtractTextPlugin.extract({fallbackLoader: 'style-loader', loader: 'css!postcss!sass'})
+                loader: ExtractTextPlugin.extract({fallback: 'style-loader', use: 'css-loader!postcss-loader!sass-loader'})
             },
             {
                 test: /\.less$/,
-                loader: ExtractTextPlugin.extract({fallbackLoader: 'style-loader', loader: 'css!postcss!less'})
+                loader: 'style-loader!css-loader!postcss-loader!less-loader'
+            },
+            {
+                test: /\.(html|tpl)$/,
+                loader: 'html-loader'
             },
             {
                 test: /\.(eot|svg|ttf|woff|woff2)$/,
-                loader: 'file'
+                loader: 'file-loader'
             },
             {
                 test: /\.(png|jpg|gif|svg)$/,
-                loader: 'file',
+                loader: 'file-loader',
                 query: {
                     name: '[name].[ext]'
                 }
@@ -110,10 +114,10 @@ if(process.env.NODE_ENV === 'production'){
         }
     });
     webpackConfig.addPlugins(webpack.optimize.OccurrenceOrderPlugin);
-    webpackConfig.addPlugins(CleanPlugin, './release');
+    webpackConfig.addPlugins(CleanPlugin, config.path.dist);
 }else if(process.env.NODE_ENV === 'debugging'){
     webpackConfig.addPlugins(webpack.optimize.OccurrenceOrderPlugin);
-    webpackConfig.addPlugins(CleanPlugin, './build');
+    webpackConfig.addPlugins(CleanPlugin, config.path.dist);
 }
 
 // webpackConfig.plugins.push(new CopyWebpackPlugin([
@@ -122,6 +126,8 @@ if(process.env.NODE_ENV === 'production'){
 //     ignore: [],
 //     copyUnmodified: true
 // }));
+
+const matched = config.publicPath.match(/\/\/([^:\/]*):?([^\/]*)/) || [];
 
 webpackConfig.devServer = {
     historyApiFallback: {
@@ -134,9 +140,10 @@ webpackConfig.devServer = {
         index: '/index.tpl'
     },
     noInfo: true,
-    host: '127.0.0.1',
-    port: '8080',
-    contentBase: "build/"
+    host:  matched[1] || '127.0.0.1',
+    port: matched[2] || '8088',
+    contentBase: "build/",
+    headers: {"Access-Control-Allow-Origin": "*"}
 };
 
 module.exports = webpackConfig;

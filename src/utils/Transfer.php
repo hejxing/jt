@@ -39,6 +39,10 @@ class Transfer
      */
     protected $data = [];
     /**
+     * @var bool 是否需要签名
+     */
+    private $needSign = false;
+    /**
      *
      * @var string
      */
@@ -72,6 +76,14 @@ class Transfer
     public function setTimeout($timeout)
     {
         $this->timeout = intval($timeout);
+    }
+
+    /**
+     * 设置是否需要签名
+     * @param bool $need
+     */
+    public function setNeedSign(bool $need){
+        $this->needSign = $need;
     }
 
     public function sendAsJson()
@@ -161,7 +173,10 @@ class Transfer
      */
     public function send()
     {
-        //$this->sign();
+        if($this->needSign){
+            $this->sign();
+        }
+
         $this->transfer();
         $this->parse();
 

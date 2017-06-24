@@ -28,7 +28,7 @@ class Requester
 
     protected $method = '';
 
-    const CONVERT_TYPE  = ['int', 'float', 'double', 'bool', 'money', 'datetime', 'timestamp'];
+    const CONVERT_TYPE  = ['string', 'int', 'float', 'double', 'bool', 'money', 'datetime', 'timestamp'];
     const VALIDATE_TYPE = ['email', 'mobile', 'phone', 'identityCard', 'number', 'zn_ch', 'uuid'];
 
     const VALUE_RANGE_TYPE  = ['int', 'float', 'money', 'double'];
@@ -36,12 +36,12 @@ class Requester
 
     const FALSE_VALUE = ['n', 'f', 'no', 'false'];
 
-    const TRUE_ITEM     = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw', 'page'];
+    const TRUE_ITEM     = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw', 'page', 'unreal'];
     const INPUT_TYPE    = ['any', 'get', 'post', 'path'];
     const SINGLE_TYPE   = ['enum', 'bool', 'string', 'json', 'xml', 'html'];//合并上CONVERT_TYPE
     const MULTI_TYPE    = ['object', 'objectList', 'list'];
     const INJECT_VALUE  = ['instance', 'param'];
-    const VALUE_RULE    = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max'];
+    const VALUE_RULE    = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max', 'filter'];
     const FORMAT_ENABLE = ['datetime', 'float', 'money', 'html'];
 
     /**
@@ -132,8 +132,10 @@ class Requester
                 $value = $value?: 'string';
                 if(in_array($value, self::SINGLE_TYPE) || in_array($value, self::MULTI_TYPE) || in_array($value, self::CONVERT_TYPE)){
                     $result['type'] = $value;
+                }elseif($value === 'array'){
+                    $result['type'] = 'objectList';
                 }else{
-                    throw new Exception("actionRulerError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 的属性 [{$value}] 有误，请检查");
+                    throw new Exception("actionRulerValueError:当前 Action 配置表中 [{$name}] 项值 [{$key}] 的属性 [{$value}] 有误，请检查");
                 }
                 break;
             case in_array($key, self::VALUE_RULE):
@@ -174,20 +176,25 @@ class Requester
     }
 
     /**
-     * @param array  $data
+     * @param mixed  $data
      * @param array  $ruler
      * @param string $name
      * @param bool   $safeCheck
      *
      * @return array
      */
-    private static function compositeConvert(array $data, $ruler, $name = '', $safeCheck)
+    private static function compositeConvert($data, $ruler, $name = '', $safeCheck)
     {
+        if(isset($ruler['raw']) && $ruler['raw']){
+            return $data;
+        }
         switch($ruler['type']){
             case 'object':
                 $buffer = [];
-                foreach($ruler['nodes'] as $field => $r){
-                    $buffer[$field] = self::validate($data[$field]??null, $r, $name.'.'.$field, $safeCheck);
+                if(isset($ruler['nodes'])){
+                    foreach($ruler['nodes'] as $field => $r){
+                        $buffer[$field] = self::validate($data[$field]??null, $r, $name.'.'.$field, $safeCheck);
+                    }
                 }
 
                 return $buffer;
@@ -225,9 +232,6 @@ class Requester
      */
     public static function validate($value, $ruler, $name = '', $safeCheck = true)
     {
-        if(isset($ruler['raw'])){
-            return $safeCheck? self::safeProcess($value): $value;
-        }
         if($value === null){
             if(isset($ruler['default'])){
                 $value = $ruler['default'];
@@ -236,6 +240,10 @@ class Requester
             }else{
                 return self::fillEmpty($ruler);
             }
+        }
+
+        if(isset($ruler['raw'])){
+            return $safeCheck? self::safeProcess($value): $value;
         }
 
         if(in_array($ruler['type'], self::MULTI_TYPE)){
@@ -314,8 +322,8 @@ class Requester
     /**
      * 遍历转换输入的值
      *
-     * @param array $value
-     * @param array $ruler
+     * @param array|string $value
+     * @param array        $ruler
      * @return array
      */
     private static function revisionValue($value, $ruler)
@@ -328,6 +336,22 @@ class Requester
             }
         }elseif(is_array($value)){
             $arr = $value;
+        }
+
+        if($ruler['type'] === 'object'){
+            foreach($ruler['nodes'] as $name => $node){
+                if(isset($node['use'])){
+                    $arr[$name] = $arr[$node['use']];
+                }
+            }
+        }elseif($ruler['type'] === 'objectList'){
+            foreach($ruler['nodes'] as $name => $node){
+                if(isset($node['use'])){
+                    foreach($arr as &$item){
+                        $item[$name] = $item[$node['use']];
+                    }
+                }
+            }
         }
 
         return $arr;
@@ -348,6 +372,8 @@ class Requester
             return null;
         }
         switch($type){
+            case 'string':
+                return (string)$value;
             case 'int':
                 return intval($value);
             case 'float':
@@ -429,20 +455,16 @@ class Requester
     {
         $data = [];
         if($source === 'query' || $source === 'request'){
-            if($_GET){
-                $data = $_GET;
-            }else{
-                $data = self::parseInput(htmlspecialchars_decode($_SERVER['QUERY_STRING']));
-            }
+            $data = self::parseInput(htmlspecialchars_decode($_SERVER['QUERY_STRING']));
         }
 
         if($source === 'body' || $source === 'request'){
-            if($_POST){
+            if($_SERVER['CONTENT_TYPE'] === 'multipart/form-data'){
                 $input = $_POST;
             }else{
                 $input = self::parseInput(file_get_contents('php://input'));
             }
-            $data = array_merge($data, $input);
+            $data = array_replace($data, $input);
         }
 
         return static::create($data, $ruler, $source);
@@ -576,7 +598,6 @@ class Requester
     {
         $data = [];
         $this->collectAsMap();
-
         try{
             foreach($this->originData as $input => $value){
                 $name        = isset($this->useNameMap[$input])? $this->useNameMap[$input]: $input;
@@ -672,11 +693,12 @@ class Requester
 
         $value = isset($this->originData[$field])? $this->originData[$field]: null;
         //需要对$value进行处理 防xss攻击
-
-        if($ruler){
-            $value = self::validate($value, $ruler, $name);
-        }else{
-            $value = self::safeProcess($value);
+        if($value){
+            if($ruler){
+                $value = self::validate($value, $ruler, $name);
+            }else{
+                $value = self::safeProcess($value);
+            }
         }
 
         return $value;
@@ -784,9 +806,9 @@ class Requester
                 return false;
             case 'object':
                 $buffer = [];
-                if(isset($ruler[3])){
-                    foreach($ruler[3] as $r){
-                        $buffer[$r[0]] = self::fillEmpty($r);
+                if(isset($ruler['nodes'])){
+                    foreach($ruler['nodes'] as $name => $r){
+                        $buffer[$name] = self::fillEmpty($r);
                     }
                 }
 

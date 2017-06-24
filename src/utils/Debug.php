@@ -34,7 +34,7 @@ class Debug
      */
     protected static $collect = [];
 
-    public static function runtime($margin = true)
+    public static function runtime($print = false, $margin = true)
     {
         $now = microtime(true);
         if (self::$lastTime === null) {
@@ -46,8 +46,13 @@ class Debug
             $spendTime = $now - Bootstrap::$startTime;
         }
         self::$lastTime = $now;
+        $spendTime = $spendTime * 1000;
 
-        return ($spendTime * 1000);
+        if($print){
+            echo $spendTime . ' ms', PHP_EOL;
+        }
+
+        return $spendTime;
     }
 
     /**
@@ -114,8 +119,12 @@ class Debug
             mkdir($logPath, 0777, true);
 
         }
+
+        $date = new \DateTime();
+
         $request = $_SERVER['REQUEST_METHOD'].' '.$_SERVER['REQUEST_URI'];
-        $request .= "\r\n"."post: ".\file_get_contents('php://input')."\r\n"."get: ".$_SERVER['QUERY_STRING'];
+        $request .= "\r\npost: ".\file_get_contents('php://input')."\r\n"."get: ".$_SERVER['QUERY_STRING'];
+        $request .= "\r\nRequestTime:".$date->format('Y-m-d H:i:s.u');
         file_put_contents($logPath."/$file", "{$request}:\r\n$content\r\n\r\n", FILE_APPEND);
         chmod($logPath."/$file", 0777);
     }
@@ -136,7 +145,7 @@ class Debug
             if (self::$isCommit) {//代码执行 && 业务成功
                 Model::commitAll();
             }else {
-                Model::rollBack();
+                Model::rollBackAll();
             }
         }
         $lastError = error_get_last();

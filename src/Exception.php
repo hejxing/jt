@@ -96,8 +96,9 @@ class Exception extends \Exception
 
             return;
         }
+
         $count--;
-        $this->file = $trace[$count]['file'];
-        $this->line = $trace[$count]['line'];
+        $this->file = $trace[$count]['file']??'Class '.$trace[$count]['class'];
+        $this->line = $trace[$count]['line']??'Method '.$trace[$count]['function'];
     }
 }

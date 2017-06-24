@@ -157,6 +157,10 @@ class Compile
      * @var array 定位块所在的位置
      */
     private $blockAddress = [];
+    /**
+     * @var array 应忽略的标签
+     */
+    private $ignoreTag = ['extends'];
 
     /**
      * Compile constructor.
@@ -184,10 +188,10 @@ class Compile
     protected function loadDependency()
     {
         $file = $this->config['runtimePath'].'/dependency.php';
-        if(file_exists($file)){
+        if (file_exists($file)) {
             /** @noinspection PhpIncludeInspection */
             self::$dependency = include($file);
-        }else{
+        }else {
             self::$dependency[$this->tpl] = [
                 'createTime' => 0,
                 'list'       => []
@@ -215,12 +219,12 @@ class Compile
      */
     protected function isPeriod()
     {
-        if(empty(self::$dependency)){
+        if (empty(self::$dependency)) {
             $this->loadDependency();
         }
         //进一步检查文件是否有改动
-        if(isset(self::$dependency[$this->tpl])){
-            if(self::$dependency[$this->tpl]['creteTime'] === filectime($this->tpl)){
+        if (isset(self::$dependency[$this->tpl])) {
+            if (self::$dependency[$this->tpl]['creteTime'] === filectime($this->tpl)) {
                 /** @noinspection PhpIncludeInspection */
                 $this->parsedStream = include($this->genParsedFile($this->tpl));
                 $this->chain        = self::$dependency[$this->tpl]['chain'];
@@ -244,7 +248,7 @@ class Compile
     protected function error($msg, $offset = 0, $code = 'syntaxError')
     {
         $msg .= $this->content;
-        if($this->line >= 0){
+        if ($this->line >= 0) {
             $msg .= ' In file '.$this->tpl.' line '.$this->line.' Tag pos '.($this->tagPos + $offset);
         }
         throw new Exception("$code: $msg");
@@ -257,7 +261,7 @@ class Compile
      */
     private function openSourceFile()
     {
-        if(!file_exists($this->tpl)){
+        if (!file_exists($this->tpl)) {
             $this->error($this->tpl.' file not exists!', 0, 'tplNotExists');
         }
         $this->line   = 0;
@@ -274,7 +278,7 @@ class Compile
     protected function positionBlock()
     {
         $address = [];
-        foreach($this->blockStack as $block){
+        foreach ($this->blockStack as $block) {
             $address[] = count($block);
         }
         $address[] = count($this->parsedStream);
@@ -290,19 +294,19 @@ class Compile
      */
     protected function pushParsedStream($tag, $content)
     {
-        if($tag === 'block'){
+        if ($tag === 'block') {
             $this->blockAddress[$content][] = $this->positionBlock();
             array_unshift($this->blockStack, []);
 
             return;
-        }elseif($tag === 'blockEnd'){
+        }elseif ($tag === 'blockEnd') {
             $tag     = 'block';
             $content = array_shift($this->blockStack);
         }
 
-        if(count($this->blockStack)){
+        if (count($this->blockStack)) {
             $this->blockStack[0][] = [$tag, $content, $this->line, $this->tagPos];
-        }else{
+        }else {
             $this->parsedStream[] = [$tag, $content, $this->line, $this->tagPos];
         }
     }
@@ -315,7 +319,7 @@ class Compile
     protected function contentLength()
     {
         $endPos = strpos($this->content, $this->config['rightDelimiter'], $this->offset);
-        if($endPos === false){
+        if ($endPos === false) {
             $this->error('标签未关闭');
         }
         $length       = $endPos - $this->offset;
@@ -334,11 +338,13 @@ class Compile
      */
     protected function parseSimpleExpress(&$content, $tag = '', $define = false)
     {
-        $content = trim($content);
         //运算符
-        foreach(self::$symbols as $symbol => $literal){
-            if(strpos($content, $symbol) !== false){
+        foreach (self::$symbols as $symbol => $literal) {
+            if (strpos($content, $symbol) !== false) {
                 $cs = explode($symbol, $content, 2);
+                foreach($cs as &$c){
+                    $c = trim($c);
+                }
                 $this->parseSimpleExpress($cs[1], $tag, $define || $symbol === '=>' || $symbol === ' as ');
                 $this->parseSimpleExpress($cs[0], $tag, $define || $symbol === '=');
                 $content = implode($literal, $cs);
@@ -346,7 +352,7 @@ class Compile
             }
         }
 
-        if(preg_match('/^\$[a-zA-Z]+\w*(?:\.\$?\w+)*$/', $content)){
+        if (preg_match('/^\$[a-zA-Z]+\w*(?:\.\$?\w+)*$/', $content)) {
             $content = $this->parsedVariable($content, $define);
         }
 
@@ -361,14 +367,14 @@ class Compile
     protected function parseDefaultValue(&$content)
     {
         list($type, $pos) = $this->adjustTagType($content, 0, ['||' => '||']);
-        if($type === '||'){
+        if ($type === '||') {
             $s = substr($content, 0, $pos);
             $e = substr($content, $pos + 2);
             $this->parseDefaultValue($e);
 
-            if($s && preg_match('/^\$[a-zA-Z]+\w*(?:\.\$?\w+)*$/', $s)){
+            if ($s && preg_match('/^\$[a-zA-Z]+\w*(?:\.\$?\w+)*$/', $s)) {
                 $content = '(isset('.$s.') && '.$s.')?'.$s.':'.$e;
-            }else{
+            }else {
                 $content = $s.'?'.$s.':'.$e;
             }
         }
@@ -383,11 +389,11 @@ class Compile
     {
         $cs = explode('|', $content);
         $s  = array_shift($cs);
-        foreach($cs as $e){
+        foreach ($cs as $e) {
             $sp = explode(':', $e);
             $fn = array_shift($sp);
-            foreach($sp as &$p){
-                if(substr($p, 0, 1) !== '\'' && !is_numeric($p) && substr($p, 0, 1) !== '$' && !$this->isLocalVariable($p)){
+            foreach ($sp as &$p) {
+                if (substr($p, 0, 1) !== '\'' && !is_numeric($p) && substr($p, 0, 1) !== '$' && !$this->isLocalVariable($p)) {
                     $p = '\''.$p.'\'';
                 }
             }
@@ -409,53 +415,65 @@ class Compile
         $s             = 0;
         $express       = '';
         $callStack     = [];
+        $name          = '';
         $contentLength = strlen($content);
-        for($i = 0; $i < $contentLength; $i++){
-            if($content[$i] === '('){
+        if ($tag === 'let' || $tag === 'const') {
+            list($name, $content) = explode('=', $content, 2);
+        }
+        for ($i = 0; $i < $contentLength; $i++) {
+            if ($content[$i] === '(') {
                 $fn = substr($content, $s, $i - $s);
                 $fn = $this->parsedVariable($fn, $tag === 'function');
-                if(substr($fn, 0, 1) === '$'){
+                if (substr($fn, 0, 1) === '$') {
+                    $pos = strrpos($fn, '[');
+                    if ($pos) {
+                        $fn = '['.substr($fn, 0, $pos).', '.substr($fn, $pos + 1, -1).']';
+                    }
                     $callStack[] = [1, $i];
                     $express     .= 'call_user_func_array('.$fn.', [';
-                }else{
+                }else {
                     $callStack[] = [0, $i];
                     $express     .= $fn.'(';
                 }
                 $s = $i + 1;
-            }elseif($content[$i] === ')'){
+            }elseif ($content[$i] === ')') {
                 $param = substr($content, $s, $i - $s);
                 $ps    = explode(',', $param);
 
-                foreach($ps as &$p){
+                foreach ($ps as &$p) {
                     $this->parseSimpleExpress($p, $tag, $tag === 'function');
                 }
-                if(!$callStack){
+                if (!$callStack) {
                     $this->error('错误的关闭括号。', $i + 2);
                 }
                 $sign = array_pop($callStack);
-                if($sign[0]){
+                if ($sign[0]) {
                     $express .= implode(', ', $ps).'])';
-                }else{
+                }else {
                     $express .= implode(', ', $ps).')';
                 }
 
                 $s = $i + 1;
             }
         }
-        if($callStack){
+        if ($callStack) {
             $sign = array_pop($callStack);
             $this->error('有括号未关闭。', $sign[1] + 2);
         }
 
-        if($express){
+        if ($express) {
             $suffix = '';
-            if($s < $contentLength){
+            if ($s < $contentLength) {
                 $suffix = substr($content, $s);
                 $this->parseSimpleExpress($suffix, $tag);
             }
             $content = $express.$suffix;
-        }else{
+        }else {
             $this->parseSimpleExpress($content, $tag);
+        }
+
+        if ($tag === 'let' || $tag === 'const') {
+            $content = $this->parsedVariable($name, true).' = '.$express;
         }
     }
 
@@ -482,16 +500,16 @@ class Compile
      */
     protected function isLocalVariable($name)
     {
-        for($i = $this->callLevel; $i >= 0; $i--){
-            if(isset($this->context[$i])){
+        for ($i = $this->callLevel; $i >= 0; $i--) {
+            if (isset($this->context[$i])) {
                 $ns = explode('.', $name);
-                do{
+                do {
                     $n = implode('.', $ns);
-                    if(isset($this->context[$i][$n])){
+                    if (isset($this->context[$i][$n])) {
                         return true;
                     }
                     array_pop($ns);
-                }while($ns);
+                }while ($ns);
             }
         }
 
@@ -506,7 +524,10 @@ class Compile
      */
     protected function fixVariable($name)
     {
-        if($name !== self::DATA_NAME && substr($name, 0, 6) !== self::DATA_NAME.'.' && substr($name, 0, 1) === '$' && !$this->isLocalVariable($name)){
+        $name = trim($name);
+        if ($name !== self::DATA_NAME && substr($name, 0, 6) !== self::DATA_NAME.'.' && substr($name, 0,
+                1) === '$' && !$this->isLocalVariable($name)
+        ) {
             $name = self::DATA_NAME.'.'.substr($name, 1);
         }
 
@@ -520,11 +541,11 @@ class Compile
      */
     protected function checkCircularReference($file)
     {
-        $check = function($f) use (&$check, $file){
-            if(isset(self::$dependency[$f]['chain'])){
-                foreach(self::$dependency[$f]['chain'] as $tag => $chain){
-                    foreach($chain as $f => $null){
-                        if($f === $file){
+        $check = function ($f) use (&$check, $file){
+            if (isset(self::$dependency[$f]['chain'])) {
+                foreach (self::$dependency[$f]['chain'] as $tag => $chain) {
+                    foreach ($chain as $f => $null) {
+                        if ($f === $file) {
                             $this->tpl = $f;
                             $this->error('Circular reference: ');
                         }
@@ -544,12 +565,12 @@ class Compile
      */
     protected function checkVariable($name, $mustVariable)
     {
-        if($mustVariable){
-            if(substr($name, 0, 1) !== '$'){
-                $this->error('变量名需以"$"为前缀。');
+        if ($mustVariable) {
+            if (substr($name, 0, 1) !== '$') {
+                $this->error('变量名['.$name.']需以"$"为前缀.');
             }
         }
-        if($name === '$'){
+        if ($name === '$') {
             $this->error('变量名不能为空');
         }
     }
@@ -565,23 +586,23 @@ class Compile
     private function parsedVariable($name, $isDefine = false, $mustVariable = false)
     {
         $name = trim($name);
-        if(!$name){
+        if (!$name) {
             return $name;
         }
         $this->checkVariable($name, $mustVariable);
 
-        if($isDefine){
+        if ($isDefine) {
             $this->context[$this->callLevel][$name] = 0;//是什么类型变量
-        }else{
+        }else {
             $name = $this->fixVariable($name);
         }
         $ns   = explode('.', $name);
         $name = array_shift($ns);
-        if($ns){
-            foreach($ns as &$n){
-                if(substr($n, 0, 1) !== '$'){
+        if ($ns) {
+            foreach ($ns as &$n) {
+                if (substr($n, 0, 1) !== '$') {
                     $n = '\''.$n.'\'';
-                }else{
+                }else {
                     $n = $this->parsedVariable($n);
                 }
             }
@@ -602,28 +623,28 @@ class Compile
         $s     = -1;
         $index = 0;
 
-        for($i = 0, $l = strlen($content); $i < $l; $i++){
-            if($content[$i] === '\'' && !$trope){
-                if($s === -1){
+        for ($i = 0, $l = strlen($content); $i < $l; $i++) {
+            if ($content[$i] === '\'' && !$trope) {
+                if ($s === -1) {
                     $s = $i;
-                }else{
+                }else {
                     $holder                   = "'_{$index}'";
                     $this->quoteList[$holder] = substr($content, $s, $i - $s + 1);
                     $s                        = -1;
                     $index++;
                 }
-            }elseif($content[$i] === '\\' && !$trope){
+            }elseif ($content[$i] === '\\' && !$trope) {
                 $trope = true;
-            }else{
+            }else {
                 $trope = false;
             }
         }
 
-        if($s !== -1){
+        if ($s !== -1) {
             $this->error('错误的引号。', $s + 2);
         }
 
-        foreach($this->quoteList as $holder => $c){
+        foreach ($this->quoteList as $holder => $c) {
             $content = str_replace($c, $holder, $content);
         }
     }
@@ -635,7 +656,7 @@ class Compile
      */
     protected function fillQuote(&$content)
     {
-        foreach($this->quoteList as $h => $c){
+        foreach ($this->quoteList as $h => $c) {
             $content = str_replace($h, $c, $content);
         }
     }
@@ -649,7 +670,7 @@ class Compile
     protected function parseTag(&$tag, &$content)
     {
         $this->parseExpress($content, $tag);
-        switch($tag){
+        switch ($tag) {
             case 'express':
             case 'void':
                 break;
@@ -693,28 +714,27 @@ class Compile
             case 'extends':
             case 'block':
             case 'include':
-                if(substr($content, 0, 1) === "'" && substr($content, -1) === "'"){
+                if (substr($content, 0, 1) === "'" && substr($content, -1) === "'") {
                     $content = substr($content, 1, -1);
-                }else{
+                }else {
                     $this->error('标签 '.$tag.' 的值应该由"\'"包裹。');
                 }
                 break;
             case 'let'://赋值
+                $name = explode('=', $content)[0];
+                if ($name === self::DATA_NAME) {
+                    $this->error('定义的变量名不能是: '.self::DATA_NAME);
+                }elseif (substr($name, 0, 6) === self::DATA_NAME.'[') {
+                    $this->error('不允许将变量定义在 '.self::DATA_NAME.' 下。');
+                }
+                $this->checkVariable($name, true);
+                break;
             case 'const':
                 $name = explode('=', $content)[0];
-                if($tag === 'let'){
-                    if($name === self::DATA_NAME){
-                        $this->error('定义的变量名不能是: '.self::DATA_NAME);
-                    }elseif(substr($name, 0, 6) === self::DATA_NAME.'['){
-                        $this->error('不允许将变量定义在 '.self::DATA_NAME.' 下。');
-                    }
-                    $this->checkVariable($name, true);
-                }elseif($tag === 'const'){
-                    if(substr($name, 0, 1) === '$'){
-                        $this->error('常量名不能以"$"为前缀。');
-                    }
-                    $content = 'const '.$content;
+                if (substr($name, 0, 1) === '$') {
+                    $this->error('常量名不能以"$"为前缀。');
                 }
+                $content = 'const '.$content;
                 break;
         }
     }
@@ -725,36 +745,36 @@ class Compile
     protected function collectTag()
     {
         $tag = 'express';
-        foreach(static::$labels as $index => $label){
+        foreach (static::$labels as $index => $label) {
             $labelLength = strlen($label);
-            if(substr($this->content, $this->offset, $labelLength) === $label){
+            if (substr($this->content, $this->offset, $labelLength) === $label) {
                 $this->offset += $labelLength;
                 $tag          = $index;
                 break;
             }
         }
 
-        if($tag === 'php'){
+        if ($tag === 'php') {
             $var     = substr($this->content, $this->offset, $this->contentLength());
             $varList = explode(',', $var);
-            foreach($varList as $v){
+            foreach ($varList as $v) {
                 $this->parsedVariable($v, true);
             }
             $this->tagStack[] = ['php', $this->line, $this->tagPos];
             $content          = $this->collectBlockContent($this->config['leftDelimiter'].'/php'.$this->config['rightDelimiter']);
-        }elseif($tag === 'literal'){
+        }elseif ($tag === 'literal') {
             $this->contentLength();
             $this->tagStack[] = ['literal', $this->line, $this->tagPos];
             $content          = $this->collectBlockContent($this->config['leftDelimiter'].'/literal'.$this->config['rightDelimiter']);
-        }else{
+        }else {
             $content = substr($this->content, $this->offset, $this->contentLength());
             $this->checkTag($tag);
             $this->parseTag($tag, $content);
 
-            if($tag === 'extends' || $tag === 'include'){
+            if ($tag === 'extends' || $tag === 'include') {
                 $content  = self::joinPath($content, dirname($this->tpl));
                 $pathInfo = pathinfo($content);
-                if(!isset($pathInfo['extension'])){
+                if (!isset($pathInfo['extension'])) {
                     $content .= $this->config['suffix'];
                 }
                 $this->chain[$tag][$content] = [count($this->parsedStream), $this->tagPos];
@@ -776,17 +796,17 @@ class Compile
     {
         $endPos = strpos($this->content, $end, $this->offset);
 
-        if($endPos === false){
+        if ($endPos === false) {
             $content       .= substr($this->content, $this->offset);
             $this->content = fgets($this->fh);
-            if(!$this->content){
+            if (!$this->content) {
                 return '';
             }
 
             $this->line++;
             $this->offset = 0;
             $content      = $this->collectBlockContent($end, $content);
-        }else{
+        }else {
             $content      .= substr($this->content, $this->offset, $endPos - $this->offset);
             $this->offset = $endPos + strlen($end);
             array_pop($this->tagStack);
@@ -807,12 +827,12 @@ class Compile
     {
         $minPos = -1;
         $type   = 'literal';
-        foreach($labels as $index => $label){
+        foreach ($labels as $index => $label) {
             $pos = strpos($content, $label, $offset);
-            if($pos > -1 && ($minPos == -1 || $pos < $minPos)){
+            if ($pos > -1 && ($minPos == -1 || $pos < $minPos)) {
                 $minPos = $pos;
                 $type   = $index;
-                if($pos === 0){
+                if ($pos === 0) {
                     break;
                 }
             }
@@ -827,18 +847,18 @@ class Compile
     protected function parseLine()
     {
         list($type, $pos) = $this->adjustTagType($this->content, $this->offset, $this->startLabel);
-        if($type === 'literal'){
+        if ($type === 'literal') {
             $this->pushParsedStream('literal', substr($this->content, $this->offset));
 
             return;
         }
-        if($pos - $this->offset > 0){
+        if ($pos - $this->offset > 0) {
             $this->pushParsedStream('literal', substr($this->content, $this->offset, $pos - $this->offset));
         }
         $this->tagPos = $pos + 1;
         $this->offset = $pos + strlen($this->startLabel[$type]);
 
-        switch($type){
+        switch ($type) {
             case 0://leftDelimiter
                 $this->tagStack[] = [$this->config['leftDelimiter'].'*', $this->line, $this->tagPos];
                 $this->collectBlockContent('*'.$this->config['rightDelimiter']);
@@ -852,7 +872,7 @@ class Compile
             default:
                 break;
         }
-        if($this->offset < strlen($this->content)){
+        if ($this->offset < strlen($this->content)) {
             $this->parseLine();
         }
     }
@@ -862,7 +882,7 @@ class Compile
      */
     protected function validateParsed()
     {
-        foreach($this->tagStack as $tag){
+        foreach ($this->tagStack as $tag) {
             $this->line   = $tag[1];
             $this->tagPos = $tag[2];
             $this->error($tag[0].' 标签未关闭。');
@@ -876,13 +896,13 @@ class Compile
      */
     protected function checkTag($type)
     {
-        switch($type){
+        switch ($type) {
             case 'extends':
-                foreach($this->parsedStream as $con){
-                    if($con[0] === 'extends'){
+                foreach ($this->parsedStream as $con) {
+                    if ($con[0] === 'extends') {
                         $this->error('"extends" 标签出现多次,一个文件里只允许放置一个"extends"标签。');
                     }
-                    if(!in_array($con[0], self::$allowAtExtendsBefore)){
+                    if (!in_array($con[0], self::$allowAtExtendsBefore)) {
                         $this->error('标签 extends 不允许出现在 '.$con[0].' 之后。');
                     }
                 }
@@ -890,17 +910,17 @@ class Compile
             case 'else':
             case 'elseif':
                 $tag = array_pop($this->tagStack);
-                if(!$tag || $tag[0] !== 'if'){
+                if (!$tag || $tag[0] !== 'if') {
                     $this->error(self::$labels[$type].' 错误的标签,没有对应的开始标签: if. ');
                 }
                 $this->tagStack[] = $tag;
                 break;
             default:
-                if(isset(self::$labels[$type.'End'])){
+                if (isset(self::$labels[$type.'End'])) {
                     $this->tagStack[] = [$type, $this->line, $this->tagPos];
-                }elseif(substr($type, -3) === 'End'){
+                }elseif (substr($type, -3) === 'End') {
                     $tag = array_pop($this->tagStack);
-                    if(!$tag || $tag[0].'End' !== $type){
+                    if (!$tag || $tag[0].'End' !== $type) {
                         $this->error(self::$labels[$type].' 错误的关闭标签,没有对应的开始标签: '.self::$labels[substr($type, 0, -3)].'. ');
                     }
                 }
@@ -913,16 +933,16 @@ class Compile
      */
     protected function parse()
     {
-        if($this->isPeriod()){
+        if ($this->isPeriod()) {
             return;
         }
 
         $this->fh = $this->openSourceFile();
         $this->initEvn();
 
-        while($this->content = fgets($this->fh)){
+        while ($this->content = fgets($this->fh)) {
             $this->line++;
-            if($this->content === "\n"){
+            if ($this->content === "\n") {
                 continue;
             }
             $this->offset = 0;
@@ -942,20 +962,20 @@ class Compile
      */
     public static function joinPath($path, $dir = '')
     {
-        if(substr($path, 0, 1) !== '/'){
+        if (substr($path, 0, 1) !== '/') {
             $path = $dir.'/'.$path;
         }
 
-        if(strpos($path, './') === false){
+        if (strpos($path, './') === false) {
             return $path;
         }
 
         $ps    = explode('/', $path);
         $paths = [];
-        foreach($ps as $p){
-            if($p === '..'){
+        foreach ($ps as $p) {
+            if ($p === '..') {
                 array_pop($paths);
-            }elseif($p !== '.'){
+            }elseif ($p !== '.') {
                 array_push($paths, $p);
             }
         }
@@ -985,25 +1005,26 @@ class Compile
     protected function replaceBlock($compiler)
     {
         $parent = $compiler->parsedStream;
-        foreach($this->blockAddress as $name => $childAddressList){
-            if(count($childAddressList) >= 2){
+        foreach ($this->blockAddress as $name => $childAddressList) {
+            if (count($childAddressList) >= 2) {
                 //TODO: 警告，有同名block
             }
             $childAddress = $childAddressList[0];
-            if(count($childAddress) >= 2){
+            if (count($childAddress) >= 2) {
                 continue;
             }
-            if(isset($compiler->blockAddress[$name])){
+            if (isset($compiler->blockAddress[$name])) {
                 $addresses = $compiler->blockAddress[$name];
-                foreach($addresses as $address){
+                foreach ($addresses as $address) {
                     $node = &$parent;
-                    foreach($address as $pos){
+                    foreach ($address as $pos) {
                         $node = &$node[$pos];
                     }
                     $node = $this->parsedStream[$childAddress[0]];
                 }
             }
         }
+        $this->blockAddress = $compiler->blockAddress;
         $this->parsedStream = $parent;
     }
 
@@ -1012,8 +1033,8 @@ class Compile
      */
     protected function link()
     {
-        foreach($this->chain as $tag => $chain){
-            foreach($chain as $content => $info){
+        foreach ($this->chain as $tag => $chain) {
+            foreach ($chain as $content => $info) {
                 $compiler            = new self($content, $this->config);
                 $compiler->callLevel = $this->callLevel;
                 $compiler->context   = $this->context;
@@ -1022,9 +1043,9 @@ class Compile
                 $compiler->link();
 
                 $this->context = $compiler->context;
-                if($tag === 'include'){
+                if ($tag === 'include') {
                     $this->parsedStream[$info[0]][1] = $compiler->getParsed();
-                }else{
+                }else {
                     $this->replaceBlock($compiler);
                 }
             }
@@ -1035,7 +1056,8 @@ class Compile
     {
         $info = pathinfo($tpl);
 
-        return $this->config['runtimePath'].'/parse'.str_replace($this->config['basePath'], '', $info['dirname'].'/'.$info['filename']).'.php';
+        return $this->config['runtimePath'].'/parse'.str_replace($this->config['basePath'], '',
+                $info['dirname'].'/'.$info['filename']).'.php';
     }
 
     /**
@@ -1045,7 +1067,7 @@ class Compile
     {
         $file = $this->genParsedFile($this->tpl);
         $dir  = dirname($file);
-        if(!is_dir($dir)){
+        if (!is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
         file_put_contents($file, "<?php return ".var_export($this->parsedStream, true).';', LOCK_EX);
@@ -1062,35 +1084,34 @@ class Compile
     protected function joinParsed($parsed, $inPhp = false)
     {
         $obj = '';
-        foreach($parsed as $c){
-            $ignore = ['extends'];
-            if(in_array($c[0], $ignore)){
+        foreach ($parsed as $c) {
+            if (in_array($c[0], $this->ignoreTag)) {
                 continue;
             }
-            if($c[0] === 'include' || $c[0] === 'block'){
+            if ($c[0] === 'include' || $c[0] === 'block') {
                 $obj .= $this->joinParsed($c[1], $inPhp);
-            }elseif($c[0] === 'literal'){
-                if($inPhp){
+            }elseif ($c[0] === 'literal') {
+                if ($inPhp) {
                     $obj   .= "?>";
                     $inPhp = false;
                 }
                 $obj .= $c[1];
-            }else{
-                if(!$inPhp){
+            }else {
+                if (!$inPhp) {
                     $obj   .= "<?php ";
                     $inPhp = true;
                 }
 
-                if(substr($c[1], -1) !== '{' && substr($c[1], -1) !== '}' && $c[0] !== 'php'){
+                if (substr($c[1], -1) !== '{' && substr($c[1], -1) !== '}' && $c[0] !== 'php') {
                     $c[1] .= ';';
                 }
-                if($c[0] === 'express'){
+                if ($c[0] === 'express') {
                     $c[1] = 'echo '.$c[1];
                 }
                 $obj .= $c[1];
             }
         }
-        if($inPhp){
+        if ($inPhp) {
             $obj .= "?>";
         }
 

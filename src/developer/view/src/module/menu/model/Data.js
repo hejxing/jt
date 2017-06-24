@@ -5,10 +5,12 @@ import Ajax from '../../../ajax';
 
 export default {
     maxLevel: 2,
+    mixing: false,
+    curKey: null,
     item: [{
         key: 'root',
         icon: 'bars',
-        name: '功能菜单',
+        name: '页面列表',
         type: 'group',
         item: [{
             key: '1',
@@ -16,16 +18,32 @@ export default {
             name: '...'
         }]
     }],
+    apiList: [],
+
+    getApiList(){
+        if(this.apiList.length){
+            return new Promise((resolve)=>{
+                resolve();
+            });
+        }
+        return Ajax.get('../menu/api/list').success((data, xhr, q)=>{
+            this.apiList = data;
+        });
+    },
+
     load(fn){
-        Ajax.get('../menu/list.json').then((d) =>{
+        Ajax.get('../menu/list.json').success((d) =>{
             if(d.maxLevel){
                 this.maxLevel = d.maxLevel;
             }
+            this.mixing = !!d.mixing;
+            this.item[0].item = d.list || [];
+            this.feature = d.feature || {};
             fn(d);
         });
     },
     save(fn){
-        Ajax.put('../menu/list.json', {data: {list: this.item[0].item}, arrayIndexIgnore: true}).then((d) =>{
+        Ajax.put('../menu/list.json', {data: {data: {list: this.item[0].item, feature: this.feature}}, arrayIndexIgnore: true}).success((d) =>{
             fn(d);
         });
     },
@@ -35,6 +53,20 @@ export default {
             item.item = [];
         }
         item.item.push(node);
+    },
+    remove(item){
+        const parent = this.findItem(item.parentKey);
+        parent.item.splice(item.index, 1);
+        if(!parent.item.length){
+            delete parent.item;
+        }
+    },
+    curItem(key){
+        const item = this.findItem(key);
+        if(key){
+            this.curKey = key;
+        }
+        return item;
     },
     findItem(key){
         if(key === null){

@@ -116,7 +116,7 @@ class Responder
             $sqlList = "\n        ".implode("\n        ", $hData['querySqlList']);
             $content .= "
 <!--
-    Entrance: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[8]})
+    Entrance: {$ruler[0]}::{$ruler[1]} (@router at line: {$ruler[10]})
     SqlQueryTimes: {$hData['queryCount']}
     LoadFiles: {$hData['loadFilesCount']}
     UseMemory: {$hData['useMemory']}
@@ -245,5 +245,40 @@ class Responder
         }
 
         return 0;
+    }
+
+    /**
+     * 获取要返回的字段列表
+     *
+     * @param string $path
+     * @return string
+     * @throws \jt\Exception
+     */
+    public function fields($path = '')
+    {
+        $ruler       = $this->controller->getRuler();
+        $returnRuler = $ruler[6]??[];
+        $paths       = explode('.', $path);
+        foreach($paths as $p){
+            if(isset($returnRuler['nodes'][$p])){
+                $returnRuler = $returnRuler['nodes'][$p];
+            }else{
+                $returnRuler = [];
+                break;
+            }
+        }
+
+        if(!isset($returnRuler['nodes'])){
+            throw new Exception('outputFieldNotExists:在输出规则中没有找到对应的项');
+        }
+
+        $buffer = [];
+        foreach($returnRuler['nodes'] as $name => $node){
+            if(!isset($node['unreal'])){
+                $buffer[] = $name;
+            }
+        }
+
+        return implode(', ', $buffer);
     }
 }

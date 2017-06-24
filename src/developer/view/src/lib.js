@@ -17,21 +17,29 @@ export default {
         if(element['addEventListener']){
             element['addEventListener'](event, fn);
         }else if(this['attachEvent']){
-            element['attachEvent']('on' + event, fn);
+            element['attachEvent']('on'+event, fn);
         }
     },
     fireEvent(event, element){
-        if(document.createEventObject){
+        if (document.createEventObject){
             // IE浏览器支持fireEvent方法
             let evt = document.createEventObject();
-            return element.fireEvent('on' + event, evt)
+            return element.fireEvent('on'+event, evt)
         }else{
             // 其他标准浏览器使用dispatchEvent方法
-            let evt = document.createEvent('HTMLEvents');
+            let evt = document.createEvent( 'HTMLEvents');
             // initEvent接受3个参数：
             // 事件类型，是否冒泡，是否阻止浏览器的默认行为
             evt.initEvent(event, true, true);
             return !element.dispatchEvent(evt);
         }
+    },
+    clone(d){
+        const c = {};
+        for(let i in d){
+            //noinspection JSUnfilteredForInLoop
+            c[i] = d[i];
+        }
+        return c;
     }
 };

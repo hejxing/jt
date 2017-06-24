@@ -267,7 +267,7 @@ abstract class Email
         $header = "MIME-Version: 1.0{$delimiter}";
         $header .= "X-Priority: 3{$delimiter}";
         $header .= "X-MSMail-Priority: Normal{$delimiter}";
-        $header .= "X-Mailer: 51ydgymall.cn(copyRight 2008){$delimiter}";
+        $header .= "X-Mailer: csmall.com(copyRight 2017){$delimiter}";
         $header .= "Content-Type: {$this->contentType}; charset={$this->encoding}; format=flowed".$this->delimiter;
 
         $from = $this->getFrom();

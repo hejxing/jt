@@ -10,9 +10,8 @@ namespace jt;
 use jt\lib\session\Invalid;
 use jt\lib\session\Saver;
 use jt\utils\Helper;
-use SessionHandlerInterface;
 
-abstract class Session implements SessionHandlerInterface
+abstract class Session
 {
     /**
      * 开启会话，会根据配置自动获取会话标识，将会话内容充入$_SESSION
@@ -20,14 +19,15 @@ abstract class Session implements SessionHandlerInterface
      * @param bool   $sowing
      * @param string $sessionId
      * @param bool   $restart 如果当前会话处于活动状态是否关停
+     * @param bool   $holdData 是否保持旧数据
      * @return string
      * @throws Exception
      */
-    public static function start($sowing = false, $sessionId = '', $restart = false)
+    public static function start($sowing = false, $sessionId = '', $restart = false, $holdData = false)
     {
         ini_set('session.use_cookies', 0);
         $sessionId = $sessionId?: self::getSessionId($sowing, $restart);
-        if(!self::checkStatus($restart)){
+        if(!self::checkStatus($restart, $holdData)){
             return $sessionId;
         }
 
@@ -106,7 +106,7 @@ abstract class Session implements SessionHandlerInterface
         $expire   = 0;//time() + 45 * 60;
         $path     = '/';
         $domain   = null;
-        $secure   = null;
+        $secure   = $_SERVER['HTTPS']??false;
         $httpOnly = true;
         setcookie($name, $id, $expire, $path, $domain, $secure, $httpOnly);
     }
@@ -151,10 +151,11 @@ abstract class Session implements SessionHandlerInterface
      * 检查会话状态
      *
      * @param bool $restart 是否重启新会话
+     * @param bool $holdData 是否保持旧数据
      * @return bool
      * @throws Exception
      */
-    private static function checkStatus($restart)
+    private static function checkStatus($restart, $holdData)
     {
         $status = session_status();
         switch($status){
@@ -163,7 +164,9 @@ abstract class Session implements SessionHandlerInterface
                 break;
             case PHP_SESSION_ACTIVE:
                 if($restart){
-                    session_write_close();
+                    if($holdData){
+                        session_write_close();
+                    }
                 }else{
                     return false;
                 }
@@ -220,7 +223,7 @@ abstract class Session implements SessionHandlerInterface
      */
     public static function genSessionId()
     {
-        $id = Helper::uuid();
+        $id = Helper::uuid().Helper::uuid();
         self::sowing($id);
 
         return $id;
@@ -256,10 +259,19 @@ abstract class Session implements SessionHandlerInterface
      */
     protected static function getIdByCookie($name)
     {
-        $id = $_COOKIE[$name]??null;
-        if($id){
-            self::sowingIdByCookie($id, $name);//刷新Cookie的有效期
+        //TODO 记录下可疑攻击行为
+        if($_SERVER['REQUEST_METHOD'] !== 'GET'){//判断是否同源 防CSRF攻击
+            if(!isset($_SERVER['HTTP_REFERER'])){//referer为空
+                return null;
+            }
+            $refererInfo = parse_url($_SERVER['HTTP_REFERER']);
+
+            if($_SERVER['HTTP_HOST'] !== $refererInfo['host'] || $_SERVER['SERVER_PORT'] !== ($refererInfo['port']??'80')){
+                return null;
+            }
         }
+
+        $id = $_COOKIE[$name]??null;
 
         return $id;
     }

@@ -15,13 +15,14 @@ abstract class Action extends Loader
 {
     const MODEL_ACTION = '\jt\ModelAction';
 
-    const RULER_ORDER          = ['method', 'uri', 'tpl', 'auth', 'mime', 'affix'];//affix:doc_hidden,output_quiet
+    const RULER_ORDER          = ['method', 'uri', 'tpl', 'auth', 'log', 'mime', 'affix'];//affix:doc_hidden,output_quiet
     const METHODS              = ['get', 'post', 'put', 'delete', 'head', 'options', 'any', 'cli'];//支持的动作
     const ANY_AS_METHODS       = ['get', 'post', 'put', 'delete'];//any 所代表的动作
     const REQUEST_PARAM        = [
         '\jt\Requester' => ['body', 'query', 'request', 'header'],
         '\jt\Cookie'    => ['cookie'],
-        'array'         => ['session']
+        '\jt\Session'   => ['session'],
+        '\jt\Responder' => ['output']
     ];
     const ENABLE_QUOTE         = ['session'];
     const VALUE_PARAM          = ['int', 'string', 'array', 'float', 'bool'];
@@ -30,8 +31,22 @@ abstract class Action extends Loader
     const GLOBAL_BASE_PATH     = ['basePath', 'baseTplPath'];
 
     const METHOD_ATTRIBUTES  = [
-        'methods', 'uri', 'class', 'param', 'return', 'method', 'path',
-        'tpl', 'mime', 'auth', 'affix', 'name', 'desc', 'notice', 'line'
+        'methods',
+        'uri',
+        'class',
+        'param',
+        'return',
+        'method',
+        'path',
+        'tpl',
+        'mime',
+        'auth',
+        'log',
+        'affix',
+        'name',
+        'desc',
+        'notice',
+        'line'
     ];
     const DEFAULT_INDEX      = 'index';
     const TAB_AS_SPACE_COUNT = 4;
@@ -42,7 +57,8 @@ abstract class Action extends Loader
     protected $defaultRuler = [
         'method' => 'get',
         'tpl'    => '',
-        'auth'   => null,
+        'auth'   => \Config::DEFAULT_AUTH_CHECKER,
+        'log'    => \Config::DEFAULT_LOG_WRITER,
         'mime'   => '',
         'affix'  => ''
     ];
@@ -102,13 +118,15 @@ abstract class Action extends Loader
         foreach(static::CLASS_INFO_NAMES as $name){
             if($name === 'desc'){
                 $this->classInfo[$name][] = $this->getValue($name);
+                $descBuffer               = [];
                 foreach($this->getCommentList(['string']) as list(, $desc)){
-                    $this->classInfo[$name][] = $desc;
+                    $descBuffer[] = $desc;
                 }
-                $last = array_pop($this->classInfo[$name]);
+                $last = array_pop($descBuffer);
                 if($last){
-                    $this->classInfo[$name][] = $last;
+                    $descBuffer[] = $last;
                 }
+                $this->classInfo[$name] = implode(';', $descBuffer);
             }else{
                 $this->classInfo[$name] = $this->getValue($name);
             }
@@ -159,7 +177,7 @@ abstract class Action extends Loader
      */
     private function parseParamLine($line)
     {
-        preg_match('/(\+?\w*)\:?([\w\\\\]*)(?: +\[([^\]]*)\])? *(.*)/', $line, $match);
+        preg_match('/(\+?\w*)\:?([\w\:\\\\]*)(?: +\[([^\]]*)\])? *(.*)/', $line, $match);
         array_shift($match);
         if(strpos($match[2], '[') !== false){
             $posList = [];
@@ -192,6 +210,11 @@ abstract class Action extends Loader
         if(strpos($match[0], '+') === 0){
             $list     = preg_split('/ *, */', $match[2]?: '*');
             $match[0] = substr($match[0], 1);
+            if(strpos($match[1], '::') !== false){
+                list($class, $method) = explode('::', $match[1]);
+                $class = $this->prefixNamespace($class);
+                $match[1] = $class.'::'.$method;
+            }
             $match[2] = [
                 'origin' => $match[1],
                 'list'   => $list,
@@ -317,7 +340,7 @@ abstract class Action extends Loader
         //获取说明
         $this->parsed['return'] = [];
         $this->parsed['name']   = '';
-        $this->parsed['desc']   = [];
+        $this->parsed['desc']   = '';
         $this->parsed['notice'] = '';
     }
 
@@ -345,7 +368,8 @@ abstract class Action extends Loader
             $name = $match[1];
             if(!isset($this->parsed['param'][$name])){//忽略在方法参数中不存在的参数
                 if($this->parsed['scheme'] === 'router'){
-                    $this->error('docParamNotInMethod', '注解中的参数 ['.$name.'] 在方法 ['.$this->parsed['class'].'::'.$this->parsed['method'].'] 中不存在');
+                    $this->error('docParamNotInMethod',
+                        '注解中的参数 ['.$name.'] 在方法 ['.$this->parsed['class'].'::'.$this->parsed['method'].'] 中不存在');
                     continue;
                 }else{
                     $this->parsed['param'][$name] = [
@@ -437,7 +461,9 @@ abstract class Action extends Loader
             'ruler' => [
                 'rule'   => 'int',
                 'type'   => 'int',
-                'format' => null
+                'format' => null,
+                'min'    => 0,
+                'max'    => 0
             ]
         ];
     }
@@ -475,6 +501,22 @@ abstract class Action extends Loader
         }
     }
 
+    private function parseInfo($type){
+        $buffer           = [];
+        $info = $this->getValue($type);
+        if($info){
+            $buffer[] = $info;
+            foreach($this->getCommentList(['string']) as list(, $info)){
+                $buffer[] = $info;
+            }
+            $lastLine = array_pop($buffer);
+            if($lastLine){
+                $buffer[] = $lastLine;
+            }
+            $this->parsed[$type]   = implode('; ', $buffer);
+        }
+    }
+
     /**
      * 解析带路由的方法的说明文档
      */
@@ -482,11 +524,9 @@ abstract class Action extends Loader
     {
         //获取说明
         $this->parsed['name'] = $this->getValue('string');
-        $this->parsed['desc'] = [];
-        foreach($this->getCommentList(['string']) as list(, $desc)){
-            $this->parsed['desc'][] = $desc;
-        }
-        $this->parsed['notice'] = $this->getValue('notice');
+
+        $this->parseInfo('desc');
+        $this->parseInfo('notice');
 
         $this->collectDocParam();
         $this->collectDocReturn();
@@ -526,22 +566,17 @@ abstract class Action extends Loader
             T_PROTECTED
         ], [T_WHITESPACE], ['useful']);
 
-        $type = $this->collect([T_FUNCTION], [T_WHITESPACE]);
+        $type  = $this->collect([T_FUNCTION], [T_WHITESPACE]);
+        $model = $this->getValue('model');
+
         if($type === 'function'){
             if($scheme === ''){
                 $scheme = 'public';
             }
+        }elseif($model === '' && $scheme === 'use'){
+            $model = $this->collect([T_STRING, T_NS_SEPARATOR], [T_WHITESPACE]);
         }else{
             return;
-        }
-
-        if($this->collect([T_STATIC], [T_WHITESPACE])){
-            return;
-        }
-
-        $model = $this->getValue('model');
-        if(!$model && $scheme === 'use'){//查看 use 或 method
-            $model = $this->collect([T_STRING, T_NS_SEPARATOR], [T_WHITESPACE]);
         }
 
         if($model){
@@ -628,9 +663,9 @@ abstract class Action extends Loader
             $type      = $this->collect([T_STRING, T_NS_SEPARATOR, T_ARRAY], [T_WHITESPACE, ','], [T_VARIABLE]);
             $reference = $this->collect(['&'], [T_WHITESPACE]);
             $name      = substr($this->collect([T_VARIABLE], [T_WHITESPACE], [T_VARIABLE]), 1);
-            if($reference && !in_array($name, self::ENABLE_QUOTE)){
-                $this->error('paramNotAllowByReference', 'Action ['.$this->class.'] 中的参数 ['.$name.'] 不允许通过引用传值，请检查');
-            }
+            //if($reference && !in_array($name, self::ENABLE_QUOTE)){
+            //    $this->error('paramNotAllowByReference', 'Action ['.$this->class.'] 中的参数 ['.$name.'] 不允许通过引用传值，请检查');
+            //}
             if($name){
                 $default       = $this->collect([T_STRING], [T_WHITESPACE, '=']);
                 $params[$name] = [
@@ -672,6 +707,9 @@ abstract class Action extends Loader
             }
         }
 
+        if($res['uri'] === './'){
+            $res['uri'] = '';
+        }
 
         if(isset($res['method'])){
             $methods = explode(',', $res['method']);
@@ -717,7 +755,7 @@ abstract class Action extends Loader
         //自动设定模板文件
         if(substr($parsed['tpl'], -1, 1) === '/'){
             $parsed['tpl'] .= substr($parsed['uri'], 1);
-            $lastSlashPos = strrpos($parsed['tpl'], '/') + 1;
+            $lastSlashPos  = strrpos($parsed['tpl'], '/') + 1;
             if(substr($parsed['tpl'], $lastSlashPos, 1) === '*'){
                 $parsed['tpl'] = substr($parsed['tpl'], 0, $lastSlashPos).static::DEFAULT_INDEX;
             }
@@ -762,8 +800,19 @@ abstract class Action extends Loader
      */
     protected function checkParsedValue(array $attr)
     {
-        if($attr['auth'] && $attr['auth'] !== 'public' && strpos($attr['auth'], '\\') !== 0){
+        if(strpos($attr['auth'], '.') === 0){
+            $attr['auth'] = $this->defaultRuler['auth'].$attr['auth'];
+        }
+        if($attr['auth'] !== 'public' && strpos($attr['auth'], '\\') !== 0){
             $attr['auth'] = self::$namespaceRoot.'\\auth\\'.$attr['auth'];
+        }
+
+        if($attr['log'] === 'none'){
+            $attr['log'] = '\jt\lib\log\DarkHole';
+        }
+
+        if(strpos($attr['log'], '\\') !== 0){
+            $attr['log'] = self::$namespaceRoot.'\\log\\'.$attr['log'];
         }
 
         if($attr['methods'] === ['cli'] && strpos($attr['affix'], 'output_') === false){

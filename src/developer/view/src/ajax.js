@@ -1,10 +1,5 @@
 /*
- *  Copyright 2012-2013 (c) Pierre Duquesne <stackp@online.fr>
- *  Licensed under the New BSD License.
- *  https://github.com/stackp/promisejs
- */
-/*
- * AJAX requests
+ * 适配jt-framework的ajax工具
  */
 const loading = document.createElement('div');
 loading.setAttribute('id', 'waitingBar');
@@ -35,23 +30,25 @@ loading.show = function(){
 const promise = {
     ajax: ajax,
     loading: loading,
-    get: newAjax('GET'),
-    post: newAjax('POST'),
-    put: newAjax('PUT'),
-    del: newAjax('DELETE'),
+    get(url, option){
+        return ajax('GET', url, option || {});
+    },
+    post(url, option){
+        return ajax('POST', url, option || {});
+    },
+    put(url, option){
+        return ajax('PUT', url, option || {});
+    },
+    del(url, option){
+        return ajax('DELETE', url, option || {});
+    },
     /**
-     * Configuration parameter: time in milliseconds after which a
-     * pending AJAX request is considered unresponsive and is
-     * aborted. Useful to deal with bad connectivity (e.g. on a
-     * mobile network). A 0 value disables AJAX timeouts.
-     *
-     * Aborted requests resolve the promise with a ETIMEOUT error
-     * code.
+     * 请求超时时间
      */
     ajaxTimeout: 0,
     option: {
         handler: {
-            start: function(){
+            start: function(xhr, q){
                 promise.loading.info('发送请求...', 'start', 0);
                 return true;
             },
@@ -60,11 +57,15 @@ const promise = {
                 return true;
             },
             fail: function(err, xhr, q){
-                promise.loading.info(err.msg, 'fail');
+                if(!err.quiet){
+                    promise.loading.info(err.msg, 'fail');
+                }
                 return true;
             },
             error: function(err, xhr, q){
-                promise.loading.info(err.msg, 'error');
+                if(!err.quiet){
+                    promise.loading.info(err.msg, 'error');
+                }
                 return true;
             },
             done: function(xhr, q){
@@ -94,34 +95,36 @@ const promise = {
         },
         judge: {
             '200': function(xhr){
-                return xhr.data.success? 'success': 'error';
+                return xhr.data.success? 'success': 'fail';
             },
             '401': function(xhr){
-                return 'fail';
+                return 'error';
             },
             'other': function(xhr){
-                return 'fail';
+                return 'error';
             }
         }
     }
 };
 
 function serialParam(data){
-    let payload = "";
-    if(typeof data === "string"){
-        payload = data;
-    }else{
-        const e = encodeURIComponent;
-        const params = [];
-
-        for(let k in data){
-            if(data.hasOwnProperty(k)){
-                params.push(e(k) + '=' + e(data[k]));
-            }
-        }
-        payload = params.join('&')
+    if(typeof data !== "object"){
+        return data;
     }
-    return payload;
+    const params = [], e = encodeURIComponent;
+    const loop = function(data, key){
+        if(typeof data === "object"){
+            for(let k in data){
+                if(data.hasOwnProperty(k)){
+                    loop(data[k], key + (key? '[' + e(k) + ']': e(k)));
+                }
+            }
+        }else{
+            params.push(key + '=' + e(data));
+        }
+    };
+    loop(data, '');
+    return params.join('&');
 }
 
 function newXhr(){
@@ -164,124 +167,149 @@ function genUrl(url, option){
     return url;
 }
 
-function MyPromise(callback, xhr){
-    const p = this, handler = promise.option.handler, listen = {};
-    p.status = 'pending';
-
-    let q;
-
-    const triggerListen = function(status, xhr){
-        let fn;
-        const data = status === 'success'? xhr.data.data: xhr.data;
-        if(handler[status].call(q, data, xhr)){
-            while(fn = listen[status].shift()){
-                fn.call(q, data, xhr);
-            }
+function triggerListen(status, xhr, listen, resolve, reject){
+    const handler = promise.option.handler, q = {"resolve": resolve, "reject": reject};
+    let fn;
+    const data = status === 'success'?xhr.data.data:xhr.data;
+    xhr.page = xhr.data.page || null;
+    while(fn = listen[status].shift()){
+        if(fn(data, xhr, q) === false){
+            break;
         }
-        if(handler.done.call(q, xhr)){
-            while(fn = listen['done'].shift()){
-                fn.call(q, xhr);
-            }
+    }
+    handler[status](data, xhr, q);
+    while(fn = listen['done'].shift()){
+        if(fn(xhr, q) === false){
+            break;
         }
-    };
+    }
+    handler.done(xhr, q);
+}
 
-    q = {
-        resolve(){
-            p.status = 'onFulfilled';
-            xhr.data = promise.option.convert.json(xhr);
-            const status = (promise.option.judge[xhr.status] || promise.option.judge.other)(xhr);
-            triggerListen(status, xhr);
-        },
-        rejected(){
-            p.status = 'onRejected';
-            xhr.data = {msg: xhr.statusText || xhr.errorMsg || 'unKnow', code: 'fail'};
-            triggerListen('fail', xhr);
-        }
-    };
+function send(pq, xhr, method, url, option){
+    method = method.toUpperCase();
+    let payload;
+    const data = option.data || {}, headers = option.header || {};
+    if(xhr === null){
+        reject({errorMsg: 'NoXhr'});
+        return;
+    }
 
-    for(let h in promise.option.handler){
-        if(promise.option.handler.hasOwnProperty(h)){
-            listen[h] = [];
-            p[h] = function(fn){
-                if(p.status === 'pending' && h === 'start'){
-                    fn.call(xhr, q);
-                    return p;
-                }
-                listen[h].push(fn);
-                if(p.status === 'onFulfilled'){
-                    q.resolve();
-                }else if(p.status === 'onRejected'){
-                    q.reject();
-                }
-                return p;
+    payload = null;
+    if(method !== 'GET'){
+        payload = serialParam(data);
+    }
+
+    xhr.open(method, genUrl(url, option));
+
+    let content_type = 'application/x-www-form-urlencoded';
+    for(let h in headers){
+        if(headers.hasOwnProperty(h)){
+            if(h.toLowerCase() === 'content-type'){
+                content_type = headers[h];
+            }else{
+                xhr.setRequestHeader(h, headers[h]);
             }
         }
     }
+    xhr.setRequestHeader('Content-type', content_type);
 
-    callback(() =>{
-        q.resolve();
-    }, () =>{
-        q.reject();
-    });
+    let timeout = promise.ajaxTimeout, tid;
+    if(timeout){
+        tid = setTimeout(function(){
+            xhr.abort();
+            xhr.errorMsg = 'TimeOutInRequest';
+            pq.reject();
+        }, timeout);
+    }
+
+    xhr.onreadystatechange = function(){
+        if(xhr.readyState === 4){
+            if(timeout){
+                clearTimeout(tid);
+            }
+            pq.resolve();
+        }
+    };
+
+    promise.option.handler.start();
+    xhr.send(payload);
+}
+
+function createLister(p, q, xhr) {
+    const handler = promise.option.handler, listen = {};
+    for(let h in handler){
+        if(handler.hasOwnProperty(h)){
+            listen[h] = [];
+        }
+    }
+
+    return {
+        watcher(fn, h){
+            if(p.status === 'pending' && h === 'start'){
+                fn(xhr, q);
+            }
+            listen[h].push(fn);
+            if(p.status === 'onFulfilled'){
+                q.resolve();
+            }else if(p.status === 'onRejected'){
+                q.reject();
+            }
+        },
+        getListen(){
+            return listen;
+        }
+    }
 }
 
 function ajax(method, url, option){
     const xhr = newXhr();
-    return new MyPromise(function(resolve, reject){
-        method = method.toUpperCase();
-        let payload;
-        const data = option.data || {}, headers = option.header || {};
-        if(xhr === null){
-            reject({errorMsg: 'NoXhr'});
-            return;
-        }
+    const q = {};
+    const p = new Promise((resolve, reject)=>{
+        q.resolve = resolve;
+        q.reject = reject;
+    });
 
-        payload = null;
-        if(method !== 'GET'){
-            payload = serialParam(data);
-        }
+    const listen = createLister(p, q, xhr);
 
-        xhr.open(method, genUrl(url, option));
-
-        let content_type = 'application/x-www-form-urlencoded';
-        for(let h in headers){
-            if(headers.hasOwnProperty(h)){
-                if(h.toLowerCase() === 'content-type'){
-                    content_type = headers[h];
-                }else{
-                    xhr.setRequestHeader(h, headers[h]);
-                }
-            }
-        }
-        xhr.setRequestHeader('Content-type', content_type);
-
-        let timeout = promise.ajaxTimeout, tid;
-        if(timeout){
-            tid = setTimeout(function(){
-                xhr.abort();
-                xhr.errorMsg = 'TimeOutInRequest';
-                reject();
-            }, timeout);
-        }
-
-        xhr.onreadystatechange = function(){
-            if(xhr.readyState === 4){
-                if(timeout){
-                    clearTimeout(tid);
-                }
-                resolve();
-            }
-        };
-
-        promise.option.handler.start();
-        xhr.send(payload);
-    }, xhr);
-}
-
-function newAjax(method){
-    return function(url, option){
-        return ajax(method, url, option || {});
+    p.status = 'pending';
+    p.start = fn => {
+        listen.watcher(fn, 'start');
+        return p;
     };
+    p.success = fn => {
+        listen.watcher(fn, 'success');
+        return p;
+    };
+    p.fail = fn => {
+        listen.watcher(fn, 'fail');
+        return p;
+    };
+    p.error = fn => {
+        listen.watcher(fn, 'error');
+        return p;
+    };
+    p.done = fn => {
+        listen.watcher(fn, 'done');
+        return p;
+    };
+
+    p.then((resolve, reject) => {
+        p.status = 'onFulfilled';
+        xhr.data = promise.option.convert.json(xhr);
+        const status = (promise.option.judge[xhr.status] || promise.option.judge.other)(xhr);
+        triggerListen(status, xhr, listen.getListen(), resolve, reject);
+    });
+
+    p.catch((resolve, reject)=>{
+        p.status = 'onRejected';
+        xhr.data = {msg: xhr.statusText || xhr.errorMsg || 'unKnow', code: 'fail'};
+        triggerListen('fail', xhr, listen.getListen(), resolve, reject);
+    });
+
+    send(q, xhr, method, url, option);
+
+    return p;
 }
 
-export default promise;
+module.exports = promise;

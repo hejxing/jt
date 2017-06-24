@@ -148,6 +148,10 @@ abstract class Model
      */
     private $notCondition = false;
     /**
+     * @var bool 是否自动开启事务
+     */
+    private $restartTransaction = false;
+    /**
      * 控制是否输出sql
      *
      * @type bool
@@ -182,13 +186,7 @@ abstract class Model
      */
     public function __construct()
     {
-        //TODO 去除开发时调用的代码
-        //@->develop
-        if(is_string(current(static::$columns))){
-            static::parseColumns();
-        }
-        //@<-develop
-
+        static::parseColumns();
         $this->connector = new Connector(PROJECT_ROOT, $this->conn);
         $quotes          = $this->connector->getQuotes();
         static::$quotes  = $quotes;
@@ -202,6 +200,9 @@ abstract class Model
      */
     private static function parseColumns()
     {
+        if(is_array(current(static::$columns))){
+            return;
+        }
         $parsed = [];
         foreach(static::$columns as $name => $column){
             $parsed[$name] = self::line($column, $name);
@@ -347,7 +348,7 @@ abstract class Model
     }
 
     /**
-     * 提交事务
+     * 提交所有事务
      */
     public static function commitAll()
     {
@@ -357,7 +358,7 @@ abstract class Model
     }
 
     /**
-     * 提交指连接的事务
+     * 提交指定连接的事务
      *
      * @param \PDO $pdo
      */
@@ -388,16 +389,26 @@ abstract class Model
     }
 
     /**
-     * 开始自动事务
+     * 关闭事务
+     *
+     * @param bool $commitQueue 是否提交之前未提交的事务,注意！！！：如不提交则会清空之前未提交的事务
+     * @param bool $restart 是否本次执行结束后又自动开启事务
+     * @return $this
      */
-    public static function autoCommit()
+    public function closeTransaction($commitQueue, $restart = true)
     {
-        foreach(Connector::getPdoList() as $pdo){
-            /* @var $pdo \PDO */
-            if($pdo->inTransaction()){
-                self::commitTransaction($pdo);
+        $this->connectDb();
+        /* @var $pdo \PDO */
+        if($this->pdo && $this->pdo->inTransaction()){
+            if($commitQueue){
+                self::commitTransaction($this->pdo);
+            }else{
+                $this->pdo->rollBack();
             }
         }
+        $this->restartTransaction = $restart;
+
+        return $this;
     }
 
     /**
@@ -414,9 +425,37 @@ abstract class Model
     }
 
     /**
+     * 提交本连接上未提交的事务
+     *
+     * @return $this
+     */
+    public function commit()
+    {
+        if($this->pdo && $this->pdo->inTransaction()){
+            self::restartTransaction($this->pdo);
+        }
+
+        return $this;
+    }
+
+    /**
+     * 回滚本连接上未提交的事务
+     *
+     * @return $this
+     */
+    public function rollBack()
+    {
+        if($this->pdo && $this->pdo->inTransaction()){
+            $this->pdo->rollBack();
+        }
+
+        return $this;
+    }
+
+    /**
      * 回滚事务
      */
-    public static function rollBack()
+    public static function rollBackAll()
     {
         foreach(Connector::getPdoList() as $pdo){
             /* @var $pdo \PDO */
@@ -516,7 +555,7 @@ abstract class Model
             $sth = $this->prepare($preSql);
             $sth->execute($data);
         }catch(\PDOException $e){
-            self::restartTransaction($this->pdo);
+            $this->rollBack();
             $this->processError($e, $this->applyExecutableToPreSql($preSql, $data));
             $sth = $this->query($preSql, $data);
         }
@@ -529,6 +568,11 @@ abstract class Model
         }
         if($this->isCleanSqlCollect){
             $this->cleanSqlCollect();
+        }
+
+        if($this->restartTransaction && $this->pdo && !$this->pdo->inTransaction()){
+            $this->pdo->beginTransaction();
+            $this->restartTransaction = false;
         }
 
         return $sth;
@@ -835,6 +879,14 @@ abstract class Model
                     $date = new \DateTime();
                     $date->setTimestamp($value);
                     $value = $date->format('Y-m-d\TH:i:s.uP');
+                }
+
+                return $value;
+            case 'date':
+                if(is_numeric($value)){
+                    $date = new \DateTime();
+                    $date->setTimestamp($value);
+                    $value = $date->format('Y-m-d');
                 }
 
                 return $value;
@@ -1576,6 +1628,9 @@ abstract class Model
      */
     public function fetchWithPage($field = '*')
     {
+        if(!isset($this->sqlCollect['limit'])){
+            self::error('notCallSetPage', '未调用setPage方法');
+        }
         $data = $this->fetch($field);
         $page = $this->getLastPageInfo();
 
@@ -1604,7 +1659,7 @@ abstract class Model
 
             return $this->lastPageInfo;
         }else{
-            return [];
+            return [0, 0, 0];
         }
     }
 
@@ -1887,23 +1942,24 @@ abstract class Model
         return $res[0]['count'];
     }
 
-
     /**
-     * 计算字段的和
+     * 获取某字段求和
      *
      * @return int
      */
-    public function sum($filed)
+    public function sum($field)
     {
+        $fieldInfo = static::$columns[$field]??null;
+        $field = !empty($fieldInfo['field']) ? $fieldInfo['field'] : $field;
         $this->applyTrashed();
-        $this->preSql .= " SUM({$filed}) as num";
+        $this->preSql .= ' SUM('.$field.') as sum';
         $this->preSql .= ' FROM '.$this->quotesTable;
         $this->genWhere();
         $this->genGroup();
 
         $res = $this->select($this->preSql, $this->data);
 
-        return $res[0]['num'];
+        return $res[0]['sum'];
     }
 
     /**
@@ -1945,10 +2001,35 @@ abstract class Model
      */
     public function where($sql, array $data = [], $bound = self::BOUND_NONE, $matchField = true)
     {
-        $this->sqlCollect['where'][] = [$sql, $data, $this->isEither(), $bound, $matchField];
+        $this->sqlCollect['where'][] = [$sql, $data, $this->isEitherCondition(), $bound, $matchField];
 
         return $this;
     }
+
+    private function whereMake($sql, $name, $data)
+    {
+        if($this->isNotCondition()){
+            $sql = strtr($sql, [
+                ' >= ' => ' < ',
+                ' <= ' => ' > ',
+                ' > '  => ' <= ',
+                ' < '  => ' >= ',
+                ' = '  => ' != '
+            ]);
+        }
+
+        $column = static::$columns[$name]??null;
+        if($column){
+            if($column['type'] === 'timestamp' || $column['type'] === 'date'){
+                foreach($data as &$v){
+                    $v = $this->inType($v, $column['type']);
+                }
+            }
+        }
+
+        $this->where($sql, $data);
+    }
+
 
     /**
      * 下一个条件与前一个条件间采用OR连接
@@ -1967,7 +2048,7 @@ abstract class Model
      *
      * @return bool
      */
-    public function isEither()
+    private function isEitherCondition()
     {
         if($this->connectByOr){
             $this->connectByOr = false;
@@ -2016,85 +2097,73 @@ abstract class Model
      */
     public function equals($name, $value)
     {
-        if($this->isNotCondition()){
-            $this->where("$name!=:$name", [$name => $value]);
-        }else{
-            $this->where("$name=:$name", [$name => $value]);
-        }
+        $this->whereMake("$name = :value", $name, ['value' => $value]);
 
         return $this;
     }
 
+    /**
+     * 字段相等
+     *
+     * @param $name
+     * @param $filed
+     * @return $this
+     */
     public function fieldEquals($name, $filed)
     {
         $filed = $this->quotesFiledName($filed);
         $name  = $this->nameMapField($name);
 
-        if($this->isNotCondition()){
-            $this->where("$name!={$filed}");
-        }else{
-            $this->where("$name={$filed}");
-        }
+        $this->whereMake("$name = {$filed}", $name, []);
 
         return $this;
     }
 
     /**
-     * 大于
+     * 大于某值
      *
-     * @param string $name
-     * @param string $value
-     *
+     * @param string           $name 要比较的属性名
+     * @param int|float|string $value 日期可以是字符串
+     * @param bool             $contain 是否包含起点
      * @return $this
      */
-    public function gt($name, $value)
+    public function more($name, $value, $contain = true)
     {
-        $this->where("$name>:$name", [$name => $value]);
+        $equ = $contain? '=': '';
+        $this->whereMake("$name >{$equ} :value", $name, ['value' => $value]);
 
         return $this;
     }
 
     /**
-     * 小于
+     * 小于某值
      *
-     * @param string $name
-     * @param string $value
-     *
+     * @param string           $name 要比较的属性名
+     * @param int|float|string $value 日期可以是字符串
+     * @param bool             $contain 是否包含止点
      * @return $this
      */
-    public function lt($name, $value)
+    public function less($name, $value, $contain = true)
     {
-        $this->where("$name<:$name", [$name => $value]);
+        $equ = $contain? '=': '';
+        $this->whereMake("$name <{$equ} :value", $name, ['value' => $value]);
 
         return $this;
     }
 
     /**
-     * 不小于
+     * 限定在某范围内
      *
-     * @param string $name
-     * @param string $value
-     *
+     * @param string           $name 要比较的属性名
+     * @param int|float|string $start 日期可以是字符串
+     * @param int|float|string $end 日期可以是字符串
+     * @param bool             $contain 是否包含起始点
      * @return $this
      */
-    public function nlt($name, $value)
+    public function between($name, $start, $end, $contain = true)
     {
-        $this->where("$name>=:$name", [$name => $value]);
-
-        return $this;
-    }
-
-    /**
-     * 不大于
-     *
-     * @param string $name
-     * @param string $value
-     *
-     * @return $thisg
-     */
-    public function ngt($name, $value)
-    {
-        $this->where("$name<=:$name", [$name => $value]);
+        $equ = $contain? '=': '';
+        $this->whereMake("$name >{$equ} :start AND $name <{$equ} :end", $name, ['start' => $start, 'end' => $end]);
 
         return $this;
     }
@@ -2103,22 +2172,22 @@ abstract class Model
      * 相等条件
      *
      * @param array  $list
-     * @param string $glue
+     * @param string $link
      * @param int    $bound
      *
      * @return $this
      */
-    public function equalsMulti($list, $glue = 'and', $bound = self::BOUND_NONE)
+    public function equalsMulti(array $list, $link = 'and', $bound = self::BOUND_NONE)
     {
-        $glue   = strtoupper($glue);
+        $glue   = strtoupper($link);
         $buffer = [];
-        if(!$this->isNotCondition()){
+        if($this->isNotCondition()){
             foreach($list as $name => $value){
-                $buffer[] = "$name=:$name";
+                $buffer[] = "$name!=:$name";
             }
         }else{
             foreach($list as $name => $value){
-                $buffer[] = "$name!=:$name";
+                $buffer[] = "$name=:$name";
             }
         }
         $this->where(implode(" {$glue} ", $buffer), $list, $bound);
@@ -2156,7 +2225,7 @@ abstract class Model
             $sqlBuilder[] = "{$name} like :keywords";
         }
 
-        $glue = $glue === 1? 'or': 'and';
+        $glue = $glue === self::LINK_OR? 'or': 'and';
 
         $sql = implode(" {$glue} ", $sqlBuilder);
 
@@ -2174,7 +2243,7 @@ abstract class Model
      *
      * @return $this
      */
-    public function like($name, $keyword, $model = self::LIKE_BOTH, $glue = self::LINK_AND, $bound = self::BOUND_NONE)
+    public function like($name, $keyword, $model = self::LIKE_BOTH, $glue = self::LINK_OR, $bound = self::BOUND_NONE)
     {
         list($sql, $data) = $this->preParseLike($name, $keyword, $model, $glue);
 

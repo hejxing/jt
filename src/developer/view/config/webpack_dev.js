@@ -6,11 +6,11 @@ const path = require('path'),
 module.exports = {
     path: {
         src: path.resolve(__basename, "src"),
-        dist: path.resolve(__basename, "build"),
+        dist: path.resolve(__basename, "build/menu"),
         pub: path.resolve(__basename, "build/pub")
     },
     htmlPath: '',
-    publicPath: '//127.0.0.1:8080/build/',
+    publicPath: '//127.0.0.1:8088/build/',
     chunkhash: "",
     hash: "",
     contenthash: ""

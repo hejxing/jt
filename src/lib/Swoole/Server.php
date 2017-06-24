@@ -320,7 +320,7 @@ class Server
      *
      *      $serv->start();
      *
-     * @param string $message
+     * @param mixed $message
      * @param int    $dst_worker_id
      * @return bool
      */
@@ -557,9 +557,9 @@ class Server
      *
      * 子进程会托管到Manager进程，如果发生致命错误，manager进程会重新创建一个
      *
-     * @param swoole_process $process
+     * @param \Swoole\Process $process
      */
-    public function addProcess(swoole_process $process)
+    public function addProcess(\Swoole\Process $process)
     {
     }
 

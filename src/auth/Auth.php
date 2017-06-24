@@ -40,7 +40,7 @@ abstract class Auth
      */
     protected $loginUrl = '/login';
     /**
-     * @var string 调用处传递过来的标记,可以针对此标记做些小调整
+     * @var string 调用处传递过来的标记,可以根据标记实现些特殊需求
      */
     protected $mark = null;
     /**
@@ -55,6 +55,10 @@ abstract class Auth
      * @var AuthConfigurator
      */
     private $configurator = null;
+    /**
+     * @var array 授权模式
+     */
+    protected static $grantMode = ['*' => 1, 'auto' => 0];
 
     /**
      * 执行权限检查
@@ -97,27 +101,6 @@ abstract class Auth
     }
 
     /**
-     * 写未授权访问的空接口
-     */
-    public function writeInExceedLog()
-    {
-    }
-
-    /**
-     * 写未授权访问的空接口
-     */
-    public function writeOutExceedLog()
-    {
-    }
-
-    /**
-     * 写访问成功日志的空接口
-     */
-    public function writeSuccessLog()
-    {
-    }
-
-    /**
      * Auth constructor.
      */
     public function __construct()
@@ -136,7 +119,7 @@ abstract class Auth
         if(Controller::current()->getMime() === 'html'){
             $this->loginPage();
         }else{
-            $this->action->fail('未登录或登录失败，请重登录', 401);
+            $this->action->fail('未登录或登录失败，请重登录', 401, ['loginUrl' => $this->loginUrl]);
         }
     }
 
@@ -181,7 +164,6 @@ abstract class Auth
                 break;
             case null:
             case 403:
-                $this->writeInExceedLog();
                 $this->inExceed();
                 break;
             default:
@@ -201,13 +183,10 @@ abstract class Auth
         $code = $this->filter();
         switch($code){
             case 200:
-                $this->writeSuccessLog();
-
                 return true;
                 break;
             case null:
             case 403:
-                $this->writeOutExceedLog();
                 $this->outExceed();
                 break;
             default:
@@ -223,7 +202,7 @@ abstract class Auth
      */
     public static function hold($data)
     {
-        $token            = Session::start(true);
+        $token            = Session::start(true, '', true);
         $data['token']    = $token;
         $_SESSION['user'] = $data;
         Controller::current()->getAction()->header('token', $token);
@@ -240,7 +219,17 @@ abstract class Auth
     {
         Session::start();
 
-        return $_SESSION['user'];
+        return $_SESSION['user']??[];
+    }
+
+    /**
+     * 判断是否登录
+     *
+     * @return bool
+     */
+    public static function isLogin()
+    {
+        return isset($_SESSION['user']);
     }
 
     /**
@@ -275,5 +264,32 @@ abstract class Auth
     public function setMark($mark)
     {
         $this->mark = $mark;
+    }
+
+    /**
+     * 获取授权模式，生成权限表时需要
+     *
+     * @param string $mark
+     *
+     * @return int 0:无需授权 1:直接授权 2:带授权选项
+     */
+    public static function getGrantMode($mark)
+    {
+        if($mark && isset(static::$grantMode[$mark])){
+            return static::$grantMode[$mark];
+        }
+
+        return static::$grantMode['*']??0;
+    }
+
+    /**
+     * 获取授权参数
+     *
+     * @param $mark
+     * @return array
+     */
+    public static function getGrantParam($mark)
+    {
+        return [];
     }
 }

@@ -7,10 +7,9 @@
 
 namespace jt\lib\session;
 
+use SessionHandlerInterface;
 
-use jt\Session;
-
-class Invalid extends Session
+class Invalid implements SessionHandlerInterface
 {
 
     /**
@@ -41,7 +40,7 @@ class Invalid extends Session
      */
     public function destroy($session_id)
     {
-        // TODO: Implement destroy() method.
+        return true;
     }
 
     /**
@@ -60,7 +59,7 @@ class Invalid extends Session
      */
     public function gc($maxlifetime)
     {
-        // TODO: Implement gc() method.
+        return true;
     }
 
     /**
@@ -99,6 +98,23 @@ class Invalid extends Session
      * @since 5.4.0
      */
     public function write($session_id, $session_data)
+    {
+        return true;
+    }
+
+    /**
+     * Initialize session
+     *
+     * @link http://php.net/manual/en/sessionhandlerinterface.open.php
+     * @param string $save_path The path where to store/retrieve the session.
+     * @param string $name The session name.
+     * @return bool <p>
+     * The return value (usually TRUE on success, FALSE on failure).
+     * Note this value is returned internally to PHP for processing.
+     * </p>
+     * @since 5.4.0
+     */
+    public function open($save_path, $name)
     {
         return true;
     }
