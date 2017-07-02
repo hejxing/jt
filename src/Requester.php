@@ -38,7 +38,7 @@ class Requester
 
     const TRUE_ITEM     = ['require', 'lower', 'upper', 'unTrim', 'unEncode', 'unClean', 'unConvert', 'raw', 'page', 'unreal'];
     const INPUT_TYPE    = ['any', 'get', 'post', 'path'];
-    const SINGLE_TYPE   = ['enum', 'bool', 'string', 'json', 'xml', 'html'];//合并上CONVERT_TYPE
+    const SINGLE_TYPE   = ['enum', 'bool', 'json', 'xml', 'html'];//合并上CONVERT_TYPE
     const MULTI_TYPE    = ['object', 'objectList', 'list'];
     const INJECT_VALUE  = ['instance', 'param'];
     const VALUE_RULE    = ['default', 'format', 'validate', 'use', 'convert', 'min', 'max', 'filter'];
@@ -250,7 +250,9 @@ class Requester
             $value = self::compositeConvert(self::revisionValue($value, $ruler), $ruler, $name, $safeCheck);
         }elseif(in_array($ruler['type'], self::CONVERT_TYPE)){ //转换类型
             $value = self::convert($value, $ruler['type'], $ruler['format']);
-        }elseif(isset($ruler['validate'])){
+        }
+
+        if(isset($ruler['validate'])){
             $result = Validate::check($value, $ruler['validate'], true);
             if($result === false){
                 if($ruler['validate'] === 'uuid' && $value === '0'){
